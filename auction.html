@@ -147,26 +147,16 @@ input:focus,select:focus{border-color:var(--accent);}
 
   <div class="sale-form">
     <div id="saleMsg"></div>
-    <div class="sale-grid">
-      <div class="form-group">
-        <label>Player Name</label>
-        <div class="autocomplete-wrap">
-          <input type="text" id="playerInput" placeholder="Search player…" autocomplete="off"
-            oninput="filterPlayerAC()" onfocus="filterPlayerAC()"
-            style="width:100%;font-size:15px;padding:10px 12px;"
-            onkeydown="handlePlayerKey(event)">
-          <div class="autocomplete-list" id="playerDrop" style="display:none;"></div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Buying Team</label>
-        <div class="autocomplete-wrap">
-          <input type="text" id="teamInput" placeholder="Search team…" autocomplete="off"
-            oninput="filterTeamAC()" onfocus="filterTeamAC()"
-            style="width:100%;font-size:15px;padding:10px 12px;"
-            onkeydown="handleTeamKey(event)">
-          <div class="autocomplete-list" id="teamDrop" style="display:none;"></div>
-        </div>
+
+    <!-- Row 1: Player search -->
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Player Name</label>
+      <div class="autocomplete-wrap">
+        <input type="text" id="playerInput" placeholder="Search player…" autocomplete="off"
+          oninput="filterPlayerAC()" onfocus="filterPlayerAC()"
+          style="width:100%;font-size:15px;padding:10px 12px;"
+          onkeydown="handlePlayerKey(event)">
+        <div class="autocomplete-list" id="playerDrop" style="display:none;"></div>
       </div>
     </div>
 
@@ -183,40 +173,41 @@ input:focus,select:focus{border-color:var(--accent);}
       <div id="liveBidsList" style="max-height:120px;overflow-y:auto;"></div>
     </div>
 
-    <!-- Going Once / Twice / SOLD controls -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;" id="auctionControls">
-      <button class="btn" id="goingOnceBtn" onclick="setStage('going_once')"
+    <!-- Going Once / Twice / Reset controls -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <button class="btn" onclick="setStage('going_once')"
         style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:10px;font-size:13px;">
         🔔 Going Once
       </button>
-      <button class="btn" id="goingTwiceBtn" onclick="setStage('going_twice')"
+      <button class="btn" onclick="setStage('going_twice')"
         style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);padding:10px;font-size:13px;">
         🔔 Going Twice
       </button>
-      <button class="btn" id="resetStageBtn" onclick="setStage('live')"
+      <button class="btn" onclick="setStage('live')"
         style="background:rgba(96,165,250,0.15);color:var(--blue);border:1px solid var(--blue);padding:10px;font-size:13px;">
         ↺ Reset Live
       </button>
     </div>
 
-    <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:10px;">
-      <div class="form-group" style="flex:1;">
+    <!-- Row 2: Amount + Winning Team + SOLD -->
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:flex-end;margin-bottom:10px;">
+      <div class="form-group">
         <label>Final Sale Amount (₹)</label>
         <input class="amount-input" type="number" id="saleAmount" placeholder="Enter amount" min="0"
           oninput="renderBidChips()" onkeydown="if(event.key==='Enter')confirmSold()">
       </div>
-      <div class="form-group" style="min-width:120px;">
+      <div class="form-group">
         <label>Winning Team</label>
         <div class="autocomplete-wrap">
           <input type="text" id="teamInput" placeholder="Search team…" autocomplete="off"
             oninput="filterTeamAC()" onfocus="filterTeamAC()"
-            style="font-size:14px;padding:8px 10px;"
+            style="width:100%;font-size:14px;padding:8px 10px;"
             onkeydown="handleTeamKey(event)">
           <div class="autocomplete-list" id="teamDrop" style="display:none;"></div>
         </div>
       </div>
-      <button class="btn btn-green" onclick="confirmSold()" id="soldBtn" style="height:50px;font-size:16px;">🔨 SOLD</button>
-      <button class="btn btn-ghost" onclick="resetForm()" style="height:50px;padding:0 12px;">↺</button>
+      <button class="btn btn-green" onclick="confirmSold()" style="height:50px;font-size:16px;white-space:nowrap;">🔨 SOLD</button>
+      <button class="btn btn-ghost" onclick="resetForm()" style="height:50px;padding:0 14px;">↺</button>
     </div>
 
     <div>
@@ -660,35 +651,6 @@ async function confirmSold() {
   playSound('sold');
   showMsg('saleMsg', `🔨 SOLD! ${player.name} → ${team.name} for ₹${fmt(amt)}`, 'success');
   resetForm();
-  await loadAll();
-  setTimeout(() => document.getElementById('playerInput').focus(), 100);
-}
-  const pn = document.getElementById('playerInput').value.trim();
-  const tn = document.getElementById('teamInput').value.trim();
-  const amt = parseFloat(document.getElementById('saleAmount').value);
-  if (!pn) { showMsg('saleMsg', 'Select a player', 'error'); return; }
-  if (!tn) { showMsg('saleMsg', 'Select a team', 'error'); return; }
-  if (isNaN(amt) || amt < 0) { showMsg('saleMsg', 'Enter valid amount', 'error'); return; }
-  const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
-  const team = teams.find(t => t.name.toLowerCase() === tn.toLowerCase());
-  if (!player) { showMsg('saleMsg', 'Player not found', 'error'); return; }
-  if (!team) { showMsg('saleMsg', 'Team not found', 'error'); return; }
-  const soldIds = new Set(sales.map(s => s.player_id));
-  if (soldIds.has(player.id)) { showMsg('saleMsg', `${player.name} already sold`, 'error'); return; }
-  if (team.credits < amt) { showMsg('saleMsg', `${team.name} only has ₹${Number(team.credits).toLocaleString('en-IN')}`, 'error'); return; }
-
-  // Insert sale
-  const { error } = await sb.from('sales').insert({
-    auction_id: auctionId, player_id: player.id, team_id: team.id, amount: amt
-  });
-  if (error) { showMsg('saleMsg', error.message, 'error'); return; }
-
-  // Update team credits
-  await sb.from('teams').update({ credits: team.credits - amt }).eq('id', team.id);
-
-  showMsg('saleMsg', `✅ ${player.name} → ${team.name} for ₹${amt.toLocaleString('en-IN')}`, 'success');
-  resetForm();
-  clearCurrentPlayer();
   await loadAll();
   setTimeout(() => document.getElementById('playerInput').focus(), 100);
 }
