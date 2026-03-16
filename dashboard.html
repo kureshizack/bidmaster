@@ -187,7 +187,7 @@ function auctionCard(a) {
     </div>
     <div><span class="room-code-pill">${a.room_code}</span></div>
     <div class="auction-actions">
-      <button class="btn btn-primary" style="flex:1;" onclick="openAuction('${a.id}')">
+      <button class="btn btn-primary" style="flex:1;" onclick="openAuction('${a.id}','${a.status}')">
         ${a.status === 'setup' ? '⚙️ Setup' : a.status === 'live' ? '🔴 Open Live' : '📊 View'}
       </button>
       <button class="btn btn-ghost" onclick="copyRoomLink('${a.room_code}')" title="Copy viewer link">🔗 Share</button>
@@ -242,13 +242,13 @@ async function createAuction() {
   await sb.from('current_state').insert({ auction_id: data.id });
 
   closeCreateModal();
-  loadAuctions(); // Refresh the list
-  alert(`✅ Auction "${data.name}" created!\nRoom code: ${data.room_code}\n\nSetup page coming soon — for now manage your auction from the dashboard.`);
+  window.location.href = `setup.html?auction=${data.id}`;
 }
 
 // ── OPEN AUCTION ──────────────────────────────────────────
-function openAuction(id) {
-  alert('Auction admin screen coming in Week 2! Your auction is saved with ID: ' + id);
+function openAuction(id, status) {
+  if (status === 'setup') window.location.href = `setup.html?auction=${id}`;
+  else window.location.href = `auction.html?auction=${id}`;
 }
 
 // ── SHARE ─────────────────────────────────────────────────
