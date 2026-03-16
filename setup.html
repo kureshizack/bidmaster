@@ -84,27 +84,38 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <div>
       <div class="panel">
         <div class="panel-title">👥 Add Team</div>
-        <div class="form-row">
+        <div class="form-row" style="margin-bottom:8px;">
           <div class="form-group" style="flex:2;">
-            <label>Team Name</label>
-            <input type="text" id="newTeamName" placeholder="e.g. Alpha Strikers XI" onkeydown="if(event.key==='Enter')addTeam()">
+            <label>Team Name *</label>
+            <input type="text" id="newTeamName" placeholder="e.g. Alpha Strikers XI">
           </div>
           <div class="form-group" style="flex:1;">
             <label>Credits</label>
             <input type="number" id="newTeamCredits" placeholder="auto">
           </div>
-          <div class="form-group">
-            <label>&nbsp;</label>
-            <button class="btn btn-primary" onclick="addTeam()">+ Add</button>
+        </div>
+        <div class="form-row" style="margin-bottom:8px;">
+          <div class="form-group" style="flex:2;">
+            <label>Captain / Owner Name *</label>
+            <input type="text" id="newCaptainName" placeholder="Captain full name">
+          </div>
+          <div class="form-group" style="flex:2;">
+            <label>Captain Mobile * (for OTP)</label>
+            <input type="tel" id="newCaptainMobile" placeholder="10-digit mobile number" maxlength="10">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Bid Step ₹</label>
+            <input type="number" id="newBidIncrement" placeholder="1000" value="1000" min="100">
           </div>
         </div>
-        <div id="teamMsg"></div>
+        <button class="btn btn-primary" onclick="addTeam()" style="width:100%;">+ Add Team</button>
+        <div id="teamMsg" style="margin-top:8px;"></div>
       </div>
 
       <div class="panel">
         <div class="panel-title">📥 Import Teams (CSV)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, MinSquad</b></p>
-        <textarea id="teamCSV" style="height:80px;resize:vertical;" placeholder="Alpha Strikers XI,100000,11&#10;Azad XI,100000,11&#10;Hussaini XI,100000,11"></textarea>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, CaptainName, CaptainMobile, BidStep</b></p>
+        <textarea id="teamCSV" style="height:90px;resize:vertical;" placeholder="Alpha Strikers XI,100000,Arif Khan,9876543210,1000&#10;Azad XI,100000,Zakwan Ahmed,9123456789,1000&#10;Hussaini XI,100000,Mohsin Raza,9988776655,500"></textarea>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
           <button class="btn btn-primary btn-sm" onclick="importTeams()">📥 Import</button>
           <span id="teamImportMsg" style="font-size:13px;color:var(--green);"></span>
@@ -229,28 +240,53 @@ function renderTeams(teams) {
   const el = document.getElementById('teamsList');
   if (!teams.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No teams yet.</p>'; return; }
   el.innerHTML = `<table class="data-table">
-    <thead><tr><th>Team</th><th>Credits</th><th>Min Squad</th><th></th></tr></thead>
+    <thead><tr><th>Team</th><th>Captain</th><th>Mobile</th><th>Team Code</th><th>Bid Step</th><th></th></tr></thead>
     <tbody>${teams.map(t => `<tr>
-      <td><b>${t.name}</b></td>
-      <td>₹${t.start_credits.toLocaleString('en-IN')}</td>
-      <td>${t.min_squad}</td>
+      <td><b>${t.name}</b><br><span style="font-size:11px;color:var(--muted);">₹${Number(t.start_credits).toLocaleString('en-IN')}</span></td>
+      <td style="font-size:13px;">${t.captain_name || '<span style="color:var(--red);">Not set</span>'}</td>
+      <td style="font-size:13px;">${t.captain_mobile || '<span style="color:var(--red);">Not set</span>'}</td>
+      <td><span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--accent);background:var(--surface2);padding:2px 8px;border-radius:4px;letter-spacing:2px;">${t.team_code || '-'}</span>
+        <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="copyTeamCode('${t.team_code}','${t.captain_mobile}','${t.name}')">📋 Copy</button>
+      </td>
+      <td style="font-size:13px;">₹${Number(t.bid_increment||1000).toLocaleString('en-IN')}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')">✕</button></td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
 
+function genTeamCode() {
+  return Math.random().toString(36).substring(2,8).toUpperCase();
+}
+function copyTeamCode(code, mobile, teamName) {
+  const msg = `🏏 AuctionXI Bidding Access\n\nTeam: ${teamName}\nYour Team Code: ${code}\n\nOpen: ${window.location.origin}/bidder.html\nEnter your team code + mobile number to start bidding live!`;
+  navigator.clipboard.writeText(msg).then(() => alert('Team code + instructions copied!\nPaste this on WhatsApp to the captain.'));
+}
+
 async function addTeam() {
   const name = document.getElementById('newTeamName').value.trim();
+  const captainName = document.getElementById('newCaptainName').value.trim();
+  const captainMobile = document.getElementById('newCaptainMobile').value.trim();
   const credits = parseFloat(document.getElementById('newTeamCredits').value) || auction.default_credits;
+  const bidIncrement = parseFloat(document.getElementById('newBidIncrement').value) || 1000;
   if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
+  if (!captainName) { showMsg('teamMsg', 'Enter captain name', 'error'); return; }
+  if (!captainMobile || captainMobile.length !== 10) { showMsg('teamMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
+  const teamCode = genTeamCode();
   const { error } = await sb.from('teams').insert({
     auction_id: auctionId, name,
-    start_credits: credits, credits, min_squad: auction.min_squad
+    start_credits: credits, credits,
+    min_squad: auction.min_squad,
+    captain_name: captainName,
+    captain_mobile: captainMobile,
+    team_code: teamCode,
+    bid_increment: bidIncrement
   });
   if (error) { showMsg('teamMsg', error.message, 'error'); return; }
   document.getElementById('newTeamName').value = '';
+  document.getElementById('newCaptainName').value = '';
+  document.getElementById('newCaptainMobile').value = '';
   document.getElementById('newTeamCredits').value = '';
-  showMsg('teamMsg', `✅ ${name} added`, 'success');
+  showMsg('teamMsg', `✅ ${name} added — Team Code: ${teamCode}`, 'success');
   await loadTeams();
 }
 
@@ -263,10 +299,18 @@ async function importTeams() {
     const p = line.split(',').map(s => s.trim());
     if (!p[0]) { skip++; continue; }
     const credits = parseFloat(p[1]) || auction.default_credits;
-    const minSq = parseInt(p[2]) || auction.min_squad;
+    const captainName = p[2] || '';
+    const captainMobile = p[3] || '';
+    const bidIncrement = parseFloat(p[4]) || 1000;
+    const teamCode = genTeamCode();
     const { error } = await sb.from('teams').insert({
       auction_id: auctionId, name: p[0],
-      start_credits: credits, credits, min_squad: minSq
+      start_credits: credits, credits,
+      min_squad: auction.min_squad,
+      captain_name: captainName,
+      captain_mobile: captainMobile,
+      team_code: teamCode,
+      bid_increment: bidIncrement
     });
     if (error) skip++; else added++;
   }
