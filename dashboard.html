@@ -123,8 +123,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
 <script>
 // ── SUPABASE CONFIG ────────────────────────────────────────
-const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
@@ -242,12 +242,13 @@ async function createAuction() {
   await sb.from('current_state').insert({ auction_id: data.id });
 
   closeCreateModal();
-  window.location.href = `setup.html?auction=${data.id}`;
+  loadAuctions(); // Refresh the list
+  alert(`✅ Auction "${data.name}" created!\nRoom code: ${data.room_code}\n\nSetup page coming soon — for now manage your auction from the dashboard.`);
 }
 
 // ── OPEN AUCTION ──────────────────────────────────────────
 function openAuction(id) {
-  window.location.href = `auction.html?auction=${id}`;
+  alert('Auction admin screen coming in Week 2! Your auction is saved with ID: ' + id);
 }
 
 // ── SHARE ─────────────────────────────────────────────────
@@ -285,4 +286,3 @@ async function signOut() {
 </script>
 </body>
 </html>
-
