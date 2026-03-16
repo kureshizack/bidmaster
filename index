@@ -135,8 +135,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:14px
       <div class="price">₹0</div>
       <div class="price-sub">forever</div>
       <ul>
-        <li>Up to 3 teams</li>
-        <li>Up to 33 players</li>
+        <li>Up to 6 teams</li>
+        <li>Up to 40 players</li>
         <li>Full auction dashboard</li>
         <li class="no">Live sync across devices</li>
         <li class="no">Viewer mode</li>
