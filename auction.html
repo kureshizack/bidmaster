@@ -173,13 +173,48 @@ input:focus,select:focus{border-color:var(--accent);}
       <span style="color:var(--muted);font-size:13px;">Select a player to see details</span>
     </div>
 
-    <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:10px;">
+    <!-- Live bid display -->
+    <div id="liveBidDisplay" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Live Bids from Captains</span>
+        <span id="bidCount" style="font-size:12px;color:var(--muted);">0 bids</span>
+      </div>
+      <div id="liveBidsList" style="max-height:120px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Going Once / Twice / SOLD controls -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;" id="auctionControls">
+      <button class="btn" id="goingOnceBtn" onclick="setStage('going_once')"
+        style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:10px;font-size:13px;">
+        🔔 Going Once
+      </button>
+      <button class="btn" id="goingTwiceBtn" onclick="setStage('going_twice')"
+        style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);padding:10px;font-size:13px;">
+        🔔 Going Twice
+      </button>
+      <button class="btn" id="resetStageBtn" onclick="setStage('live')"
+        style="background:rgba(96,165,250,0.15);color:var(--blue);border:1px solid var(--blue);padding:10px;font-size:13px;">
+        ↺ Reset Live
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:10px;">
       <div class="form-group" style="flex:1;">
         <label>Final Sale Amount (₹)</label>
         <input class="amount-input" type="number" id="saleAmount" placeholder="Enter amount" min="0"
-          oninput="renderBidChips()" onkeydown="if(event.key==='Enter')recordSale()">
+          oninput="renderBidChips()" onkeydown="if(event.key==='Enter')confirmSold()">
       </div>
-      <button class="btn btn-green" onclick="recordSale()">✅ SOLD</button>
+      <div class="form-group" style="min-width:120px;">
+        <label>Winning Team</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="teamInput" placeholder="Search team…" autocomplete="off"
+            oninput="filterTeamAC()" onfocus="filterTeamAC()"
+            style="font-size:14px;padding:8px 10px;"
+            onkeydown="handleTeamKey(event)">
+          <div class="autocomplete-list" id="teamDrop" style="display:none;"></div>
+        </div>
+      </div>
+      <button class="btn btn-green" onclick="confirmSold()" id="soldBtn" style="height:50px;font-size:16px;">🔨 SOLD</button>
       <button class="btn btn-ghost" onclick="resetForm()" style="height:50px;padding:0 12px;">↺</button>
     </div>
 
@@ -323,6 +358,13 @@ function subscribeRealtime() {
   sb.channel('auction-' + auctionId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter: `auction_id=eq.${auctionId}` }, () => loadAll())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'teams', filter: `auction_id=eq.${auctionId}` }, () => loadAll())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `auction_id=eq.${auctionId}` }, async () => {
+      const state = await sb.from('current_state').select('current_player_id').eq('auction_id', auctionId).single();
+      if (state.data?.current_player_id) {
+        await loadLiveBids(state.data.current_player_id);
+        playSound('bid');
+      }
+    })
     .subscribe();
 }
 
@@ -442,15 +484,35 @@ document.addEventListener('click', e => {
 
 // ── CURRENT PLAYER BROADCAST ──────────────────────────────
 async function setCurrentPlayer(playerId, p) {
-  await sb.from('current_state').upsert({ auction_id: auctionId, current_player_id: playerId, updated_at: new Date().toISOString() }, { onConflict: 'auction_id' });
+  await sb.from('current_state').upsert({
+    auction_id: auctionId,
+    current_player_id: playerId,
+    current_bid: 0,
+    current_bid_team_id: null,
+    stage: 'live',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'auction_id' });
+  // Clear old bids
+  await sb.from('bids').delete().eq('auction_id', auctionId).neq('player_id', playerId);
   document.getElementById('currentPlayerBox').style.display = 'flex';
   document.getElementById('cpName').textContent = p.name;
-  document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${Number(p.base_price).toLocaleString('en-IN')}</span>` : ''}${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>' : ''}`;
+  document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>` : ''}${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>' : ''}`;
+  playSound('bid');
+  await loadLiveBids(playerId);
 }
 
 async function clearCurrentPlayer() {
-  await sb.from('current_state').upsert({ auction_id: auctionId, current_player_id: null, updated_at: new Date().toISOString() }, { onConflict: 'auction_id' });
+  await sb.from('current_state').upsert({
+    auction_id: auctionId,
+    current_player_id: null,
+    current_bid: 0,
+    current_bid_team_id: null,
+    stage: 'waiting',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'auction_id' });
   document.getElementById('currentPlayerBox').style.display = 'none';
+  currentBids = [];
+  renderLiveBids();
 }
 
 // ── BID CHIPS ─────────────────────────────────────────────
@@ -468,8 +530,115 @@ function renderBidChips() {
 }
 function setBid(v) { document.getElementById('saleAmount').value = v; renderBidChips(); }
 
-// ── RECORD SALE ───────────────────────────────────────────
-async function recordSale() {
+// ── SOUNDS ────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+function playSound(type) {
+  try {
+    const ctx = getAudio();
+    const sounds = {
+      bid:         [[880, 'sine',   0.15, 0.3]],
+      going_once:  [[660, 'sine',   0.5,  0.4]],
+      going_twice: [[550, 'square', 0.6,  0.4],[440,'square',0.6,0.3]],
+      sold:        [[440,'sine',0.8,0.4],[554,'sine',0.8,0.3],[659,'sine',0.8,0.4]]
+    };
+    (sounds[type]||sounds.bid).forEach(([freq,type2,dur,vol],i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq; o.type = type2;
+      g.gain.setValueAtTime(vol, ctx.currentTime + i*0.12);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur + i*0.12);
+      o.start(ctx.currentTime + i*0.12);
+      o.stop(ctx.currentTime + dur + i*0.12 + 0.1);
+    });
+  } catch(e) {}
+}
+
+// ── STAGE CONTROL ─────────────────────────────────────────
+async function setStage(stage) {
+  await sb.from('current_state').update({
+    stage, updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+  playSound(stage);
+}
+
+// ── LIVE BIDS ─────────────────────────────────────────────
+let currentBids = [];
+async function loadLiveBids(playerId) {
+  if (!playerId) { currentBids = []; renderLiveBids(); return; }
+  const { data } = await sb.from('bids')
+    .select('*, teams(name)')
+    .eq('auction_id', auctionId)
+    .eq('player_id', playerId)
+    .order('amount', { ascending: false });
+  currentBids = data || [];
+  renderLiveBids();
+  // Auto-fill highest bid into amount field
+  if (currentBids[0]) {
+    document.getElementById('saleAmount').value = currentBids[0].amount;
+    const winTeam = currentBids[0].teams?.name || '';
+    document.getElementById('teamInput').value = winTeam;
+    renderBidChips();
+  }
+}
+function renderLiveBids() {
+  const display = document.getElementById('liveBidDisplay');
+  const list = document.getElementById('liveBidsList');
+  if (!currentBids.length) { display.style.display = 'none'; return; }
+  display.style.display = 'block';
+  document.getElementById('bidCount').textContent = `${currentBids.length} bid${currentBids.length > 1 ? 's' : ''}`;
+  list.innerHTML = currentBids.slice(0,6).map((b, i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="color:${i===0?'var(--green)':'var(--muted)'};">${i===0?'🏆':''} ${b.teams?.name || '-'}</span>
+      <span style="color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:15px;">₹${fmt(b.amount)}</span>
+    </div>`).join('');
+}
+
+// ── CONFIRM SOLD ──────────────────────────────────────────
+async function confirmSold() {
+  const pn = document.getElementById('playerInput').value.trim();
+  const tn = document.getElementById('teamInput').value.trim();
+  const amt = parseFloat(document.getElementById('saleAmount').value);
+  if (!pn) { showMsg('saleMsg', 'Select a player', 'error'); return; }
+  if (!tn) { showMsg('saleMsg', 'Select winning team', 'error'); return; }
+  if (isNaN(amt) || amt < 0) { showMsg('saleMsg', 'Enter valid amount', 'error'); return; }
+  const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
+  const team = teams.find(t => t.name.toLowerCase() === tn.toLowerCase());
+  if (!player) { showMsg('saleMsg', 'Player not found', 'error'); return; }
+  if (!team) { showMsg('saleMsg', 'Team not found', 'error'); return; }
+  const soldIds = new Set(sales.map(s => s.player_id));
+  if (soldIds.has(player.id)) { showMsg('saleMsg', `${player.name} already sold`, 'error'); return; }
+  if (team.credits < amt) { showMsg('saleMsg', `${team.name} only has ₹${fmt(team.credits)}`, 'error'); return; }
+
+  // Set stage to sold first (viewers see it)
+  await setStage('sold');
+
+  // Insert sale
+  const { error } = await sb.from('sales').insert({
+    auction_id: auctionId, player_id: player.id, team_id: team.id, amount: amt
+  });
+  if (error) { showMsg('saleMsg', error.message, 'error'); return; }
+
+  // Update team credits
+  await sb.from('teams').update({ credits: team.credits - amt }).eq('id', team.id);
+
+  // Clear current state
+  await sb.from('current_state').update({
+    current_player_id: null, current_bid: 0,
+    current_bid_team_id: null, stage: 'waiting',
+    updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+
+  // Clear bids for this player
+  await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
+
+  playSound('sold');
+  showMsg('saleMsg', `🔨 SOLD! ${player.name} → ${team.name} for ₹${fmt(amt)}`, 'success');
+  resetForm();
+  await loadAll();
+  setTimeout(() => document.getElementById('playerInput').focus(), 100);
+}
   const pn = document.getElementById('playerInput').value.trim();
   const tn = document.getElementById('teamInput').value.trim();
   const amt = parseFloat(document.getElementById('saleAmount').value);
@@ -634,6 +803,7 @@ function renderStrategy() {
 const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
 const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
 const esc = s => String(s || '').replace(/'/g, "\\'");
+const fmt = n => Number(n).toLocaleString('en-IN');
 function showMsg(id, txt, type) {
   const el = document.getElementById(id);
   el.innerHTML = `<div class="msg msg-${type}">${txt}</div>`;
