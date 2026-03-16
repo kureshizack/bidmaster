@@ -123,9 +123,9 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
 <script>
 // ── SUPABASE CONFIG ────────────────────────────────────────
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb = supabase.createClient(https://ofondrfejzcznxsvpuec.supabase.co, eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no);
 
 let currentUser = null;
 let userProfile = null;
@@ -211,7 +211,7 @@ async function createAuction() {
   if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
 
   // Freemium check — free users can have max 3 auctions
-  if (userProfile?.plan === 'free') {
+  if (userProfile?.plan === 'free' || !userProfile) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
     if (count >= 3) {
       msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Pro for unlimited.</div>'; return;
