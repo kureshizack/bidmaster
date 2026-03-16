@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AuctionXI — Live Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;
+  --border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
+
+/* ── JOIN SCREEN ── */
+#joinScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;text-align:center;}
+.join-logo{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+.join-tagline{font-size:14px;color:var(--muted);margin-bottom:40px;}
+.join-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+.room-input{background:var(--surface2);border:2px solid var(--border);color:var(--text);padding:16px;border-radius:10px;font-size:28px;font-weight:700;text-align:center;letter-spacing:8px;text-transform:uppercase;width:100%;outline:none;font-family:'Rajdhani',sans-serif;}
+.room-input:focus{border-color:var(--accent);}
+.join-btn{margin-top:14px;width:100%;padding:15px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;cursor:pointer;letter-spacing:0.5px;}
+.join-btn:hover{background:#fbbf24;}
+.join-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.join-error{color:var(--red);font-size:13px;margin-top:10px;min-height:18px;}
+
+/* ── MAIN APP ── */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+.app-header{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.app-logo{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);}
+.live-dot{display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,0.15);border:1px solid var(--red);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--red);}
+.live-dot::before{content:'';width:7px;height:7px;background:var(--red);border-radius:50%;animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.room-badge{font-family:monospace;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:2px;}
+
+/* NOW UP BOX */
+.now-up{background:linear-gradient(135deg,#1a2535,#1f2e42);border:2px solid var(--accent);border-radius:12px;margin:12px;padding:16px;}
+.now-up-label{font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.now-up-label::before{content:'🎯';}
+.now-up-name{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--text);line-height:1.1;margin-bottom:8px;}
+.now-up-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.now-up-empty{text-align:center;padding:12px 0;color:var(--muted);font-size:14px;}
+
+/* TABS */
+.bottom-tabs{display:flex;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;z-index:100;}
+.btab{flex:1;padding:12px 8px;text-align:center;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:var(--muted);border-top:3px solid transparent;transition:all 0.2s;}
+.btab.active{color:var(--accent);border-top-color:var(--accent);}
+.btab-icon{font-size:18px;display:block;margin-bottom:2px;}
+
+.view-content{display:none;flex:1;overflow-y:auto;padding-bottom:80px;}
+.view-content.active{display:block;}
+
+/* FEED */
+.feed-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);animation:fadeIn 0.4s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+.feed-num{font-size:12px;color:var(--muted);width:24px;text-align:center;flex-shrink:0;}
+.feed-info{flex:1;min-width:0;}
+.feed-player{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.feed-team{font-size:12px;color:var(--muted);margin-top:1px;}
+.feed-amount{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);flex-shrink:0;}
+.feed-time{font-size:10px;color:var(--muted);flex-shrink:0;}
+.feed-empty{text-align:center;padding:40px 20px;color:var(--muted);}
+
+/* TEAMS */
+.teams-list{padding:10px 12px;}
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.team-card-header{padding:12px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.team-card-header:active{background:var(--surface2);}
+.team-name-row{display:flex;align-items:center;gap:8px;}
+.t-name{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;}
+.t-credits{font-size:13px;color:var(--muted);}
+.t-chevron{color:var(--muted);font-size:14px;transition:transform 0.2s;}
+.team-card.open .t-chevron{transform:rotate(180deg);}
+.fund-bar{background:var(--border);border-radius:3px;height:6px;margin:0 14px 10px;overflow:hidden;}
+.fund-bar-fill{height:100%;border-radius:3px;transition:width 0.5s;}
+.team-stats{display:flex;gap:6px;padding:0 14px 10px;flex-wrap:wrap;}
+.role-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.role-pill-BAT{background:#1e3a5f;color:#93c5fd;border:1px solid #2d5490;}
+.role-pill-BOWL{background:#3f1515;color:#fca5a5;border:1px solid #6b2020;}
+.role-pill-ALL{background:#14391f;color:#86efac;border:1px solid #1e5c30;}
+.role-pill-WK{background:#3d2608;color:#fcd34d;border:1px solid #6b4010;}
+.budget-pct{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.team-players-list{padding:0 14px 12px;display:none;}
+.team-card.open .team-players-list{display:block;}
+.tp-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.tp-row:last-child{border-bottom:none;}
+.tp-name{flex:1;font-size:13px;font-weight:600;}
+.tp-price{font-size:13px;color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;}
+.role-badge{font-size:10px;border-radius:3px;padding:2px 5px;font-weight:700;}
+.role-BAT{background:#1e3a5f;color:#93c5fd;}
+.role-BOWL{background:#3f1515;color:#fca5a5;}
+.role-ALL{background:#14391f;color:#86efac;}
+.role-WK{background:#3d2608;color:#fcd34d;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:0.4px;margin-bottom:4px;}
+.stat-val{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;}
+
+/* LOADING */
+.loader{text-align:center;padding:60px 20px;color:var(--muted);}
+.loader-spinner{font-size:32px;animation:spin 1s linear infinite;display:block;margin-bottom:12px;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* ENDED BANNER */
+.ended-banner{background:rgba(148,163,184,0.1);border:1px solid var(--muted);border-radius:8px;margin:12px;padding:12px 16px;text-align:center;color:var(--muted);font-size:14px;}
+</style>
+</head>
+<body>
+
+<!-- JOIN SCREEN -->
+<div id="joinScreen">
+  <div class="join-logo">🏏 AuctionXI</div>
+  <div class="join-tagline">Live Cricket Auction Viewer</div>
+  <div class="join-label">Enter Room Code</div>
+  <input class="room-input" type="text" id="roomInput" maxlength="6" placeholder="ABC123"
+    oninput="this.value=this.value.toUpperCase()"
+    onkeydown="if(event.key==='Enter')joinRoom()">
+  <button class="join-btn" onclick="joinRoom()" id="joinBtn">Join Auction →</button>
+  <div class="join-error" id="joinError"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="app-logo">🏏 AuctionXI</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="live-dot" id="liveStatus">LIVE</div>
+      <div class="room-badge" id="appRoomCode"></div>
+    </div>
+  </div>
+
+  <!-- Now Up For Auction -->
+  <div class="now-up" id="nowUpBox">
+    <div class="now-up-label">Now Up for Auction</div>
+    <div class="now-up-empty" id="nowUpEmpty">Waiting for auctioneer...</div>
+    <div id="nowUpPlayer" style="display:none;">
+      <div class="now-up-name" id="nowUpName"></div>
+      <div class="now-up-meta" id="nowUpMeta"></div>
+    </div>
+  </div>
+
+  <!-- Tab Contents -->
+  <div class="view-content active" id="view-feed">
+    <div id="feedList"><div class="loader"><span class="loader-spinner">⟳</span>Loading sales...</div></div>
+  </div>
+
+  <div class="view-content" id="view-teams">
+    <div id="teamsList"><div class="loader"><span class="loader-spinner">⟳</span>Loading teams...</div></div>
+  </div>
+
+  <div class="view-content" id="view-stats">
+    <div id="statsContent"><div class="loader"><span class="loader-spinner">⟳</span>Loading...</div></div>
+  </div>
+
+  <!-- Bottom Tabs -->
+  <div class="bottom-tabs">
+    <div class="btab active" onclick="switchView('feed')">
+      <span class="btab-icon">📋</span>Feed
+    </div>
+    <div class="btab" onclick="switchView('teams')">
+      <span class="btab-icon">👥</span>Teams
+    </div>
+    <div class="btab" onclick="switchView('stats')">
+      <span class="btab-icon">📊</span>Stats
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let auction = null;
+let teams = [];
+let players = [];
+let sales = [];
+let currentState = null;
+
+// ── AUTO-JOIN FROM URL ────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get('room');
+  if (room) {
+    document.getElementById('roomInput').value = room.toUpperCase();
+    joinRoom();
+  }
+});
+
+// ── JOIN ROOM ─────────────────────────────────────────────
+async function joinRoom() {
+  const code = document.getElementById('roomInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('joinError');
+  const btn = document.getElementById('joinBtn');
+  if (code.length !== 6) { errEl.textContent = 'Enter a valid 6-character room code'; return; }
+  btn.textContent = 'Joining...'; btn.disabled = true; errEl.textContent = '';
+
+  const { data, error } = await sb.from('auctions').select('*').eq('room_code', code).single();
+  if (error || !data) {
+    errEl.textContent = 'Room not found. Check the code and try again.';
+    btn.textContent = 'Join Auction →'; btn.disabled = false; return;
+  }
+  auction = data;
+  document.getElementById('joinScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('appRoomCode').textContent = code;
+
+  if (data.status === 'ended') {
+    document.getElementById('liveStatus').textContent = 'ENDED';
+    document.getElementById('liveStatus').style.background = 'rgba(148,163,184,0.1)';
+    document.getElementById('liveStatus').style.borderColor = 'var(--muted)';
+    document.getElementById('liveStatus').style.color = 'var(--muted)';
+    document.getElementById('liveStatus').style.animation = 'none';
+  }
+
+  await loadAll();
+  subscribeRealtime();
+}
+
+// ── LOAD ALL DATA ─────────────────────────────────────────
+async function loadAll() {
+  const [teamsRes, playersRes, salesRes, stateRes] = await Promise.all([
+    sb.from('teams').select('*').eq('auction_id', auction.id).order('name'),
+    sb.from('players').select('*').eq('auction_id', auction.id).order('name'),
+    sb.from('sales').select('*, players(*), teams(*)').eq('auction_id', auction.id).order('sold_at', { ascending: false }),
+    sb.from('current_state').select('*, players(*)').eq('auction_id', auction.id).single()
+  ]);
+  teams = teamsRes.data || [];
+  players = playersRes.data || [];
+  sales = salesRes.data || [];
+  currentState = stateRes.data;
+  renderAll();
+}
+
+function renderAll() {
+  renderNowUp();
+  renderFeed();
+  renderTeams();
+  renderStats();
+}
+
+// ── REALTIME ──────────────────────────────────────────────
+function subscribeRealtime() {
+  sb.channel('viewer-' + auction.id)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'sales',
+      filter: `auction_id=eq.${auction.id}`
+    }, async () => {
+      const { data } = await sb.from('sales').select('*, players(*), teams(*)').eq('auction_id', auction.id).order('sold_at', { ascending: false });
+      sales = data || [];
+      // Update team credits
+      const { data: teamsData } = await sb.from('teams').select('*').eq('auction_id', auction.id).order('name');
+      teams = teamsData || [];
+      renderFeed();
+      renderTeams();
+      renderStats();
+      renderNowUp();
+      flashUpdate();
+    })
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'current_state',
+      filter: `auction_id=eq.${auction.id}`
+    }, async () => {
+      const { data } = await sb.from('current_state').select('*, players(*)').eq('auction_id', auction.id).single();
+      currentState = data;
+      renderNowUp();
+    })
+    .subscribe();
+}
+
+function flashUpdate() {
+  const box = document.getElementById('nowUpBox');
+  box.style.borderColor = 'var(--green)';
+  setTimeout(() => box.style.borderColor = 'var(--accent)', 800);
+}
+
+// ── NOW UP ────────────────────────────────────────────────
+function renderNowUp() {
+  const p = currentState?.players;
+  const emptyEl = document.getElementById('nowUpEmpty');
+  const playerEl = document.getElementById('nowUpPlayer');
+  if (!p) {
+    emptyEl.style.display = 'block'; playerEl.style.display = 'none'; return;
+  }
+  emptyEl.style.display = 'none'; playerEl.style.display = 'block';
+  document.getElementById('nowUpName').textContent = p.name;
+  document.getElementById('nowUpMeta').innerHTML = `
+    <span class="role-badge role-${p.role}">${p.role}</span>
+    ${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>` : ''}
+    ${p.star ? '<span style="color:var(--accent);font-size:13px;font-weight:700;">⭐ Star Player</span>' : ''}`;
+}
+
+// ── FEED ──────────────────────────────────────────────────
+function renderFeed() {
+  const el = document.getElementById('feedList');
+  if (!sales.length) {
+    el.innerHTML = '<div class="feed-empty">🏏<br><br>No sales yet.<br><span style="font-size:13px;">Auction hasn\'t started or no players sold.</span></div>';
+    return;
+  }
+  el.innerHTML = sales.map((s, i) => {
+    const over = s.players?.base_price && s.amount > s.players.base_price;
+    const time = new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="feed-item">
+      <div class="feed-num">${sales.length - i}</div>
+      <div class="feed-info">
+        <div class="feed-player">
+          ${s.players?.star ? '⭐ ' : ''}${s.players?.name || '-'}
+          <span class="role-badge role-${s.players?.role}" style="margin-left:4px;">${s.players?.role || ''}</span>
+        </div>
+        <div class="feed-team">${s.teams?.name || '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${fmt(s.amount - s.players.base_price)} over base</span>` : ''}</div>
+      </div>
+      <div>
+        <div class="feed-amount">₹${fmt(s.amount)}</div>
+        <div class="feed-time">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TEAMS ─────────────────────────────────────────────────
+function renderTeams() {
+  const el = document.getElementById('teamsList');
+  if (!teams.length) { el.innerHTML = '<div class="feed-empty">No teams yet.</div>'; return; }
+  el.innerHTML = `<div class="teams-list">${teams.map(t => {
+    const p = pct(t); const col = fundCol(p);
+    const teamSales = sales.filter(s => s.team_id === t.id);
+    const rc = {BAT:0,BOWL:0,ALL:0,WK:0};
+    teamSales.forEach(s => { const r = s.players?.role; if (rc[r] !== undefined) rc[r]++; });
+    const slots = t.min_squad - teamSales.length;
+    const avg = slots > 0 ? Math.floor(t.credits / slots) : 0;
+    return `<div class="team-card" id="tc-${t.id}">
+      <div class="team-card-header" onclick="toggleTeam('${t.id}')">
+        <div>
+          <div class="team-name-row">
+            <span class="t-name">${t.name}</span>
+          </div>
+          <div class="t-credits" style="color:${col};">₹${fmt(t.credits)} · ${p}% remaining</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:var(--muted);">${teamSales.length}/${t.min_squad} players</div>
+          <div class="t-chevron">▼</div>
+        </div>
+      </div>
+      <div class="fund-bar"><div class="fund-bar-fill" style="width:${p}%;background:${col};"></div></div>
+      <div class="team-stats">
+        <span class="role-pill role-pill-BAT">🏏 ${rc.BAT}</span>
+        <span class="role-pill role-pill-BOWL">🎳 ${rc.BOWL}</span>
+        <span class="role-pill role-pill-ALL">⚡ ${rc.ALL}</span>
+        <span class="role-pill role-pill-WK">🧤 ${rc.WK}</span>
+        <span class="budget-pct" style="background:${col}20;color:${col};border:1px solid ${col}40;">~₹${fmt(avg)}/slot</span>
+      </div>
+      <div class="team-players-list">
+        ${teamSales.length ? teamSales.map(s => `
+          <div class="tp-row">
+            <span style="color:${s.players?.star?'var(--accent)':'#374151'};">★</span>
+            <span class="tp-name">${s.players?.name || '-'}</span>
+            <span class="role-badge role-${s.players?.role}">${s.players?.role}</span>
+            <span class="tp-price">₹${fmt(s.amount)}</span>
+          </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No players yet</div>'}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function toggleTeam(id) {
+  const card = document.getElementById('tc-' + id);
+  card.classList.toggle('open');
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function renderStats() {
+  const el = document.getElementById('statsContent');
+  const sold = players.filter(p => sales.find(s => s.player_id === p.id)).length;
+  const remaining = players.length - sold;
+  const totalSpent = sales.reduce((s, x) => s + Number(x.amount), 0);
+  const totalLeft = teams.reduce((s, t) => s + Number(t.credits), 0);
+  const topSale = sales.length ? sales.reduce((a, b) => a.amount > b.amount ? a : b) : null;
+  const mostBought = teams.length ? [...teams].sort((a, b) => {
+    return sales.filter(s => s.team_id === b.id).length - sales.filter(s => s.team_id === a.id).length;
+  })[0] : null;
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-lbl">Players Sold</div>
+        <div class="stat-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${players.length}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Still Available</div>
+        <div class="stat-val" style="color:var(--blue);">${remaining}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Total Spent</div>
+        <div class="stat-val" style="color:var(--accent);">₹${fmt(totalSpent)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Budget Left</div>
+        <div class="stat-val" style="color:var(--yellow);">₹${fmt(totalLeft)}</div>
+      </div>
+    </div>
+
+    ${topSale ? `<div style="padding:0 12px 10px;">
+      <div class="stat-card" style="background:rgba(245,158,11,0.06);border-color:var(--accent);">
+        <div class="stat-lbl">💰 Highest Sale</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">₹${fmt(topSale.amount)}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px;">${topSale.players?.name} → ${topSale.teams?.name}</div>
+      </div>
+    </div>` : ''}
+
+    <div style="padding:0 12px;">
+      <div class="stat-lbl" style="margin-bottom:8px;padding-left:2px;">📊 Budget Comparison</div>
+      ${teams.map(t => {
+        const p = pct(t); const col = fundCol(p);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+          <div style="font-size:12px;color:var(--muted);width:100px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">${t.name}</div>
+          <div style="flex:1;background:var(--border);border-radius:3px;height:12px;overflow:hidden;">
+            <div style="width:${p}%;height:100%;background:${col};border-radius:3px;transition:width 0.5s;"></div>
+          </div>
+          <div style="font-size:11px;color:${col};width:70px;flex-shrink:0;font-weight:600;">${p}% ₹${fmt(t.credits)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── SWITCH VIEW ───────────────────────────────────────────
+function switchView(name) {
+  document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.btab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`.btab[onclick="switchView('${name}')"]`).classList.add('active');
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+const fmt = n => Number(n).toLocaleString('en-IN');
+const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
+const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
+</script>
+</body>
+</html>
