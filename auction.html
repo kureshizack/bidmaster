@@ -317,7 +317,7 @@ let acPlayerIdx = -1, acTeamIdx = -1;
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
   // Check Supabase keys are configured
-  if (SUPABASE_URL === 'https://ofondrfejzcznxsvpuec.supabase.co') {
+if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
     document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
       ⚠️ Supabase URL not configured in auction.html.<br><br>
       Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
