@@ -247,14 +247,17 @@ async function submitAuth() {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const name = document.getElementById('authName').value.trim();
-  const msgEl = document.getElementById('authMsg');
   const btn = document.getElementById('authSubmitBtn');
   if (!email || !password) { showAuthMsg('Please fill in all fields', 'error'); return; }
   btn.textContent = '...'; btn.disabled = true;
   if (authMode === 'signup') {
     if (!name) { showAuthMsg('Please enter your name', 'error'); btn.textContent = 'Create Account'; btn.disabled = false; return; }
-    const { error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
     if (error) { showAuthMsg(error.message, 'error'); btn.textContent = 'Create Account'; btn.disabled = false; return; }
+    // Manually create profile row (no trigger needed)
+    if (data?.user) {
+      await sb.from('profiles').upsert({ id: data.user.id, name }, { onConflict: 'id' });
+    }
     showAuthMsg('✅ Account created! Redirecting...', 'success');
     setTimeout(() => window.location.href = 'dashboard.html', 1200);
   } else {
