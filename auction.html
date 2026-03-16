@@ -117,7 +117,8 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="live-badge">🔴 LIVE</div>
   <div class="room-pill" id="navRoomCode">------</div>
   <div class="nav-right">
-    <button class="btn btn-ghost btn-sm" onclick="copyViewerLink()">🔗 Share</button>
+    <button class="btn btn-ghost btn-sm" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()">🏏 Bidder Links</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyViewerLink()">🔗 Viewer Link</button>
     <button class="btn btn-ghost btn-sm" onclick="window.location.href='setup.html?auction='+auctionId">⚙ Setup</button>
     <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">← Home</button>
   </div>
@@ -323,11 +324,23 @@ let acPlayerIdx = -1, acTeamIdx = -1;
 // ── INIT ──────────────────────────────────────────────────
 (async () => {
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
+
+  // Check Supabase keys are configured
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
+      ⚠️ Supabase URL not configured in auction.html.<br><br>
+      Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
+    </div>`; return;
+  }
+
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'index.html'; return; }
   await loadAll();
   subscribeRealtime();
-  document.getElementById('playerInput').focus();
+  setTimeout(() => {
+    const inp = document.getElementById('playerInput');
+    if (inp) inp.focus();
+  }, 500);
 })();
 
 async function loadAll() {
@@ -337,11 +350,21 @@ async function loadAll() {
     sb.from('players').select('*').eq('auction_id', auctionId).order('name'),
     sb.from('sales').select('*, players(*), teams(*)').eq('auction_id', auctionId).order('sold_at', { ascending: false })
   ]);
+  if (auc.error || !auc.data) {
+    document.getElementById('saleMsg').innerHTML = `<div class="msg msg-error">
+      ⚠️ Could not load auction data. Error: ${auc.error?.message || 'Unknown'}.<br>
+      Make sure your Supabase keys are correct in this file.
+    </div>`;
+    return;
+  }
   auction = auc.data;
   teams = teamsData.data || [];
   players = playersData.data || [];
   sales = salesData.data || [];
-  document.getElementById('navRoomCode').textContent = auction?.room_code || '------';
+  document.getElementById('navRoomCode').textContent = auction.room_code || '------';
+  if (auction.room_code) {
+    document.getElementById('bidderLinkBtn').style.display = 'inline-flex';
+  }
   renderAll();
 }
 
@@ -378,7 +401,8 @@ function switchTab(name) {
 
 // ── SUMMARY BAR ───────────────────────────────────────────
 function renderSummaryBar() {
-  const sold = players.filter(p => p.sold_to_team_id).length;
+  const soldIds = new Set(sales.map(s => s.player_id));
+  const sold = soldIds.size;
   const remaining = players.length - sold;
   const totalSpent = sales.reduce((s, x) => s + Number(x.amount), 0);
   const totalLeft = teams.reduce((s, t) => s + Number(t.credits), 0);
@@ -810,8 +834,25 @@ function showMsg(id, txt, type) {
   if (type === 'success') setTimeout(() => el.innerHTML = '', 3000);
 }
 function copyViewerLink() {
-  const url = `${window.location.origin}/viewer.html?room=${auction?.room_code}`;
-  navigator.clipboard.writeText(url).then(() => alert(`Viewer link copied!\n\n${url}\n\nShare on WhatsApp with team managers.`));
+  const url = `${window.location.origin}/bidmaster/viewer.html?room=${auction?.room_code}`;
+  navigator.clipboard.writeText(url).then(() => alert(`Viewer link copied!\n\n${url}\n\nShare on WhatsApp with anyone who wants to watch live.`));
+}
+function copyBidderLinks() {
+  if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
+  const base = `${window.location.origin}/bidmaster/bidder.html`;
+  let msg = `🏏 AuctionXI — Live Bidding\nAuction: ${auction.name}\n\n`;
+  msg += `📱 Bidding Link: ${base}\n\n`;
+  msg += `━━━━━━━━━━━━━━━━━━\n`;
+  teams.forEach(t => {
+    if (t.team_code) {
+      msg += `\n🏏 ${t.name}\n`;
+      msg += `Captain: ${t.captain_name || 'Not set'}\n`;
+      msg += `Team Code: ${t.team_code}\n`;
+      msg += `Mobile: ${t.captain_mobile || 'Not set'}\n`;
+    }
+  });
+  msg += `\n━━━━━━━━━━━━━━━━━━\nOpen the link, enter your Team Code, verify mobile OTP to start bidding!`;
+  navigator.clipboard.writeText(msg).then(() => alert('All team codes copied!\n\nPaste this on your WhatsApp group to share with all captains.'));
 }
 </script>
 </body>
