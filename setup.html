@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auction Setup — AuctionXI</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#111827;--surface:#1f2937;--surface2:#27364b;--border:#3d5068;
+  --accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);}
+.nav-sep{color:var(--border);font-size:18px;}
+.auction-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:600;color:var(--text);}
+.nav-right{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.btn{padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;transition:all 0.15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:#fbbf24;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);}
+.btn-green{background:var(--green);color:#000;font-size:15px;padding:10px 28px;}.btn-green:hover{background:#4ade80;}
+.btn-danger{background:var(--red);color:#fff;}.btn-danger:hover{filter:brightness(1.2);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+
+.container{max-width:1000px;margin:0 auto;padding:24px 20px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:16px;}
+.panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.form-group label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:6px;font-size:14px;outline:none;width:100%;font-family:'Noto Sans',sans-serif;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.msg{padding:8px 12px;border-radius:5px;font-size:13px;margin-bottom:8px;}
+.msg-error{background:rgba(239,68,68,0.12);border:1px solid var(--red);color:#fca5a5;}
+.msg-success{background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;}
+
+/* Tables */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{background:var(--surface2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;}
+.data-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--surface2);}
+.role-badge{font-size:11px;border-radius:3px;padding:2px 6px;font-weight:700;}
+.role-BAT{background:#1e3a5f;color:#93c5fd;}
+.role-BOWL{background:#3f1515;color:#fca5a5;}
+.role-ALL{background:#14391f;color:#86efac;}
+.role-WK{background:#3d2608;color:#fcd34d;}
+.star-lit{color:var(--accent);}
+.star-dim{color:#374151;}
+
+/* Launch section */
+.launch-box{background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:24px;text-align:center;margin-top:20px;}
+.launch-box h2{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;margin-bottom:8px;}
+.launch-box p{color:var(--muted);font-size:14px;margin-bottom:20px;}
+.room-code-display{font-family:monospace;font-size:32px;font-weight:700;color:var(--accent);letter-spacing:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 24px;display:inline-block;margin-bottom:20px;}
+.stats-row{display:flex;gap:20px;justify-content:center;margin-bottom:20px;flex-wrap:wrap;}
+.stat{text-align:center;}
+.stat-val{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;}
+.stat-lbl{font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">🏏 AuctionXI</div>
+  <div class="nav-sep">/</div>
+  <div class="auction-title" id="navAuctionName">Loading...</div>
+  <div class="nav-right">
+    <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="two-col">
+    <!-- LEFT: TEAMS -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">👥 Add Team</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label>Team Name</label>
+            <input type="text" id="newTeamName" placeholder="e.g. Alpha Strikers XI" onkeydown="if(event.key==='Enter')addTeam()">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Credits</label>
+            <input type="number" id="newTeamCredits" placeholder="auto">
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" onclick="addTeam()">+ Add</button>
+          </div>
+        </div>
+        <div id="teamMsg"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📥 Import Teams (CSV)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, MinSquad</b></p>
+        <textarea id="teamCSV" style="height:80px;resize:vertical;" placeholder="Alpha Strikers XI,100000,11&#10;Azad XI,100000,11&#10;Hussaini XI,100000,11"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="importTeams()">📥 Import</button>
+          <span id="teamImportMsg" style="font-size:13px;color:var(--green);"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">👥 Teams (<span id="teamCount">0</span>)</div>
+        <div id="teamsList"><p style="color:var(--muted);font-size:13px;">No teams yet.</p></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: PLAYERS -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">🏏 Add Player</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label>Name</label>
+            <input type="text" id="newPlayerName" placeholder="Player name" onkeydown="if(event.key==='Enter')addPlayer()">
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Role</label>
+            <select id="newPlayerRole">
+              <option value="BAT">BAT</option>
+              <option value="BOWL">BOWL</option>
+              <option value="ALL">ALL</option>
+              <option value="WK">WK</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Base ₹</label>
+            <input type="number" id="newPlayerBase" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" onclick="addPlayer()">+ Add</button>
+          </div>
+        </div>
+        <div id="playerMsg"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📥 Import Players (CSV)</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>Name, Role, BasePrice</b> — Roles: BAT / BOWL / ALL / WK</p>
+        <textarea id="playerCSV" style="height:100px;resize:vertical;" placeholder="Virat Kohli,BAT,2000&#10;Jasprit Bumrah,BOWL,1500&#10;MS Dhoni,WK,1000&#10;Hardik Pandya,ALL,1200"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="importPlayers()">📥 Import</button>
+          <span id="playerImportMsg" style="font-size:13px;color:var(--green);"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🏏 Players (<span id="playerCount">0</span>)</div>
+        <div style="max-height:300px;overflow-y:auto;" id="playersList">
+          <p style="color:var(--muted);font-size:13px;">No players yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAUNCH BOX -->
+  <div class="launch-box" id="launchBox">
+    <h2>🚀 Ready to Launch?</h2>
+    <p>Share this room code with your team managers — they open it on their phones to watch live.</p>
+    <div class="room-code-display" id="roomCodeDisplay">------</div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val" id="launchTeams" style="color:var(--blue);">0</div><div class="stat-lbl">Teams</div></div>
+      <div class="stat"><div class="stat-val" id="launchPlayers" style="color:var(--green);">0</div><div class="stat-lbl">Players</div></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="copyViewerLink()">🔗 Copy Viewer Link</button>
+      <button class="btn btn-green" onclick="launchAuction()" id="launchBtn">🔴 Go Live</button>
+    </div>
+    <div id="launchMsg" style="margin-top:12px;font-size:13px;min-height:18px;"></div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let auction = null;
+const auctionId = new URLSearchParams(window.location.search).get('auction');
+
+// ── INIT ──────────────────────────────────────────────────
+(async () => {
+  if (!auctionId) { window.location.href = 'dashboard.html'; return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
+  currentUser = session.user;
+  await loadAuction();
+  await loadTeams();
+  await loadPlayers();
+})();
+
+async function loadAuction() {
+  const { data } = await sb.from('auctions').select('*').eq('id', auctionId).single();
+  if (!data) { window.location.href = 'dashboard.html'; return; }
+  auction = data;
+  document.getElementById('navAuctionName').textContent = data.name;
+  document.getElementById('roomCodeDisplay').textContent = data.room_code;
+  document.getElementById('newTeamCredits').placeholder = data.default_credits;
+  if (data.status === 'live') {
+    document.getElementById('launchBtn').textContent = '▶ Continue Live';
+    document.getElementById('launchBtn').onclick = () => window.location.href = `auction.html?auction=${auctionId}`;
+  }
+}
+
+// ── TEAMS ─────────────────────────────────────────────────
+async function loadTeams() {
+  const { data } = await sb.from('teams').select('*').eq('auction_id', auctionId).order('name');
+  renderTeams(data || []);
+}
+
+function renderTeams(teams) {
+  document.getElementById('teamCount').textContent = teams.length;
+  document.getElementById('launchTeams').textContent = teams.length;
+  const el = document.getElementById('teamsList');
+  if (!teams.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No teams yet.</p>'; return; }
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>Team</th><th>Credits</th><th>Min Squad</th><th></th></tr></thead>
+    <tbody>${teams.map(t => `<tr>
+      <td><b>${t.name}</b></td>
+      <td>₹${t.start_credits.toLocaleString('en-IN')}</td>
+      <td>${t.min_squad}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')">✕</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function addTeam() {
+  const name = document.getElementById('newTeamName').value.trim();
+  const credits = parseFloat(document.getElementById('newTeamCredits').value) || auction.default_credits;
+  if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
+  const { error } = await sb.from('teams').insert({
+    auction_id: auctionId, name,
+    start_credits: credits, credits, min_squad: auction.min_squad
+  });
+  if (error) { showMsg('teamMsg', error.message, 'error'); return; }
+  document.getElementById('newTeamName').value = '';
+  document.getElementById('newTeamCredits').value = '';
+  showMsg('teamMsg', `✅ ${name} added`, 'success');
+  await loadTeams();
+}
+
+async function importTeams() {
+  const raw = document.getElementById('teamCSV').value.trim();
+  if (!raw) return;
+  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
+  let added = 0, skip = 0;
+  for (const line of rows) {
+    const p = line.split(',').map(s => s.trim());
+    if (!p[0]) { skip++; continue; }
+    const credits = parseFloat(p[1]) || auction.default_credits;
+    const minSq = parseInt(p[2]) || auction.min_squad;
+    const { error } = await sb.from('teams').insert({
+      auction_id: auctionId, name: p[0],
+      start_credits: credits, credits, min_squad: minSq
+    });
+    if (error) skip++; else added++;
+  }
+  document.getElementById('teamImportMsg').textContent = `✅ ${added} added, ${skip} skipped`;
+  document.getElementById('teamCSV').value = '';
+  setTimeout(() => document.getElementById('teamImportMsg').textContent = '', 3000);
+  await loadTeams();
+}
+
+async function deleteTeam(id) {
+  if (!confirm('Remove this team?')) return;
+  await sb.from('teams').delete().eq('id', id);
+  await loadTeams();
+}
+
+// ── PLAYERS ───────────────────────────────────────────────
+async function loadPlayers() {
+  const { data } = await sb.from('players').select('*').eq('auction_id', auctionId).order('name');
+  renderPlayers(data || []);
+}
+
+function normalizeRole(r) {
+  const s = (r || '').toUpperCase().trim();
+  if (['BAT','BATSMAN','BATTER'].includes(s)) return 'BAT';
+  if (['BOWL','BOWLER','BOWLING'].includes(s)) return 'BOWL';
+  if (['ALL','ALLROUNDER','ALL-ROUNDER','ALL ROUNDER'].includes(s)) return 'ALL';
+  if (['WK','WICKETKEEPER','KEEPER','WICKET KEEPER'].includes(s)) return 'WK';
+  return 'BAT';
+}
+
+function renderPlayers(players) {
+  document.getElementById('playerCount').textContent = players.length;
+  document.getElementById('launchPlayers').textContent = players.length;
+  const el = document.getElementById('playersList');
+  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet.</p>'; return; }
+  el.innerHTML = `<table class="data-table">
+    <thead><tr><th>★</th><th>Player</th><th>Role</th><th>Base</th><th></th></tr></thead>
+    <tbody>${players.map(p => `<tr>
+      <td><span class="${p.star ? 'star-lit' : 'star-dim'}" style="cursor:pointer;font-size:15px;" onclick="toggleStar('${p.id}',${p.star})">★</span></td>
+      <td><b>${p.name}</b></td>
+      <td><span class="role-badge role-${p.role}">${p.role}</span></td>
+      <td>${p.base_price ? '₹' + p.base_price.toLocaleString('en-IN') : '-'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function addPlayer() {
+  const name = document.getElementById('newPlayerName').value.trim();
+  const role = document.getElementById('newPlayerRole').value;
+  const base = parseFloat(document.getElementById('newPlayerBase').value) || 0;
+  if (!name) { showMsg('playerMsg', 'Enter player name', 'error'); return; }
+  const { error } = await sb.from('players').insert({
+    auction_id: auctionId, name, role, base_price: base, star: false
+  });
+  if (error) { showMsg('playerMsg', error.message, 'error'); return; }
+  document.getElementById('newPlayerName').value = '';
+  document.getElementById('newPlayerBase').value = '';
+  showMsg('playerMsg', `✅ ${name} added`, 'success');
+  await loadPlayers();
+  document.getElementById('newPlayerName').focus();
+}
+
+async function importPlayers() {
+  const raw = document.getElementById('playerCSV').value.trim();
+  if (!raw) return;
+  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
+  let added = 0, skip = 0;
+  const inserts = [];
+  for (const line of rows) {
+    const p = line.split(',').map(s => s.trim());
+    if (!p[0]) { skip++; continue; }
+    inserts.push({
+      auction_id: auctionId,
+      name: p[0],
+      role: normalizeRole(p[1] || 'BAT'),
+      base_price: parseFloat(p[2]) || 0,
+      star: false
+    });
+  }
+  if (inserts.length) {
+    const { error } = await sb.from('players').insert(inserts);
+    if (error) { skip += inserts.length; }
+    else added = inserts.length;
+  }
+  document.getElementById('playerImportMsg').textContent = `✅ ${added} added, ${skip} skipped`;
+  document.getElementById('playerCSV').value = '';
+  setTimeout(() => document.getElementById('playerImportMsg').textContent = '', 3000);
+  await loadPlayers();
+}
+
+async function toggleStar(id, current) {
+  await sb.from('players').update({ star: !current }).eq('id', id);
+  await loadPlayers();
+}
+
+async function deletePlayer(id) {
+  if (!confirm('Remove this player?')) return;
+  await sb.from('players').delete().eq('id', id);
+  await loadPlayers();
+}
+
+// ── LAUNCH ────────────────────────────────────────────────
+async function launchAuction() {
+  const teams = parseInt(document.getElementById('launchTeams').textContent);
+  const players = parseInt(document.getElementById('launchPlayers').textContent);
+  if (teams < 2) { document.getElementById('launchMsg').innerHTML = '<span style="color:var(--red);">Add at least 2 teams before going live.</span>'; return; }
+  if (players < 1) { document.getElementById('launchMsg').innerHTML = '<span style="color:var(--red);">Add at least 1 player before going live.</span>'; return; }
+  await sb.from('auctions').update({ status: 'live' }).eq('id', auctionId);
+  window.location.href = `auction.html?auction=${auctionId}`;
+}
+
+function copyViewerLink() {
+  const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied! Share on WhatsApp.</span>';
+    setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function showMsg(id, txt, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="msg msg-${type}">${txt}</div>`;
+  setTimeout(() => el.innerHTML = '', 3000);
+}
+</script>
+</body>
+</html>
