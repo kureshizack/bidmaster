@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuctionXI — Cricket Auction Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#111827;--surface:#1f2937;--surface2:#27364b;--border:#3d5068;
+  --accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── NAV ── */
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--accent);}
+.nav-links{display:flex;gap:12px;align-items:center;}
+.btn{padding:9px 20px;border-radius:6px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:#fbbf24;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:80px 24px 60px;}
+.hero h1{font-family:'Rajdhani',sans-serif;font-size:52px;font-weight:700;line-height:1.1;margin-bottom:16px;}
+.hero h1 span{color:var(--accent);}
+.hero p{font-size:18px;color:var(--muted);max-width:520px;margin:0 auto 36px;}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.btn-large{padding:14px 36px;font-size:18px;border-radius:8px;}
+
+/* ── FEATURES ── */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:960px;margin:0 auto;padding:0 24px 80px;}
+.feat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;}
+.feat-icon{font-size:32px;margin-bottom:12px;}
+.feat h3{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+.feat p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+/* ── PRICING ── */
+.pricing-section{background:var(--surface);padding:60px 24px;text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.pricing-section h2{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;margin-bottom:8px;}
+.pricing-section p{color:var(--muted);margin-bottom:40px;}
+.pricing-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:640px;margin:0 auto;}
+.price-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:28px 24px;}
+.price-card.featured{border-color:var(--accent);border-width:2px;}
+.price-card .plan-name{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.price-card.featured .plan-name{color:var(--accent);}
+.price-card .price{font-family:'Rajdhani',sans-serif;font-size:42px;font-weight:700;margin-bottom:4px;}
+.price-card .price-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.price-card ul{list-style:none;text-align:left;display:flex;flex-direction:column;gap:9px;margin-bottom:24px;}
+.price-card li{font-size:14px;display:flex;gap:8px;align-items:flex-start;}
+.price-card li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+.price-card li.no::before{content:'✕';color:var(--red);}
+
+/* ── AUTH MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:100%;max-width:400px;margin:16px;}
+.modal h2{font-family:'Rajdhani',sans-serif;font-size:24px;color:var(--accent);margin-bottom:6px;}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:24px;}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.form-group label{font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
+.form-group input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:15px;outline:none;width:100%;}
+.form-group input:focus{border-color:var(--accent);}
+.auth-msg{font-size:13px;min-height:20px;margin-bottom:8px;}
+.auth-msg.error{color:var(--red);}
+.auth-msg.success{color:var(--green);}
+.auth-switch{text-align:center;margin-top:16px;font-size:14px;color:var(--muted);}
+.auth-switch a{color:var(--accent);cursor:pointer;text-decoration:underline;}
+.divider{text-align:center;color:var(--muted);font-size:13px;margin:10px 0;}
+
+/* ── JOIN VIEWER ── */
+.join-section{padding:60px 24px;text-align:center;max-width:500px;margin:0 auto;}
+.join-section h2{font-family:'Rajdhani',sans-serif;font-size:28px;margin-bottom:8px;}
+.join-section p{color:var(--muted);margin-bottom:24px;}
+.room-input-row{display:flex;gap:10px;justify-content:center;}
+.room-input-row input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 16px;border-radius:6px;font-size:22px;font-weight:700;text-align:center;letter-spacing:6px;text-transform:uppercase;width:180px;outline:none;}
+.room-input-row input:focus{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">🏏 AuctionXI</div>
+  <div class="nav-links">
+    <button class="btn btn-ghost" onclick="openAuth('login')">Log In</button>
+    <button class="btn btn-primary" onclick="openAuth('signup')">Sign Up Free</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Run Your Cricket Auction<br><span>Like a Pro</span></h1>
+  <p>Create an auction room, import your players and teams, and let every team manager watch live on their phone.</p>
+  <div class="hero-btns">
+    <button class="btn btn-primary btn-large" onclick="openAuth('signup')">🚀 Start Free</button>
+    <button class="btn btn-ghost btn-large" onclick="document.getElementById('joinSection').scrollIntoView({behavior:'smooth'})">📱 Join as Viewer</button>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+  <div class="feat">
+    <div class="feat-icon">📡</div>
+    <h3>Live Sync</h3>
+    <p>Every sale instantly updates on all connected devices. No refresh, no lag.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">📱</div>
+    <h3>Viewer Mode</h3>
+    <p>Team managers join with a 6-digit room code. They see live squads, budgets, and who's up for auction.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">🎯</div>
+    <h3>Strategy Intelligence</h3>
+    <p>Track rival budgets, spot role gaps, and know exactly when to push and when to hold back.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">⚡</div>
+    <h3>Built for Speed</h3>
+    <p>Keyboard-first sale recording. Player → Team → Amount → Enter. Done in seconds.</p>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-section">
+  <h2>Simple Pricing</h2>
+  <p>Start free. Upgrade when your league grows.</p>
+  <div class="pricing-cards">
+    <div class="price-card">
+      <div class="plan-name">FREE</div>
+      <div class="price">₹0</div>
+      <div class="price-sub">forever</div>
+      <ul>
+        <li>Up to 3 teams</li>
+        <li>Up to 33 players</li>
+        <li>Full auction dashboard</li>
+        <li class="no">Live sync across devices</li>
+        <li class="no">Viewer mode</li>
+        <li class="no">PDF report</li>
+        <li class="no">Auction history</li>
+      </ul>
+      <button class="btn btn-ghost" style="width:100%;" onclick="openAuth('signup')">Get Started</button>
+    </div>
+    <div class="price-card featured">
+      <div class="plan-name">PRO</div>
+      <div class="price">₹499</div>
+      <div class="price-sub">per auction · or ₹2,499/year</div>
+      <ul>
+        <li>Unlimited teams & players</li>
+        <li>Live sync across devices</li>
+        <li>Viewer mode (room code)</li>
+        <li>PDF report after auction</li>
+        <li>Full auction history</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="btn btn-primary" style="width:100%;" onclick="openAuth('signup')">Start Free Trial</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOIN AS VIEWER -->
+<div class="join-section" id="joinSection">
+  <h2>📱 Joining as a Viewer?</h2>
+  <p>Got a room code from your auction organizer? Enter it below to watch live.</p>
+  <div class="room-input-row">
+    <input type="text" id="roomCodeInput" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+    <button class="btn btn-primary" style="font-size:16px;" onclick="joinRoom()">Join</button>
+  </div>
+  <div id="joinMsg" style="margin-top:12px;font-size:14px;color:var(--red);min-height:20px;"></div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <h2 id="authTitle">Create Account</h2>
+    <p id="authSubtitle">Free forever. No credit card needed.</p>
+    <div id="signupFields">
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="authName" placeholder="e.g. Zakwan Ahmed">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')submitAuth()">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')submitAuth()">
+    </div>
+    <div class="auth-msg" id="authMsg"></div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:16px;" onclick="submitAuth()" id="authSubmitBtn">Create Account</button>
+    <div class="divider">— or —</div>
+    <div class="auth-switch" id="authSwitch">
+      Already have an account? <a onclick="switchAuth('login')">Log in</a>
+    </div>
+    <button class="btn btn-ghost" style="position:absolute;top:16px;right:16px;padding:4px 10px;font-size:18px;" onclick="closeAuth()">✕</button>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE CONFIG ────────────────────────────────────────
+// TODO: Replace with your actual Supabase project URL and anon key
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── AUTH STATE ─────────────────────────────────────────────
+let authMode = 'signup';
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) window.location.href = 'dashboard.html';
+})();
+
+// ── AUTH MODAL ─────────────────────────────────────────────
+function openAuth(mode) {
+  authMode = mode;
+  document.getElementById('authModal').classList.add('open');
+  switchAuth(mode);
+  setTimeout(() => {
+    const f = mode === 'signup' ? document.getElementById('authName') : document.getElementById('authEmail');
+    if (f) f.focus();
+  }, 100);
+}
+function closeAuth() {
+  document.getElementById('authModal').classList.remove('open');
+  document.getElementById('authMsg').textContent = '';
+}
+function switchAuth(mode) {
+  authMode = mode;
+  const isSignup = mode === 'signup';
+  document.getElementById('authTitle').textContent = isSignup ? 'Create Account' : 'Welcome Back';
+  document.getElementById('authSubtitle').textContent = isSignup ? 'Free forever. No credit card needed.' : 'Log in to your AuctionXI account.';
+  document.getElementById('signupFields').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = isSignup ? 'Create Account' : 'Log In';
+  document.getElementById('authSwitch').innerHTML = isSignup
+    ? 'Already have an account? <a onclick="switchAuth(\'login\')">Log in</a>'
+    : 'No account yet? <a onclick="switchAuth(\'signup\')">Sign up free</a>';
+  document.getElementById('authMsg').textContent = '';
+}
+async function submitAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const name = document.getElementById('authName').value.trim();
+  const msgEl = document.getElementById('authMsg');
+  const btn = document.getElementById('authSubmitBtn');
+  if (!email || !password) { showAuthMsg('Please fill in all fields', 'error'); return; }
+  btn.textContent = '...'; btn.disabled = true;
+  if (authMode === 'signup') {
+    if (!name) { showAuthMsg('Please enter your name', 'error'); btn.textContent = 'Create Account'; btn.disabled = false; return; }
+    const { error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) { showAuthMsg(error.message, 'error'); btn.textContent = 'Create Account'; btn.disabled = false; return; }
+    showAuthMsg('✅ Account created! Redirecting...', 'success');
+    setTimeout(() => window.location.href = 'dashboard.html', 1200);
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { showAuthMsg('Incorrect email or password', 'error'); btn.textContent = 'Log In'; btn.disabled = false; return; }
+    window.location.href = 'dashboard.html';
+  }
+}
+function showAuthMsg(msg, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent = msg; el.className = 'auth-msg ' + type;
+}
+
+// ── JOIN VIEWER ────────────────────────────────────────────
+async function joinRoom() {
+  const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  const msgEl = document.getElementById('joinMsg');
+  if (code.length !== 6) { msgEl.textContent = 'Enter a valid 6-digit room code'; return; }
+  msgEl.textContent = 'Looking up room...'; msgEl.style.color = 'var(--muted)';
+  const { data, error } = await sb.from('auctions').select('id,status').eq('room_code', code).single();
+  if (error || !data) { msgEl.textContent = 'Room not found. Check the code and try again.'; msgEl.style.color = 'var(--red)'; return; }
+  if (data.status === 'ended') { msgEl.textContent = 'This auction has ended.'; msgEl.style.color = 'var(--muted)'; return; }
+  window.location.href = `viewer.html?room=${code}`;
+}
+
+// Close modal on backdrop click
+document.getElementById('authModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuth();
+});
+</script>
+</body>
+</html>
