@@ -137,6 +137,15 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     </div>
   </div>
 
+  <!-- Stage banner -->
+  <div id="stageBanner" style="display:none;padding:10px 14px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;transition:all 0.3s;"></div>
+
+  <!-- Timer -->
+  <div id="timerBox" style="display:none;text-align:center;padding:8px;background:var(--surface);border-bottom:1px solid var(--border);">
+    <div id="timerLabel" style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;"></div>
+    <div id="timerNum" style="font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;line-height:1;"></div>
+  </div>
+
   <!-- Now Up For Auction -->
   <div class="now-up" id="nowUpBox">
     <div class="now-up-label">Now Up for Auction</div>
@@ -144,6 +153,12 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <div id="nowUpPlayer" style="display:none;">
       <div class="now-up-name" id="nowUpName"></div>
       <div class="now-up-meta" id="nowUpMeta"></div>
+      <!-- Current bid display -->
+      <div id="currentBidBox" style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Current Highest Bid</div>
+        <div id="currentBidAmt" style="font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--accent);">₹0</div>
+        <div id="currentBidTeam" style="font-size:13px;color:var(--muted);margin-top:3px;"></div>
+      </div>
     </div>
   </div>
 
@@ -271,6 +286,9 @@ function subscribeRealtime() {
     }, async () => {
       const { data } = await sb.from('current_state').select('*, players(*)').eq('auction_id', auction.id).single();
       currentState = data;
+      // Also refresh teams to get latest credits
+      const { data: teamsData } = await sb.from('teams').select('*').eq('auction_id', auction.id).order('name');
+      teams = teamsData || [];
       renderNowUp();
     })
     .subscribe();
@@ -282,11 +300,66 @@ function flashUpdate() {
   setTimeout(() => box.style.borderColor = 'var(--accent)', 800);
 }
 
+// ── TIMER ─────────────────────────────────────────────────
+let viewerTimerInterval = null;
+function startViewerTimer(seconds, label, color) {
+  clearInterval(viewerTimerInterval);
+  const box = document.getElementById('timerBox');
+  const lbl = document.getElementById('timerLabel');
+  const num = document.getElementById('timerNum');
+  box.style.display = 'block';
+  lbl.textContent = label;
+  num.style.color = color;
+  let t = seconds; num.textContent = t;
+  viewerTimerInterval = setInterval(() => {
+    t--; num.textContent = t;
+    if (t <= 0) { clearInterval(viewerTimerInterval); box.style.display = 'none'; }
+  }, 1000);
+}
+function stopViewerTimer() {
+  clearInterval(viewerTimerInterval);
+  document.getElementById('timerBox').style.display = 'none';
+}
+
 // ── NOW UP ────────────────────────────────────────────────
 function renderNowUp() {
-  const p = currentState?.players;
+  const cs = currentState;
+  const p = cs?.players;
+  const stage = cs?.stage || 'waiting';
   const emptyEl = document.getElementById('nowUpEmpty');
   const playerEl = document.getElementById('nowUpPlayer');
+
+  // Stage banner
+  const banner = document.getElementById('stageBanner');
+  const stageStyles = {
+    waiting:      { display:'none', text:'', bg:'', color:'' },
+    live:         { display:'block', text:'🟢 BIDDING OPEN', bg:'rgba(96,165,250,0.15)', color:'var(--blue)' },
+    going_once:   { display:'block', text:'🔔 GOING ONCE...', bg:'rgba(234,179,8,0.2)', color:'var(--yellow)' },
+    going_twice:  { display:'block', text:'🔔🔔 GOING TWICE...', bg:'rgba(239,68,68,0.2)', color:'var(--red)' },
+    sold:         { display:'block', text:'🔨 SOLD!', bg:'rgba(34,197,94,0.2)', color:'var(--green)' },
+  };
+  const st = stageStyles[stage] || stageStyles.waiting;
+  banner.style.display = st.display;
+  banner.style.background = st.bg;
+  banner.style.color = st.color;
+  banner.textContent = st.text;
+
+  // Timer sync from DB
+  if (stage === 'going_once' && cs.going_once_at) {
+    const elapsed = (Date.now() - new Date(cs.going_once_at).getTime()) / 1000;
+    const remaining = Math.max(0, Math.round(30 - elapsed));
+    if (remaining > 0) startViewerTimer(remaining, 'GOING ONCE', 'var(--yellow)');
+    else stopViewerTimer();
+  } else if (stage === 'going_twice' && cs.going_twice_at) {
+    const elapsed = (Date.now() - new Date(cs.going_twice_at).getTime()) / 1000;
+    const remaining = Math.max(0, Math.round(10 - elapsed));
+    if (remaining > 0) startViewerTimer(remaining, 'GOING TWICE', 'var(--red)');
+    else stopViewerTimer();
+  } else {
+    stopViewerTimer();
+  }
+
+  // Player card
   if (!p) {
     emptyEl.style.display = 'block'; playerEl.style.display = 'none'; return;
   }
@@ -296,6 +369,22 @@ function renderNowUp() {
     <span class="role-badge role-${p.role}">${p.role}</span>
     ${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>` : ''}
     ${p.star ? '<span style="color:var(--accent);font-size:13px;font-weight:700;">⭐ Star Player</span>' : ''}`;
+
+  // Current bid
+  const bidAmt = cs.current_bid || 0;
+  document.getElementById('currentBidAmt').textContent = bidAmt ? `₹${fmt(bidAmt)}` : '₹0';
+  if (stage === 'sold') {
+    document.getElementById('currentBidTeam').textContent = cs.current_bid_team_id ? 'SOLD! 🔨' : 'No bids — Unsold';
+    document.getElementById('currentBidAmt').style.color = 'var(--green)';
+  } else if (bidAmt > 0) {
+    // Find team name from teams array
+    const winTeam = teams.find(t => t.id === cs.current_bid_team_id);
+    document.getElementById('currentBidTeam').textContent = winTeam ? `Leading: ${winTeam.name}` : 'Bid received';
+    document.getElementById('currentBidAmt').style.color = 'var(--accent)';
+  } else {
+    document.getElementById('currentBidTeam').textContent = 'No bids yet';
+    document.getElementById('currentBidAmt').style.color = 'var(--accent)';
+  }
 }
 
 // ── FEED ──────────────────────────────────────────────────
@@ -307,141 +396,4 @@ function renderFeed() {
   }
   el.innerHTML = sales.map((s, i) => {
     const over = s.players?.base_price && s.amount > s.players.base_price;
-    const time = new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-    return `<div class="feed-item">
-      <div class="feed-num">${sales.length - i}</div>
-      <div class="feed-info">
-        <div class="feed-player">
-          ${s.players?.star ? '⭐ ' : ''}${s.players?.name || '-'}
-          <span class="role-badge role-${s.players?.role}" style="margin-left:4px;">${s.players?.role || ''}</span>
-        </div>
-        <div class="feed-team">${s.teams?.name || '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${fmt(s.amount - s.players.base_price)} over base</span>` : ''}</div>
-      </div>
-      <div>
-        <div class="feed-amount">₹${fmt(s.amount)}</div>
-        <div class="feed-time">${time}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── TEAMS ─────────────────────────────────────────────────
-function renderTeams() {
-  const el = document.getElementById('teamsList');
-  if (!teams.length) { el.innerHTML = '<div class="feed-empty">No teams yet.</div>'; return; }
-  el.innerHTML = `<div class="teams-list">${teams.map(t => {
-    const p = pct(t); const col = fundCol(p);
-    const teamSales = sales.filter(s => s.team_id === t.id);
-    const rc = {BAT:0,BOWL:0,ALL:0,WK:0};
-    teamSales.forEach(s => { const r = s.players?.role; if (rc[r] !== undefined) rc[r]++; });
-    const slots = t.min_squad - teamSales.length;
-    const avg = slots > 0 ? Math.floor(t.credits / slots) : 0;
-    return `<div class="team-card" id="tc-${t.id}">
-      <div class="team-card-header" onclick="toggleTeam('${t.id}')">
-        <div>
-          <div class="team-name-row">
-            <span class="t-name">${t.name}</span>
-          </div>
-          <div class="t-credits" style="color:${col};">₹${fmt(t.credits)} · ${p}% remaining</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px;color:var(--muted);">${teamSales.length}/${t.min_squad} players</div>
-          <div class="t-chevron">▼</div>
-        </div>
-      </div>
-      <div class="fund-bar"><div class="fund-bar-fill" style="width:${p}%;background:${col};"></div></div>
-      <div class="team-stats">
-        <span class="role-pill role-pill-BAT">🏏 ${rc.BAT}</span>
-        <span class="role-pill role-pill-BOWL">🎳 ${rc.BOWL}</span>
-        <span class="role-pill role-pill-ALL">⚡ ${rc.ALL}</span>
-        <span class="role-pill role-pill-WK">🧤 ${rc.WK}</span>
-        <span class="budget-pct" style="background:${col}20;color:${col};border:1px solid ${col}40;">~₹${fmt(avg)}/slot</span>
-      </div>
-      <div class="team-players-list">
-        ${teamSales.length ? teamSales.map(s => `
-          <div class="tp-row">
-            <span style="color:${s.players?.star?'var(--accent)':'#374151'};">★</span>
-            <span class="tp-name">${s.players?.name || '-'}</span>
-            <span class="role-badge role-${s.players?.role}">${s.players?.role}</span>
-            <span class="tp-price">₹${fmt(s.amount)}</span>
-          </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No players yet</div>'}
-      </div>
-    </div>`;
-  }).join('')}</div>`;
-}
-
-function toggleTeam(id) {
-  const card = document.getElementById('tc-' + id);
-  card.classList.toggle('open');
-}
-
-// ── STATS ─────────────────────────────────────────────────
-function renderStats() {
-  const el = document.getElementById('statsContent');
-  const sold = players.filter(p => sales.find(s => s.player_id === p.id)).length;
-  const remaining = players.length - sold;
-  const totalSpent = sales.reduce((s, x) => s + Number(x.amount), 0);
-  const totalLeft = teams.reduce((s, t) => s + Number(t.credits), 0);
-  const topSale = sales.length ? sales.reduce((a, b) => a.amount > b.amount ? a : b) : null;
-  const mostBought = teams.length ? [...teams].sort((a, b) => {
-    return sales.filter(s => s.team_id === b.id).length - sales.filter(s => s.team_id === a.id).length;
-  })[0] : null;
-
-  el.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-lbl">Players Sold</div>
-        <div class="stat-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${players.length}</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-lbl">Still Available</div>
-        <div class="stat-val" style="color:var(--blue);">${remaining}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-lbl">Total Spent</div>
-        <div class="stat-val" style="color:var(--accent);">₹${fmt(totalSpent)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-lbl">Budget Left</div>
-        <div class="stat-val" style="color:var(--yellow);">₹${fmt(totalLeft)}</div>
-      </div>
-    </div>
-
-    ${topSale ? `<div style="padding:0 12px 10px;">
-      <div class="stat-card" style="background:rgba(245,158,11,0.06);border-color:var(--accent);">
-        <div class="stat-lbl">💰 Highest Sale</div>
-        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">₹${fmt(topSale.amount)}</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:3px;">${topSale.players?.name} → ${topSale.teams?.name}</div>
-      </div>
-    </div>` : ''}
-
-    <div style="padding:0 12px;">
-      <div class="stat-lbl" style="margin-bottom:8px;padding-left:2px;">📊 Budget Comparison</div>
-      ${teams.map(t => {
-        const p = pct(t); const col = fundCol(p);
-        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
-          <div style="font-size:12px;color:var(--muted);width:100px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">${t.name}</div>
-          <div style="flex:1;background:var(--border);border-radius:3px;height:12px;overflow:hidden;">
-            <div style="width:${p}%;height:100%;background:${col};border-radius:3px;transition:width 0.5s;"></div>
-          </div>
-          <div style="font-size:11px;color:${col};width:70px;flex-shrink:0;font-weight:600;">${p}% ₹${fmt(t.credits)}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-}
-
-// ── SWITCH VIEW ───────────────────────────────────────────
-function switchView(name) {
-  document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.btab').forEach(t => t.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-  document.querySelector(`.btab[onclick="switchView('${name}')"]`).classList.add('active');
-}
-
-// ── UTILS ─────────────────────────────────────────────────
-const fmt = n => Number(n).toLocaleString('en-IN');
-const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
-const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
-</script>
-</body>
-</html>
+    const time = new Date(s.so
