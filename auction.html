@@ -795,9 +795,15 @@ function scheduleNextPlayer() {
   const available = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id));
   if (!available.length) return;
 
-  showMsg('saleMsg', `⏳ Next player coming up in 7 seconds...`, 'success');
+  // Broadcast "next player coming" to bidders via current_state message field
+  sb.from('current_state').update({
+    current_player_id: null, stage: 'waiting',
+    current_bid: 0, current_bid_team_id: null,
+    updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+
+  showMsg('saleMsg', '⏳ Next player coming up in 7 seconds...', 'success');
   setTimeout(async () => {
-    // Re-check available (might have changed)
     const { data: freshPlayers } = await sb.from('players').select('*').eq('auction_id', auctionId);
     const freshSales = sales.map(s => s.player_id);
     const freshAvail = (freshPlayers || []).filter(p => !freshSales.includes(p.id) && !p.unsold);
