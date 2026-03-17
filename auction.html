@@ -135,6 +135,17 @@ input:focus,select:focus{border-color:var(--accent);}
 <div class="tab-content active" id="tab-sale">
   <div class="summary-bar" id="summaryBar"></div>
 
+  <!-- Lobby panel — shown when auction just went live -->
+  <div id="lobbyPanel" style="display:none;background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:12px;">
+    <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);margin-bottom:10px;">🏏 Waiting for Teams to Join</div>
+    <div id="lobbyTeamList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
+    <div id="lobbyCountdown" style="display:none;text-align:center;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Auction starts in</div>
+      <div id="lobbyCountdownNum" style="font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;color:var(--accent);line-height:1;"></div>
+    </div>
+    <div id="lobbyStatus" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+
   <!-- Current player broadcast + timer -->
   <div class="current-player-box" id="currentPlayerBox" style="display:none;">
     <div style="flex:1;">
@@ -347,7 +358,7 @@ let acPlayerIdx = -1, acTeamIdx = -1;
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
   // Check Supabase keys are configured
-if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE')) {
+  if (SUPABASE_URL === 'https://ofondrfejzcznxsvpuec.supabase.co') {
     document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
       ⚠️ Supabase URL not configured in auction.html.<br><br>
       Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
@@ -365,16 +376,16 @@ if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE')) {
 })();
 
 async function loadAll() {
-  const [auc, teamsData, playersData, salesData] = await Promise.all([
+  const [auc, teamsData, playersData, salesData, stateData] = await Promise.all([
     sb.from('auctions').select('*').eq('id', auctionId).single(),
     sb.from('teams').select('*').eq('auction_id', auctionId).order('name'),
     sb.from('players').select('*').eq('auction_id', auctionId).order('name'),
-    sb.from('sales').select('*, players(*), teams(*)').eq('auction_id', auctionId).order('sold_at', { ascending: false })
+    sb.from('sales').select('*, players(*), teams(*)').eq('auction_id', auctionId).order('sold_at', { ascending: false }),
+    sb.from('current_state').select('*, players(*)').eq('auction_id', auctionId).single()
   ]);
   if (auc.error || !auc.data) {
     document.getElementById('saleMsg').innerHTML = `<div class="msg msg-error">
-      ⚠️ Could not load auction data. Error: ${auc.error?.message || 'Unknown'}.<br>
-      Make sure your Supabase keys are correct in this file.
+      ⚠️ Could not load auction data. Error: ${auc.error?.message || 'Unknown'}.
     </div>`;
     return;
   }
@@ -383,8 +394,33 @@ async function loadAll() {
   players = playersData.data || [];
   sales = salesData.data || [];
   document.getElementById('navRoomCode').textContent = auction.room_code || '------';
-  if (auction.room_code) {
-    document.getElementById('bidderLinkBtn').style.display = 'inline-flex';
+  if (auction.room_code) document.getElementById('bidderLinkBtn').style.display = 'inline-flex';
+
+  // Restore current player box if one is active
+  const cs = stateData.data;
+  if (cs?.current_player_id && cs.players) {
+    const p = cs.players;
+    document.getElementById('currentPlayerBox').style.display = 'flex';
+    document.getElementById('cpName').textContent = p.name;
+    document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price?`<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>`:''}${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>':''}`;
+    document.getElementById('playerInput').value = p.name;
+    if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
+    await loadLiveBids(cs.current_player_id);
+
+    // Restore timer based on DB timestamps
+    if (!stageTimer) {
+      if (cs.stage === 'going_once' && cs.going_once_at) {
+        const elapsed = (Date.now() - new Date(cs.going_once_at).getTime()) / 1000;
+        const remaining = Math.max(1, Math.round(30 - elapsed));
+        if (remaining > 0) runTimer(remaining, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
+        else startGoingTwice();
+      } else if (cs.stage === 'going_twice' && cs.going_twice_at) {
+        const elapsed = (Date.now() - new Date(cs.going_twice_at).getTime()) / 1000;
+        const remaining = Math.max(1, Math.round(10 - elapsed));
+        if (remaining > 0) runTimer(remaining, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
+        else autoMarkUnsold();
+      }
+    }
   }
   renderAll();
 }
@@ -395,6 +431,7 @@ function renderAll() {
   renderDashboard();
   renderPlayers();
   renderStrategy();
+  renderLobby();
 }
 
 // ── REALTIME ──────────────────────────────────────────────
@@ -402,12 +439,13 @@ function subscribeRealtime() {
   sb.channel('auction-' + auctionId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter: `auction_id=eq.${auctionId}` }, () => loadAll())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'teams', filter: `auction_id=eq.${auctionId}` }, () => loadAll())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bidder_sessions', filter: `auction_id=eq.${auctionId}` }, () => renderLobby())
     .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `auction_id=eq.${auctionId}` }, async () => {
       const state = await sb.from('current_state').select('current_player_id').eq('auction_id', auctionId).single();
       if (state.data?.current_player_id) {
         await loadLiveBids(state.data.current_player_id);
         playSound('bid');
-        // Every new bid resets timer back to Going Once (40s)
+        // Every new bid resets timer to Going Once (30s)
         startGoingOnce();
       }
     })
@@ -420,6 +458,56 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── LOBBY ─────────────────────────────────────────────────
+let lobbyTimer = null;
+async function renderLobby() {
+  const lobbyEl = document.getElementById('lobbyPanel');
+  // Show lobby only if no player has been put up yet and no sales
+  if (sales.length > 0 || document.getElementById('currentPlayerBox').style.display === 'flex') {
+    lobbyEl.style.display = 'none'; return;
+  }
+  // Check which teams have joined via bidder_sessions
+  const { data: sessions } = await sb.from('bidder_sessions')
+    .select('team_id, teams(name)').eq('auction_id', auctionId);
+  const joinedIds = new Set((sessions || []).map(s => s.team_id));
+  const joined = teams.filter(t => joinedIds.has(t.id));
+  const notJoined = teams.filter(t => !joinedIds.has(t.id));
+  const allJoined = teams.length > 0 && notJoined.length === 0;
+
+  lobbyEl.style.display = 'block';
+  document.getElementById('lobbyTeamList').innerHTML = teams.map(t => {
+    const has = joinedIds.has(t.id);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;border:1px solid ${has?'var(--green)':'var(--border)'};">
+      <span style="font-size:16px;">${has?'✅':'⏳'}</span>
+      <span style="font-weight:600;flex:1;">${t.name}</span>
+      <span style="font-size:12px;color:${has?'var(--green)':'var(--muted)'};">${has?'Joined':'Waiting'}</span>
+      ${t.captain_name?`<span style="font-size:11px;color:var(--muted);">${t.captain_name}</span>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('lobbyStatus').textContent = `${joined.length} / ${teams.length} teams joined`;
+
+  if (allJoined && !lobbyTimer) {
+    // All joined — start 60s countdown then auto-launch first player
+    document.getElementById('lobbyCountdown').style.display = 'block';
+    let t = 60;
+    document.getElementById('lobbyCountdownNum').textContent = t;
+    lobbyTimer = setInterval(() => {
+      t--;
+      document.getElementById('lobbyCountdownNum').textContent = t;
+      if (t <= 10) playSound('bid');
+      if (t <= 0) {
+        clearInterval(lobbyTimer); lobbyTimer = null;
+        lobbyEl.style.display = 'none';
+        scheduleNextPlayer();
+      }
+    }, 1000);
+  } else if (!allJoined && lobbyTimer) {
+    clearInterval(lobbyTimer); lobbyTimer = null;
+    document.getElementById('lobbyCountdown').style.display = 'none';
+  }
 }
 
 // ── SUMMARY BAR ───────────────────────────────────────────
@@ -619,12 +707,12 @@ async function setStage(stage) {
 
 function startGoingOnce() {
   setStage('going_once');
-  runTimer(40, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
+  runTimer(30, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
 }
 
 function startGoingTwice() {
   setStage('going_twice');
-  runTimer(20, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
+  runTimer(10, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
 }
 
 function runTimer(seconds, color, label, onComplete) {
@@ -744,12 +832,19 @@ async function togglePause() {
     btn.style.color = 'var(--green)';
     btn.style.borderColor = 'var(--green)';
     stopTimer();
-    await setStage('waiting');
+    await sb.from('current_state').update({ stage: 'waiting', updated_at: new Date().toISOString() }).eq('auction_id', auctionId);
   } else {
     btn.textContent = '⏸ Pause Auction';
     btn.style.background = 'rgba(234,179,8,0.15)';
     btn.style.color = 'var(--yellow)';
     btn.style.borderColor = 'var(--yellow)';
+    // Resume — set stage back to live and restart timer if there's a current player
+    const { data: cs } = await sb.from('current_state').select('current_player_id').eq('auction_id', auctionId).single();
+    if (cs?.current_player_id) {
+      await sb.from('current_state').update({ stage: 'live', updated_at: new Date().toISOString() }).eq('auction_id', auctionId);
+      // If there are existing bids, start Going Once
+      if (currentBids.length > 0) startGoingOnce();
+    }
   }
 }
 
