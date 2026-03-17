@@ -321,19 +321,19 @@ input:focus,select:focus{border-color:var(--accent);}
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:6px;">🧩 Squad Balance</div>
         <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
-          <li style="font-size:13px;">• Ideal: <b style="color:var(--accent);">4 BAT · 4 BOWL · 2 ALL · 1 WK</b></li>
-          <li style="font-size:13px;">• Fill <b style="color:var(--accent);">WK first</b> — they go fast</li>
-          <li style="font-size:13px;">• ALL-rounders worth a slight premium</li>
-          <li style="font-size:13px;">• Don't pile 5+ batsmen</li>
+          <li style="font-size:13px;">â€¢ Ideal: <b style="color:var(--accent);">4 BAT Â· 4 BOWL Â· 2 ALL Â· 1 WK</b></li>
+          <li style="font-size:13px;">â€¢ Fill <b style="color:var(--accent);">WK first</b> â€” they go fast</li>
+          <li style="font-size:13px;">â€¢ ALL-rounders worth a slight premium</li>
+          <li style="font-size:13px;">â€¢ Don't pile 5+ batsmen</li>
         </ul>
       </div>
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:6px;">⚠️ Avoid These</div>
+        <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:6px;">âš ï¸ Avoid These</div>
         <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;">
-          <li style="font-size:13px;">• <b style="color:var(--red);">Emotional bidding</b> — don't chase</li>
-          <li style="font-size:13px;">• <b style="color:var(--red);">Forgetting slots</b> — 5 left, 5 in pool = expensive</li>
-          <li style="font-size:13px;">• <b style="color:var(--red);">Spending early</b> — best value comes mid-auction</li>
-          <li style="font-size:13px;">• <b style="color:var(--red);">Ignoring rivals</b> — check budget % first</li>
+          <li style="font-size:13px;">â€¢ <b style="color:var(--red);">Emotional bidding</b> â€” don't chase</li>
+          <li style="font-size:13px;">â€¢ <b style="color:var(--red);">Forgetting slots</b> â€” 5 left, 5 in pool = expensive</li>
+          <li style="font-size:13px;">â€¢ <b style="color:var(--red);">Spending early</b> â€” best value comes mid-auction</li>
+          <li style="font-size:13px;">â€¢ <b style="color:var(--red);">Ignoring rivals</b> â€” check budget % first</li>
         </ul>
       </div>
     </div>
@@ -353,14 +353,14 @@ let players = [];
 let sales = [];
 let acPlayerIdx = -1, acTeamIdx = -1;
 
-// ── INIT ──────────────────────────────────────────────────
+// â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (async () => {
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
   // Check Supabase keys are configured
-  if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE')) {
+  if (SUPABASE_URL === 'https://ofondrfejzcznxsvpuec.supabase.co') {
     document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
-      ⚠️ Supabase URL not configured in auction.html.<br><br>
+      âš ï¸ Supabase URL not configured in auction.html.<br><br>
       Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
     </div>`; return;
   }
@@ -385,7 +385,7 @@ async function loadAll() {
   ]);
   if (auc.error || !auc.data) {
     document.getElementById('saleMsg').innerHTML = `<div class="msg msg-error">
-      ⚠️ Could not load auction data. Error: ${auc.error?.message || 'Unknown'}.
+      âš ï¸ Could not load auction data. Error: ${auc.error?.message || 'Unknown'}.
     </div>`;
     return;
   }
@@ -402,7 +402,7 @@ async function loadAll() {
     const p = cs.players;
     document.getElementById('currentPlayerBox').style.display = 'flex';
     document.getElementById('cpName').textContent = p.name;
-    document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price?`<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>`:''}${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>':''}`;
+    document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price?`<span style="font-size:13px;color:var(--muted);">Base â‚¹${fmt(p.base_price)}</span>`:''}${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">â­ Star</span>':''}`;
     document.getElementById('playerInput').value = p.name;
     if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
     await loadLiveBids(cs.current_player_id);
@@ -434,7 +434,7 @@ function renderAll() {
   renderLobby();
 }
 
-// ── REALTIME ──────────────────────────────────────────────
+// â”€â”€ REALTIME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function subscribeRealtime() {
   sb.channel('auction-' + auctionId)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter: `auction_id=eq.${auctionId}` }, () => loadAll())
@@ -452,7 +452,7 @@ function subscribeRealtime() {
     .subscribe();
 }
 
-// ── TABS ──────────────────────────────────────────────────
+// â”€â”€ TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -460,7 +460,7 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-// ── LOBBY ─────────────────────────────────────────────────
+// â”€â”€ LOBBY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let lobbyTimer = null;
 async function renderLobby() {
   const lobbyEl = document.getElementById('lobbyPanel');
@@ -480,7 +480,7 @@ async function renderLobby() {
   document.getElementById('lobbyTeamList').innerHTML = teams.map(t => {
     const has = joinedIds.has(t.id);
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;border:1px solid ${has?'var(--green)':'var(--border)'};">
-      <span style="font-size:16px;">${has?'✅':'⏳'}</span>
+      <span style="font-size:16px;">${has?'âœ…':'â³'}</span>
       <span style="font-weight:600;flex:1;">${t.name}</span>
       <span style="font-size:12px;color:${has?'var(--green)':'var(--muted)'};">${has?'Joined':'Waiting'}</span>
       ${t.captain_name?`<span style="font-size:11px;color:var(--muted);">${t.captain_name}</span>`:''}
@@ -490,7 +490,7 @@ async function renderLobby() {
   document.getElementById('lobbyStatus').textContent = `${joined.length} / ${teams.length} teams joined`;
 
   if (allJoined && !lobbyTimer) {
-    // All joined — start 60s countdown then auto-launch first player
+    // All joined â€” start 60s countdown then auto-launch first player
     document.getElementById('lobbyCountdown').style.display = 'block';
     let t = 60;
     document.getElementById('lobbyCountdownNum').textContent = t;
@@ -510,7 +510,7 @@ async function renderLobby() {
   }
 }
 
-// ── SUMMARY BAR ───────────────────────────────────────────
+// â”€â”€ SUMMARY BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderSummaryBar() {
   const soldIds = new Set(sales.map(s => s.player_id));
   const sold = soldIds.size;
@@ -520,11 +520,11 @@ function renderSummaryBar() {
   document.getElementById('summaryBar').innerHTML = `
     <div class="stat-card"><div class="stat-card-lbl">Sold</div><div class="stat-card-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${players.length}</span></div></div>
     <div class="stat-card"><div class="stat-card-lbl">Available</div><div class="stat-card-val" style="color:var(--blue);">${remaining}</div></div>
-    <div class="stat-card"><div class="stat-card-lbl">Total Spent</div><div class="stat-card-val" style="color:var(--accent);">₹${totalSpent.toLocaleString('en-IN')}</div></div>
-    <div class="stat-card"><div class="stat-card-lbl">Budget Left</div><div class="stat-card-val" style="color:var(--yellow);">₹${totalLeft.toLocaleString('en-IN')}</div></div>`;
+    <div class="stat-card"><div class="stat-card-lbl">Total Spent</div><div class="stat-card-val" style="color:var(--accent);">â‚¹${totalSpent.toLocaleString('en-IN')}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Budget Left</div><div class="stat-card-val" style="color:var(--yellow);">â‚¹${totalLeft.toLocaleString('en-IN')}</div></div>`;
 }
 
-// ── AUTOCOMPLETE ──────────────────────────────────────────
+// â”€â”€ AUTOCOMPLETE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function filterPlayerAC() {
   acPlayerIdx = -1;
   const val = document.getElementById('playerInput').value.toLowerCase();
@@ -535,10 +535,10 @@ function filterPlayerAC() {
   if (!avail.length) { drop.style.display = 'none'; return; }
   drop.innerHTML = avail.map(p => `
     <div class="autocomplete-item" onclick="selectPlayer('${p.id}')" data-id="${p.id}">
-      <span style="color:${p.star ? 'var(--accent)' : '#374151'}">★</span>
+      <span style="color:${p.star ? 'var(--accent)' : '#374151'}">â˜…</span>
       <b>${p.name}</b>
       <span class="role-badge role-${p.role}">${p.role}</span>
-      ${p.base_price ? `<span style="color:var(--muted);font-size:12px;">₹${Number(p.base_price).toLocaleString('en-IN')}</span>` : ''}
+      ${p.base_price ? `<span style="color:var(--muted);font-size:12px;">â‚¹${Number(p.base_price).toLocaleString('en-IN')}</span>` : ''}
     </div>`).join('');
   drop.style.display = 'block';
   if (avail.length === 1) { acPlayerIdx = 0; highlightAC('playerDrop', 0); }
@@ -564,7 +564,7 @@ function filterTeamAC() {
     const p = pct(t); const col = fundCol(p);
     return `<div class="autocomplete-item" onclick="selectTeam('${t.id}')" data-id="${t.id}">
       <b>${t.name}</b>
-      <span style="color:${col};font-size:12px;">₹${Number(t.credits).toLocaleString('en-IN')} (${p}%)</span>
+      <span style="color:${col};font-size:12px;">â‚¹${Number(t.credits).toLocaleString('en-IN')} (${p}%)</span>
     </div>`;}).join('');
   drop.style.display = 'block';
   if (avail.length === 1) { acTeamIdx = 0; highlightAC('teamDrop', 0); }
@@ -592,13 +592,13 @@ function selectPlayer(id) {
   if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
   // Show player strip
   document.getElementById('playerStrip').innerHTML = `
-    <span style="color:${p.star ? 'var(--accent)' : '#374151'};font-size:18px;">★</span>
+    <span style="color:${p.star ? 'var(--accent)' : '#374151'};font-size:18px;">â˜…</span>
     <b style="font-size:15px;">${p.name}</b>
     <span class="role-badge role-${p.role}">${p.role}</span>
-    ${p.base_price ? `<span style="font-size:13px;">Base: <b style="color:var(--accent);">₹${Number(p.base_price).toLocaleString('en-IN')}</b></span>` : ''}
-    ${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ STAR PLAYER</span>' : ''}`;
+    ${p.base_price ? `<span style="font-size:13px;">Base: <b style="color:var(--accent);">â‚¹${Number(p.base_price).toLocaleString('en-IN')}</b></span>` : ''}
+    ${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">â­ STAR PLAYER</span>' : ''}`;
   // Broadcast to viewers
-  setCurrentPlayer(id, p);
+    setCurrentPlayer(id, p);
   renderBidChips();
   document.getElementById('teamInput').focus();
 }
@@ -617,7 +617,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll('.autocomplete-list').forEach(d => d.style.display = 'none');
 });
 
-// ── CURRENT PLAYER BROADCAST ──────────────────────────────
+// â”€â”€ CURRENT PLAYER BROADCAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function setCurrentPlayer(playerId, p) {
   stopTimer();
   await sb.from('current_state').upsert({
@@ -632,7 +632,7 @@ async function setCurrentPlayer(playerId, p) {
   await sb.from('bids').delete().eq('auction_id', auctionId).neq('player_id', playerId);
   document.getElementById('currentPlayerBox').style.display = 'flex';
   document.getElementById('cpName').textContent = p.name;
-  document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>` : ''}${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>' : ''}`;
+  document.getElementById('cpMeta').innerHTML = `<span class="role-badge role-${p.role}">${p.role}</span>${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base â‚¹${fmt(p.base_price)}</span>` : ''}${p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">â­ Star</span>' : ''}`;
   playSound('bid');
   await loadLiveBids(playerId);
 }
@@ -651,7 +651,7 @@ async function clearCurrentPlayer() {
   renderLiveBids();
 }
 
-// ── BID CHIPS ─────────────────────────────────────────────
+// â”€â”€ BID CHIPS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderBidChips() {
   const cur = parseFloat(document.getElementById('saleAmount').value) || 0;
   const pn = document.getElementById('playerInput').value.trim();
@@ -661,12 +661,12 @@ function renderBidChips() {
   let step = ref < 2000 ? 500 : ref < 10000 ? 1000 : ref < 50000 ? 5000 : 10000;
   document.getElementById('bidChips').innerHTML = [1,2,3,5,7,10].map(m => {
     const val = base + step * m;
-    return `<span class="bid-chip" onclick="setBid(${val})">₹${val.toLocaleString('en-IN')}</span>`;
+    return `<span class="bid-chip" onclick="setBid(${val})">â‚¹${val.toLocaleString('en-IN')}</span>`;
   }).join('');
 }
 function setBid(v) { document.getElementById('saleAmount').value = v; renderBidChips(); }
 
-// ── SOUNDS ────────────────────────────────────────────────
+// â”€â”€ SOUNDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
@@ -691,7 +691,7 @@ function playSound(type) {
   } catch(e) {}
 }
 
-// ── STAGE CONTROL + TIMERS ────────────────────────────────
+// â”€â”€ STAGE CONTROL + TIMERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let stageTimer = null;
 let timerSeconds = 0;
 
@@ -742,10 +742,10 @@ function stopTimer() {
   document.getElementById('stageTimerBox').style.display = 'none';
 }
 
-// ── UNSOLD ────────────────────────────────────────────────
+// â”€â”€ UNSOLD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function autoMarkUnsold() {
   if (currentBids.length > 0) {
-    // Bids exist — auto-execute SOLD with highest bidder
+    // Bids exist â€” auto-execute SOLD with highest bidder
     const winner = currentBids[0];
     const pn = document.getElementById('playerInput').value.trim();
     const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
@@ -753,7 +753,7 @@ async function autoMarkUnsold() {
       // Fill in the form and confirm sold automatically
       document.getElementById('teamInput').value = winner.teams?.name || '';
       document.getElementById('saleAmount').value = winner.amount;
-      showMsg('saleMsg', `⏰ Time up! Auto-confirming SOLD...`, 'success');
+      showMsg('saleMsg', `â° Time up! Auto-confirming SOLD...`, 'success');
       setTimeout(() => confirmSold(), 1000);
     } else {
       showMsg('saleMsg', 'Time up! Please confirm SOLD manually.', 'success');
@@ -779,26 +779,26 @@ async function markUnsold() {
   await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
 
   stopTimer();
-  showMsg('saleMsg', `🚫 ${player.name} marked as UNSOLD`, 'success');
+  showMsg('saleMsg', `ðŸš« ${player.name} marked as UNSOLD`, 'success');
   resetForm();
   await loadAll();
   scheduleNextPlayer();
 }
 
-// ── RANDOM NEXT PLAYER (after 7s) ─────────────────────────
+// â”€â”€ RANDOM NEXT PLAYER (after 7s) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function scheduleNextPlayer() {
   const soldIds = new Set(sales.map(s => s.player_id));
   const unsoldIds = new Set(players.filter(p => p.unsold).map(p => p.id));
   const available = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id));
   if (!available.length) return;
 
-  showMsg('saleMsg', `⏳ Next player coming up in 7 seconds...`, 'success');
+  showMsg('saleMsg', `â³ Next player coming up in 7 seconds...`, 'success');
   setTimeout(async () => {
     // Re-check available (might have changed)
     const { data: freshPlayers } = await sb.from('players').select('*').eq('auction_id', auctionId);
     const freshSales = sales.map(s => s.player_id);
     const freshAvail = (freshPlayers || []).filter(p => !freshSales.includes(p.id) && !p.unsold);
-    if (!freshAvail.length) { showMsg('saleMsg', '🏁 All players done!', 'success'); return; }
+    if (!freshAvail.length) { showMsg('saleMsg', 'ðŸ All players done!', 'success'); return; }
     const next = freshAvail[Math.floor(Math.random() * freshAvail.length)];
     document.getElementById('playerInput').value = next.name;
     selectPlayerById(next.id, next);
@@ -810,35 +810,35 @@ function selectPlayerById(id, p) {
   document.getElementById('playerDrop').style.display = 'none';
   if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
   document.getElementById('playerStrip').innerHTML = `
-    <span style="color:${p.star?'var(--accent)':'#374151'};font-size:18px;">★</span>
+    <span style="color:${p.star?'var(--accent)':'#374151'};font-size:18px;">â˜…</span>
     <b style="font-size:15px;">${p.name}</b>
     <span class="role-badge role-${p.role}">${p.role}</span>
-    ${p.base_price?`<span style="font-size:13px;">Base: <b style="color:var(--accent);">₹${fmt(p.base_price)}</b></span>`:''}
-    ${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ STAR PLAYER</span>':''}`;
+    ${p.base_price?`<span style="font-size:13px;">Base: <b style="color:var(--accent);">â‚¹${fmt(p.base_price)}</b></span>`:''}
+    ${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">â­ STAR PLAYER</span>':''}`;
   setCurrentPlayer(id, p);
   renderBidChips();
   document.getElementById('teamInput').focus();
 }
 
-// ── PAUSE / COMPLETE ──────────────────────────────────────
+// â”€â”€ PAUSE / COMPLETE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let auctionPaused = false;
 async function togglePause() {
   auctionPaused = !auctionPaused;
   await sb.from('auctions').update({ paused: auctionPaused }).eq('id', auctionId);
   const btn = document.getElementById('pauseBtn');
   if (auctionPaused) {
-    btn.textContent = '▶ Resume Auction';
+    btn.textContent = 'â–¶ Resume Auction';
     btn.style.background = 'rgba(34,197,94,0.15)';
     btn.style.color = 'var(--green)';
     btn.style.borderColor = 'var(--green)';
     stopTimer();
     await sb.from('current_state').update({ stage: 'waiting', updated_at: new Date().toISOString() }).eq('auction_id', auctionId);
   } else {
-    btn.textContent = '⏸ Pause Auction';
+    btn.textContent = 'â¸ Pause Auction';
     btn.style.background = 'rgba(234,179,8,0.15)';
     btn.style.color = 'var(--yellow)';
     btn.style.borderColor = 'var(--yellow)';
-    // Resume — set stage back to live and restart timer if there's a current player
+    // Resume â€” set stage back to live and restart timer if there's a current player
     const { data: cs } = await sb.from('current_state').select('current_player_id').eq('auction_id', auctionId).single();
     if (cs?.current_player_id) {
       await sb.from('current_state').update({ stage: 'live', updated_at: new Date().toISOString() }).eq('auction_id', auctionId);
@@ -849,7 +849,7 @@ async function togglePause() {
 }
 
 async function completeAuction() {
-  if (!confirm('Complete this auction?\n\nThis will end the auction for all viewers and bidders.\n\nSwipe to confirm — tap OK to proceed.')) return;
+  if (!confirm('Complete this auction?\n\nThis will end the auction for all viewers and bidders.\n\nSwipe to confirm â€” tap OK to proceed.')) return;
   if (!confirm('Are you sure? This cannot be undone.')) return;
 
   await sb.from('auctions').update({ status: 'ended' }).eq('id', auctionId);
@@ -858,47 +858,102 @@ async function completeAuction() {
   }).eq('auction_id', auctionId);
 
   copyWhatsAppSummary();
-  alert('✅ Auction completed! WhatsApp summary copied — paste it on your group.');
+  alert('âœ… Auction completed! WhatsApp summary copied â€” paste it on your group.');
   window.location.href = 'dashboard.html';
 }
 
-// ── WHATSAPP SUMMARY ──────────────────────────────────────
+// â”€â”€ WHATSAPP SUMMARY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function copyWhatsAppSummary() {
-  let msg = `🏏 *${auction.name} — Auction Complete!*\n`;
-  if (auction.league_name) msg += `🏆 ${auction.league_name}\n`;
-  msg += `\n`;
+  const totalSold = sales.length;
+  const totalSpent = sales.reduce((s,x) => s + Number(x.amount), 0);
+
+  // Master summary message
+  let master = `ðŸ *${auction.name} â€” Auction Complete!*\n`;
+  if (auction.league_name) master += `ðŸ† ${auction.league_name}\n`;
+  master += `\nðŸ“Š *Summary*\n`;
+  master += `Players Sold: ${totalSold} | Total Value: â‚¹${fmt(totalSpent)}\n\n`;
 
   teams.forEach(t => {
     const teamSales = sales.filter(s => s.team_id === t.id);
-    const spent = teamSales.reduce((s, x) => s + Number(x.amount), 0);
-    msg += `━━━━━━━━━━━━━━━\n`;
-    msg += `*🏏 ${t.name}*\n`;
-    if (t.captain_name) msg += `👤 Captain: ${t.captain_name}\n`;
-    msg += `💰 Spent: ₹${fmt(spent)} | Left: ₹${fmt(t.credits)}\n\n`;
+    const spent = teamSales.reduce((s,x) => s + Number(x.amount), 0);
+    master += `â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n`;
+    master += `*ðŸ ${t.name}*\n`;
+    if (t.captain_name) master += `ðŸ‘¤ ${t.captain_name}\n`;
+    master += `ðŸ’° Spent â‚¹${fmt(spent)} | Left â‚¹${fmt(t.credits)}\n`;
+    const rc = {BAT:0,BOWL:0,ALL:0,WK:0};
+    teamSales.forEach(s => { if(rc[s.players?.role]!==undefined) rc[s.players.role]++; });
+    master += `ðŸ${rc.BAT} ðŸŽ³${rc.BOWL} âš¡${rc.ALL} ðŸ§¤${rc.WK}\n`;
     if (teamSales.length) {
-      teamSales.forEach((s, i) => {
-        msg += `${i+1}. ${s.players?.name} (${s.players?.role}) — ₹${fmt(s.amount)}\n`;
+      teamSales.forEach((s,i) => {
+        master += `${i+1}. ${s.players?.name||'-'} (${s.players?.role||'-'}) â‚¹${fmt(s.amount)}\n`;
       });
-    } else {
-      msg += `No players bought\n`;
-    }
-    msg += `\n`;
+    } else { master += `No players bought\n`; }
+    master += `\n`;
   });
 
   const unsoldList = players.filter(p => p.unsold);
   if (unsoldList.length) {
-    msg += `━━━━━━━━━━━━━━━\n`;
-    msg += `*🚫 Unsold Players (${unsoldList.length})*\n`;
-    unsoldList.forEach(p => msg += `• ${p.name} (${p.role})\n`);
+    master += `â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n`;
+    master += `*ðŸš« Unsold (${unsoldList.length})*\n`;
+    unsoldList.forEach(p => master += `â€¢ ${p.name} (${p.role})\n`);
+    master += `\n`;
   }
+    master += `â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nPowered by ðŸ AuctionXI`;
 
-  msg += `\n━━━━━━━━━━━━━━━\n`;
-  msg += `Powered by 🏏 AuctionXI`;
-  navigator.clipboard.writeText(msg).catch(() => {});
-  return msg;
+  // Also build individual team cards for each captain
+  const teamCards = teams.map(t => {
+    const teamSales = sales.filter(s => s.team_id === t.id);
+    const spent = teamSales.reduce((s,x) => s + Number(x.amount), 0);
+    let card = `ðŸ *${auction.name}*\n`;
+    if (auction.league_name) card += `ðŸ† ${auction.league_name}\n`;
+    card += `\n*Your Team: ${t.name}*\n`;
+    if (t.captain_name) card += `ðŸ‘¤ Captain: ${t.captain_name}\n`;
+    card += `\nðŸ’° Budget Spent: â‚¹${fmt(spent)}\n`;
+    card += `ðŸ’µ Remaining: â‚¹${fmt(t.credits)}\n\n`;
+    card += `*Your Squad (${teamSales.length} players):*\n`;
+    if (teamSales.length) {
+      const roles = ['BAT','BOWL','ALL','WK'];
+      roles.forEach(role => {
+        const rp = teamSales.filter(s => s.players?.role === role);
+        if (rp.length) {
+          const roleLabel = {BAT:'ðŸ Batsmen',BOWL:'ðŸŽ³ Bowlers',ALL:'âš¡ All-rounders',WK:'ðŸ§¤ Wicketkeepers'}[role];
+          card += `\n${roleLabel}:\n`;
+          rp.forEach((s,i) => card += `${i+1}. ${s.players?.name} â€” â‚¹${fmt(s.amount)}\n`);
+        }
+      });
+    } else { card += `No players bought\n`; }
+    card += `\nPowered by ðŸ AuctionXI`;
+    return { team: t.name, captain: t.captain_name, card };
+  });
+
+  // Copy master summary to clipboard
+  navigator.clipboard.writeText(master).catch(() => {});
+
+  // Show individual cards in an alert with instructions
+  const cardPreview = teamCards.map(tc =>
+    `â”â” ${tc.team}${tc.captain?' ('+tc.captain+')':''} â”â”`
+  ).join('\n');
+  alert(`âœ… Master summary copied!\n\nIndividual team cards available for:\n${cardPreview}\n\nClick "Copy Team Card" from the auction dashboard to copy each captain's card separately.`);
+
+  // Store team cards for individual copy
+  window._teamCards = teamCards;
+  return master;
 }
 
-// ── LIVE BIDS ─────────────────────────────────────────────
+function copyTeamCard(teamId) {
+  if (!window._teamCards) { copyWhatsAppSummary(); }
+  const card = window._teamCards?.find(tc => {
+    const t = teams.find(t => t.name === tc.team);
+    return t?.id === teamId;
+  });
+  if (card) {
+    navigator.clipboard.writeText(card.card).then(() =>
+      alert(`âœ… ${card.team} team card copied!\n\nPaste and send to ${card.captain || 'the captain'} on WhatsApp.`)
+    );
+  }
+}
+
+// â”€â”€ LIVE BIDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let currentBids = [];
 async function loadLiveBids(playerId) {
   if (!playerId) { currentBids = []; renderLiveBids(); return; }
@@ -925,12 +980,12 @@ function renderLiveBids() {
   document.getElementById('bidCount').textContent = `${currentBids.length} bid${currentBids.length > 1 ? 's' : ''}`;
   list.innerHTML = currentBids.slice(0,6).map((b, i) => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <span style="color:${i===0?'var(--green)':'var(--muted)'};">${i===0?'🏆':''} ${b.teams?.name || '-'}</span>
-      <span style="color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:15px;">₹${fmt(b.amount)}</span>
+      <span style="color:${i===0?'var(--green)':'var(--muted)'};">${i===0?'ðŸ†':''} ${b.teams?.name || '-'}</span>
+      <span style="color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:15px;">â‚¹${fmt(b.amount)}</span>
     </div>`).join('');
 }
 
-// ── CONFIRM SOLD ──────────────────────────────────────────
+// â”€â”€ CONFIRM SOLD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function confirmSold() {
   const pn = document.getElementById('playerInput').value.trim();
   const tn = document.getElementById('teamInput').value.trim();
@@ -944,7 +999,7 @@ async function confirmSold() {
   if (!team) { showMsg('saleMsg', 'Team not found', 'error'); return; }
   const soldIds = new Set(sales.map(s => s.player_id));
   if (soldIds.has(player.id)) { showMsg('saleMsg', `${player.name} already sold`, 'error'); return; }
-  if (team.credits < amt) { showMsg('saleMsg', `${team.name} only has ₹${fmt(team.credits)}`, 'error'); return; }
+  if (team.credits < amt) { showMsg('saleMsg', `${team.name} only has â‚¹${fmt(team.credits)}`, 'error'); return; }
 
   // Set stage to sold first (viewers see it)
   await setStage('sold');
@@ -970,7 +1025,7 @@ async function confirmSold() {
 
   playSound('sold');
   stopTimer();
-  showMsg('saleMsg', `🔨 SOLD! ${player.name} → ${team.name} for ₹${fmt(amt)}`, 'success');
+  showMsg('saleMsg', `ðŸ”¨ SOLD! ${player.name} â†’ ${team.name} for â‚¹${fmt(amt)}`, 'success');
   resetForm();
   await loadAll();
   scheduleNextPlayer();
@@ -985,9 +1040,9 @@ function resetForm() {
   document.getElementById('bidChips').innerHTML = '';
 }
 
-// ── RELEASE PLAYER ────────────────────────────────────────
+// â”€â”€ RELEASE PLAYER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function releasePlayer(saleId, teamId, amount, playerName, teamName) {
-  if (!confirm(`Release ${playerName} from ${teamName}?\n50% refund: ₹${Math.floor(amount/2).toLocaleString('en-IN')}`)) return;
+  if (!confirm(`Release ${playerName} from ${teamName}?\n50% refund: â‚¹${Math.floor(amount/2).toLocaleString('en-IN')}`)) return;
   const team = teams.find(t => t.id === teamId);
   const refund = Math.floor(amount / 2);
   await sb.from('sales').delete().eq('id', saleId);
@@ -995,7 +1050,7 @@ async function releasePlayer(saleId, teamId, amount, playerName, teamName) {
   await loadAll();
 }
 
-// ── RENDER SALES ──────────────────────────────────────────
+// â”€â”€ RENDER SALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderSales() {
   const tb = document.getElementById('salesBody');
   if (!sales.length) { tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr>'; return; }
@@ -1006,14 +1061,14 @@ function renderSales() {
       <td><b>${s.players?.name || '-'}</b></td>
       <td><span class="role-badge role-${s.players?.role}">${s.players?.role || '-'}</span></td>
       <td>${s.teams?.name || '-'}</td>
-      <td style="color:var(--accent);font-weight:700;">₹${Number(s.amount).toLocaleString('en-IN')}</td>
-      <td style="color:var(--muted);font-size:12px;">${s.players?.base_price ? '₹' + Number(s.players.base_price).toLocaleString('en-IN') : '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${s.amount - s.players.base_price}</span>` : ''}</td>
+      <td style="color:var(--accent);font-weight:700;">â‚¹${Number(s.amount).toLocaleString('en-IN')}</td>
+      <td style="color:var(--muted);font-size:12px;">${s.players?.base_price ? 'â‚¹' + Number(s.players.base_price).toLocaleString('en-IN') : '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${s.amount - s.players.base_price}</span>` : ''}</td>
       <td style="color:var(--muted);font-size:11px;">${new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
-      <td><button class="btn-tiny" onclick="releasePlayer('${s.id}','${s.team_id}',${s.amount},'${esc(s.players?.name)}','${esc(s.teams?.name)}')">↩</button></td>
+      <td><button class="btn-tiny" onclick="releasePlayer('${s.id}','${s.team_id}',${s.amount},'${esc(s.players?.name)}','${esc(s.teams?.name)}')">â†©</button></td>
     </tr>`;}).join('');
 }
 
-// ── RENDER DASHBOARD ──────────────────────────────────────
+// â”€â”€ RENDER DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderDashboard() {
   // Fund chart
   const soldMap = {};
@@ -1026,7 +1081,7 @@ function renderDashboard() {
     return `<div class="chart-row">
       <div class="chart-lbl" title="${t.name}">${t.name}</div>
       <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${p}%;background:${col};"></div></div>
-      <div class="chart-val" style="color:${col};">${p}% ₹${Number(t.credits).toLocaleString('en-IN')}</div>
+      <div class="chart-val" style="color:${col};">${p}% â‚¹${Number(t.credits).toLocaleString('en-IN')}</div>
     </div>`;}).join('');
 
   // Team grid
@@ -1040,27 +1095,30 @@ function renderDashboard() {
     return `<div class="team-card">
       <div class="team-card-header">
         <span class="team-name">${t.name}</span>
-        <span style="font-size:13px;color:var(--muted);">₹<b>${Number(t.credits).toLocaleString('en-IN')}</b></span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;color:var(--muted);">â‚¹<b>${Number(t.credits).toLocaleString('en-IN')}</b></span>
+          <button class="btn-tiny" onclick="copyTeamCard('${t.id}')" title="Copy WhatsApp card for this team">ðŸ“‹</button>
+        </span>
       </div>
       <div class="fund-bar-bg"><div class="fund-bar-fill" style="width:${p}%;background:${col};"></div></div>
-      <div class="fund-bar-lbl"><span style="color:${col};">${p}% avail</span><span>${teamSales.length}/${t.min_squad} · ₹${avg.toLocaleString('en-IN')}/slot</span></div>
+      <div class="fund-bar-lbl"><span style="color:${col};">${p}% avail</span><span>${teamSales.length}/${t.min_squad} Â· â‚¹${avg.toLocaleString('en-IN')}/slot</span></div>
       <div class="role-pills">
-        <span class="role-pill role-pill-BAT">🏏 BAT: ${rc.BAT}</span>
-        <span class="role-pill role-pill-BOWL">🎳 BOWL: ${rc.BOWL}</span>
-        <span class="role-pill role-pill-ALL">⚡ ALL: ${rc.ALL}</span>
-        <span class="role-pill role-pill-WK">🧤 WK: ${rc.WK}</span>
+        <span class="role-pill role-pill-BAT">ðŸ BAT: ${rc.BAT}</span>
+        <span class="role-pill role-pill-BOWL">ðŸŽ³ BOWL: ${rc.BOWL}</span>
+        <span class="role-pill role-pill-ALL">âš¡ ALL: ${rc.ALL}</span>
+        <span class="role-pill role-pill-WK">ðŸ§¤ WK: ${rc.WK}</span>
       </div>
       <div class="player-tags">${teamSales.map(s => `
         <span class="player-tag">
-          ${s.players?.star ? '⭐' : ''}${s.players?.name}
+          ${s.players?.star ? 'â­' : ''}${s.players?.name}
           <span class="role-badge role-${s.players?.role}" style="font-size:9px;">${s.players?.role}</span>
-          <span class="tag-price">₹${Number(s.amount).toLocaleString('en-IN')}</span>
-          <span class="release-btn" onclick="releasePlayer('${s.id}','${s.team_id}',${s.amount},'${esc(s.players?.name)}','${esc(t.name)}')">↩</span>
+          <span class="tag-price">â‚¹${Number(s.amount).toLocaleString('en-IN')}</span>
+          <span class="release-btn" onclick="releasePlayer('${s.id}','${s.team_id}',${s.amount},'${esc(s.players?.name)}','${esc(t.name)}')">â†©</span>
         </span>`).join('') || '<span style="color:var(--muted);font-size:11px;">No players</span>'}</div>
     </div>`;}).join('');
 }
 
-// ── RENDER PLAYERS TAB ────────────────────────────────────
+// â”€â”€ RENDER PLAYERS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderPlayers() {
   const soldIds = new Set(sales.map(s => s.player_id));
   const sold = players.filter(p => soldIds.has(p.id));
@@ -1073,13 +1131,13 @@ function renderPlayers() {
 
   document.querySelector('#soldTable tbody').innerHTML = sold.map(p => {
     const s = saleByPlayer[p.id];
-    return `<tr><td><b>${p.name}</b></td><td><span class="role-badge role-${p.role}">${p.role}</span></td><td style="color:var(--green);">${s?.teams?.name || '-'}</td><td style="color:var(--accent);font-weight:700;">₹${s ? Number(s.amount).toLocaleString('en-IN') : '-'}</td></tr>`;}).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:10px;">No sold players</td></tr>';
+    return `<tr><td><b>${p.name}</b></td><td><span class="role-badge role-${p.role}">${p.role}</span></td><td style="color:var(--green);">${s?.teams?.name || '-'}</td><td style="color:var(--accent);font-weight:700;">â‚¹${s ? Number(s.amount).toLocaleString('en-IN') : '-'}</td></tr>`;}).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:10px;">No sold players</td></tr>';
 
   document.querySelector('#unsoldTable tbody').innerHTML = unsold.map(p =>
-    `<tr><td><b>${p.name}</b></td><td><span class="role-badge role-${p.role}">${p.role}</span></td><td style="color:var(--muted);font-size:12px;">${p.base_price ? '₹' + Number(p.base_price).toLocaleString('en-IN') : '-'}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:10px;">All sold!</td></tr>';
+    `<tr><td><b>${p.name}</b></td><td><span class="role-badge role-${p.role}">${p.role}</span></td><td style="color:var(--muted);font-size:12px;">${p.base_price ? 'â‚¹' + Number(p.base_price).toLocaleString('en-IN') : '-'}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:10px;">All sold!</td></tr>';
 }
 
-// ── STRATEGY ──────────────────────────────────────────────
+// â”€â”€ STRATEGY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderStrategy() {
   const el = document.getElementById('strategyLive');
   if (!teams.length) { el.innerHTML = ''; return; }
@@ -1096,18 +1154,18 @@ function renderStrategy() {
     return { name:t.name, p, col, credits:t.credits, sl, av, tight, weak };
   });
   el.innerHTML = `<div class="panel">
-    <div class="panel-title">🔍 Rival Budget — Live</div>
+    <div class="panel-title">ðŸ” Rival Budget â€” Live</div>
     ${rivalAnalysis.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
       <div style="width:110px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.name}</div>
       <div style="flex:1;"><div style="background:var(--border);border-radius:2px;height:8px;overflow:hidden;"><div style="width:${r.p}%;height:100%;background:${r.col};border-radius:2px;"></div></div></div>
-      <span style="color:${r.col};width:60px;font-size:12px;">₹${Number(r.credits).toLocaleString('en-IN')}</span>
+      <span style="color:${r.col};width:60px;font-size:12px;">â‚¹${Number(r.credits).toLocaleString('en-IN')}</span>
       <span style="color:var(--muted);font-size:12px;width:50px;">${r.sl} slots</span>
-      ${r.tight ? '<span style="color:var(--red);font-size:11px;font-weight:700;">⚠ SQUEEZE</span>' : '<span style="font-size:11px;color:var(--green);">OK</span>'}
+      ${r.tight ? '<span style="color:var(--red);font-size:11px;font-weight:700;">âš  SQUEEZE</span>' : '<span style="font-size:11px;color:var(--green);">OK</span>'}
     </div>`).join('')}
   </div>`;
 }
 
-// ── UTILS ─────────────────────────────────────────────────
+// â”€â”€ UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
 const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
 const esc = s => String(s || '').replace(/'/g, "\\'");
@@ -1124,18 +1182,18 @@ function copyViewerLink() {
 function copyBidderLinks() {
   if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
   const base = `${window.location.origin}/bidmaster/bidder.html`;
-  let msg = `🏏 AuctionXI — Live Bidding\nAuction: ${auction.name}\n\n`;
-  msg += `📱 Bidding Link: ${base}\n\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
+  let msg = `ðŸ AuctionXI â€” Live Bidding\nAuction: ${auction.name}\n\n`;
+  msg += `ðŸ“± Bidding Link: ${base}\n\n`;
+  msg += `â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n`;
   teams.forEach(t => {
     if (t.team_code) {
-      msg += `\n🏏 ${t.name}\n`;
+      msg += `\nðŸ ${t.name}\n`;
       msg += `Captain: ${t.captain_name || 'Not set'}\n`;
       msg += `Team Code: ${t.team_code}\n`;
       msg += `Mobile: ${t.captain_mobile || 'Not set'}\n`;
     }
   });
-  msg += `\n━━━━━━━━━━━━━━━━━━\nOpen the link, enter your Team Code, verify mobile OTP to start bidding!`;
+  msg += `\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nOpen the link, enter your Team Code, verify mobile OTP to start bidding!`;
   navigator.clipboard.writeText(msg).then(() => alert('All team codes copied!\n\nPaste this on your WhatsApp group to share with all captains.'));
 }
 </script>
