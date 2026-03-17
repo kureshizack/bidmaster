@@ -7,565 +7,457 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
-  --bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;
-  --border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;
-  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;
-}
+:root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
-
-/* ── SCREENS ── */
-.screen{display:none;flex-direction:column;min-height:100vh;padding:32px 24px;}
+.screen{display:none;flex-direction:column;min-height:100vh;padding:32px 24px;align-items:center;justify-content:center;text-align:center;}
 .screen.active{display:flex;}
-.screen-center{align-items:center;justify-content:center;text-align:center;}
-
 .logo{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;color:var(--accent);margin-bottom:6px;}
 .tagline{font-size:14px;color:var(--muted);margin-bottom:40px;}
 .screen-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px;}
 .screen-sub{font-size:14px;color:var(--muted);margin-bottom:28px;}
-
 .input-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:block;text-align:left;width:100%;}
-.big-input{background:var(--surface2);border:2px solid var(--border);color:var(--text);padding:14px 16px;border-radius:10px;font-size:20px;font-weight:700;text-align:center;letter-spacing:4px;width:100%;outline:none;font-family:'Rajdhani',sans-serif;margin-bottom:8px;}
+.big-input{background:var(--surface2);border:2px solid var(--border);color:var(--text);padding:14px;border-radius:10px;font-size:24px;font-weight:700;text-align:center;letter-spacing:6px;width:100%;outline:none;font-family:'Rajdhani',sans-serif;margin-bottom:8px;}
 .big-input:focus{border-color:var(--accent);}
 .normal-input{background:var(--surface2);border:2px solid var(--border);color:var(--text);padding:12px 16px;border-radius:10px;font-size:16px;width:100%;outline:none;font-family:'Noto Sans',sans-serif;margin-bottom:8px;}
 .normal-input:focus{border-color:var(--accent);}
 .primary-btn{width:100%;padding:15px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;cursor:pointer;margin-top:6px;}
-.primary-btn:hover{background:#fbbf24;}
 .primary-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .ghost-btn{width:100%;padding:12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
-.ghost-btn:hover{color:var(--text);}
 .err-msg{color:var(--red);font-size:13px;min-height:18px;margin-bottom:6px;width:100%;text-align:center;}
-.success-msg{color:var(--green);font-size:13px;min-height:18px;margin-bottom:6px;width:100%;text-align:center;}
-
-/* OTP demo box */
 .demo-otp-box{background:rgba(245,158,11,0.1);border:1px solid var(--accent);border-radius:8px;padding:14px;margin:12px 0;width:100%;text-align:center;}
-.demo-otp-label{font-size:12px;color:var(--accent);font-weight:700;text-transform:uppercase;margin-bottom:6px;}
 .demo-otp-code{font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--accent);letter-spacing:8px;}
-.demo-otp-note{font-size:11px;color:var(--muted);margin-top:4px;}
-
-/* ── BIDDING APP ── */
 #bidApp{display:none;flex-direction:column;min-height:100vh;}
-
 .bid-header{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.bid-logo{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);}
-.my-team-badge{background:rgba(245,158,11,0.15);border:1px solid var(--accent);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:700;color:var(--accent);}
-.budget-badge{font-size:13px;color:var(--muted);}
-
-/* Stage banner */
+.bid-logo{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);}
+.mute-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Rajdhani',sans-serif;font-weight:700;}
+.mute-btn.muted{color:var(--red);border-color:var(--red);}
+.my-team-panel{background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;align-items:center;justify-content:space-between;}
+.team-stat{text-align:center;}
+.team-stat-val{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;}
+.team-stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;}
 .stage-banner{padding:10px 14px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;transition:all 0.3s;}
 .stage-waiting{background:var(--surface2);color:var(--muted);}
-.stage-live{background:rgba(96,165,250,0.15);color:var(--blue);border-bottom:1px solid var(--blue);}
-.stage-going_once{background:rgba(234,179,8,0.15);color:var(--yellow);border-bottom:1px solid var(--yellow);animation:stagePulse 1s infinite;}
-.stage-going_twice{background:rgba(239,68,68,0.15);color:var(--red);border-bottom:1px solid var(--red);animation:stagePulse 0.6s infinite;}
-.stage-sold{background:rgba(34,197,94,0.2);color:var(--green);border-bottom:1px solid var(--green);}
-@keyframes stagePulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-
-/* Current player card */
-.current-player-card{margin:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
-.cp-waiting{text-align:center;padding:20px;color:var(--muted);font-size:14px;}
-.cp-label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:8px;}
-.cp-name{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px;}
-.cp-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
-.role-badge{font-size:11px;border-radius:3px;padding:2px 6px;font-weight:700;}
+.stage-live{background:rgba(96,165,250,0.15);color:var(--blue);}
+.stage-going_once{background:rgba(234,179,8,0.2);color:var(--yellow);animation:stagePulse 1s infinite;}
+.stage-going_twice{background:rgba(239,68,68,0.2);color:var(--red);animation:stagePulse 0.6s infinite;}
+.stage-sold{background:rgba(34,197,94,0.2);color:var(--green);}
+@keyframes stagePulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.timer-box{text-align:center;padding:8px;background:var(--surface);border-bottom:1px solid var(--border);}
+.timer-num{font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;line-height:1;}
+.timer-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;}
+.bottom-tabs{display:flex;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;z-index:100;}
+.btab{flex:1;padding:10px 6px;text-align:center;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;color:var(--muted);border-top:3px solid transparent;transition:all 0.2s;}
+.btab.active{color:var(--accent);border-top-color:var(--accent);}
+.btab-icon{font-size:16px;display:block;margin-bottom:2px;}
+.view-content{display:none;flex:1;overflow-y:auto;padding-bottom:80px;}
+.view-content.active{display:block;}
+.player-card{margin:12px;background:var(--surface);border:2px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color 0.3s;}
+.player-card.state-live{border-color:var(--blue);}
+.player-card.state-going_once{border-color:var(--yellow);}
+.player-card.state-going_twice{border-color:var(--red);}
+.player-card.state-sold{border-color:var(--green);}
+.player-waiting{text-align:center;padding:32px 20px;color:var(--muted);font-size:14px;}
+.player-card-body{padding:16px;}
+.player-name-big{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;margin-bottom:8px;}
+.player-role-center{display:inline-block;padding:4px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:10px;}
 .role-BAT{background:#1e3a5f;color:#93c5fd;}
 .role-BOWL{background:#3f1515;color:#fca5a5;}
 .role-ALL{background:#14391f;color:#86efac;}
 .role-WK{background:#3d2608;color:#fcd34d;}
-
-/* Current bid display */
-.current-bid-box{background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:14px;text-align:center;}
+.role-badge{font-size:10px;border-radius:3px;padding:2px 5px;font-weight:700;}
+.current-bid-box{background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:12px;text-align:center;}
 .current-bid-label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;}
-.current-bid-amount{font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--accent);}
-.current-bid-team{font-size:13px;margin-top:3px;}
-.winning{color:var(--green);font-weight:700;}
-.losing{color:var(--red);font-weight:700;}
-
-/* BID BUTTON */
-.bid-action-area{padding:0 12px 12px;}
-.bid-btn{width:100%;padding:20px;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;cursor:pointer;transition:all 0.15s;margin-bottom:10px;}
-.bid-btn-active{background:var(--accent);color:#000;}
-.bid-btn-active:hover{background:#fbbf24;transform:scale(1.02);}
-.bid-btn-active:active{transform:scale(0.98);}
-.bid-btn-disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;}
-.custom-bid-row{display:flex;gap:8px;}
-.custom-bid-input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:16px;outline:none;font-family:'Noto Sans',sans-serif;}
-.custom-bid-input:focus{border-color:var(--accent);}
-.custom-bid-btn{background:var(--surface3);color:var(--blue);border:1px solid var(--border);padding:10px 16px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;}
-.custom-bid-btn:hover{background:var(--blue);color:#000;}
-.bid-note{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;}
-
-/* Sold celebration */
+.current-bid-amount{font-family:'Rajdhani',sans-serif;font-size:40px;font-weight:700;color:var(--accent);}
+.current-bid-team{font-size:14px;margin-top:4px;font-weight:600;}
+.winning{color:var(--green);}
+.losing{color:var(--red);}
+.last-winner-box{background:rgba(34,197,94,0.08);border:1px solid var(--green);border-radius:8px;padding:10px 14px;margin:8px 12px;font-size:13px;}
 .sold-banner{background:rgba(34,197,94,0.15);border:2px solid var(--green);border-radius:10px;padding:16px;text-align:center;margin:0 12px 12px;}
-.sold-banner-title{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--green);margin-bottom:4px;}
-.sold-banner-detail{font-size:14px;color:var(--muted);}
-
-/* Recent bids */
-.recent-bids{margin:0 12px;padding-bottom:20px;}
-.recent-bids-title{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
-.bid-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface);border-radius:6px;margin-bottom:4px;font-size:13px;}
-.bid-row-mine{border-left:3px solid var(--accent);}
-.bid-row-amount{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--accent);font-size:15px;}
-.bid-row-team{color:var(--muted);}
+.sold-banner-title{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--green);}
+.unsold-banner{background:rgba(148,163,184,0.1);border:1px solid var(--muted);border-radius:10px;padding:14px;text-align:center;margin:0 12px 12px;}
+.bid-action-area{padding:0 12px 12px;}
+.bid-btn-main{width:100%;padding:18px;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;cursor:pointer;transition:all 0.15s;margin-bottom:10px;}
+.bid-btn-active{background:var(--accent);color:#000;}
+.bid-btn-active:active{transform:scale(0.97);}
+.bid-btn-disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;}
+.bid-note{font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;}
+.quick-bids{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;}
+.quick-bid-btn{background:var(--surface2);border:1px solid var(--border);color:var(--blue);padding:8px 4px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:center;}
+.quick-bid-btn:active{background:var(--blue);color:#000;}
+.quick-bid-btn.disabled{color:var(--muted);cursor:not-allowed;opacity:0.4;}
+.feed-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);}
+.feed-num{font-size:12px;color:var(--muted);width:24px;text-align:center;flex-shrink:0;}
+.feed-info{flex:1;min-width:0;}
+.feed-player{font-weight:700;font-size:14px;}
+.feed-team{font-size:12px;color:var(--muted);margin-top:1px;}
+.feed-amount{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);flex-shrink:0;}
+.feed-empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.teams-list{padding:10px 12px;}
+.team-card-v{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.team-card-header-v{padding:12px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.t-name-v{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;}
+.fund-bar-v{background:var(--border);border-radius:3px;height:6px;margin:0 14px 8px;overflow:hidden;}
+.fund-bar-fill-v{height:100%;border-radius:3px;transition:width 0.5s;}
+.role-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.role-pill-BAT{background:#1e3a5f;color:#93c5fd;border:1px solid #2d5490;}
+.role-pill-BOWL{background:#3f1515;color:#fca5a5;border:1px solid #6b2020;}
+.role-pill-ALL{background:#14391f;color:#86efac;border:1px solid #1e5c30;}
+.role-pill-WK{background:#3d2608;color:#fcd34d;border:1px solid #6b4010;}
+.team-players-v{padding:0 14px 12px;display:none;}
+.team-card-v.open .team-players-v{display:block;}
+.tp-row-v{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.tp-row-v:last-child{border-bottom:none;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:0.4px;margin-bottom:4px;}
+.stat-val{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;}
 </style>
 </head>
 <body>
 
-<!-- SCREEN 1: Enter Team Code -->
-<div class="screen screen-center active" id="screen1">
+<div class="screen active" id="screen1">
   <div class="logo">🏏 AuctionXI</div>
   <div class="tagline">Live Bidding Portal</div>
   <span class="input-label">Enter Your Team Code</span>
-  <input class="big-input" type="text" id="teamCodeInput" maxlength="6" placeholder="ABC123"
-    oninput="this.value=this.value.toUpperCase()"
-    onkeydown="if(event.key==='Enter')submitTeamCode()">
+  <input class="big-input" type="text" id="teamCodeInput" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')submitTeamCode()">
   <div class="err-msg" id="codeErr"></div>
   <button class="primary-btn" onclick="submitTeamCode()" id="codeBtn">Continue →</button>
 </div>
 
-<!-- SCREEN 2: Enter Mobile Number -->
-<div class="screen screen-center" id="screen2">
+<div class="screen" id="screen2">
   <div class="logo">🏏 AuctionXI</div>
-  <div class="screen-title" id="teamNameDisplay">Team Name</div>
+  <div class="screen-title" id="teamNameDisplay">Your Team</div>
   <div class="screen-sub">Enter captain's registered mobile number</div>
   <span class="input-label">Mobile Number</span>
-  <input class="normal-input" type="tel" id="mobileInput" maxlength="10" placeholder="10-digit mobile"
-    onkeydown="if(event.key==='Enter')submitMobile()">
+  <input class="normal-input" type="tel" id="mobileInput" maxlength="10" placeholder="10-digit mobile" onkeydown="if(event.key==='Enter')submitMobile()">
   <div class="err-msg" id="mobileErr"></div>
   <button class="primary-btn" onclick="submitMobile()" id="mobileBtn">Send OTP →</button>
-  <button class="ghost-btn" onclick="goBack(1)">← Back</button>
+  <button class="ghost-btn" onclick="showScreen(1)">← Back</button>
 </div>
 
-<!-- SCREEN 3: OTP Verification -->
-<div class="screen screen-center" id="screen3">
+<div class="screen" id="screen3">
   <div class="logo">🏏 AuctionXI</div>
   <div class="screen-title">Verify OTP</div>
   <div class="screen-sub" id="otpSentTo">OTP sent to your number</div>
-
-  <!-- DEMO OTP DISPLAY — remove this in production -->
-  <div class="demo-otp-box" id="demoOtpBox">
-    <div class="demo-otp-label">🔧 Demo Mode — Your OTP</div>
+  <div class="demo-otp-box">
+    <div style="font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;margin-bottom:6px;">Demo Mode — Your OTP</div>
     <div class="demo-otp-code" id="demoOtpDisplay">------</div>
-    <div class="demo-otp-note">In production this will be sent via WhatsApp/SMS</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Production: sent via WhatsApp/SMS</div>
   </div>
-
   <span class="input-label">Enter 6-digit OTP</span>
-  <input class="big-input" type="text" id="otpInput" maxlength="6" placeholder="000000"
-    onkeydown="if(event.key==='Enter')verifyOtp()">
+  <input class="big-input" type="text" id="otpInput" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyOtp()">
   <div class="err-msg" id="otpErr"></div>
   <button class="primary-btn" onclick="verifyOtp()" id="otpBtn">Verify & Enter →</button>
   <button class="ghost-btn" onclick="resendOtp()">Resend OTP</button>
-  <button class="ghost-btn" onclick="goBack(2)">← Back</button>
+  <button class="ghost-btn" onclick="showScreen(2)">← Back</button>
 </div>
 
-<!-- BIDDING APP -->
 <div id="bidApp">
-  <!-- Header -->
   <div class="bid-header">
-    <div class="bid-logo">🏏 Live Auction</div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-      <div class="my-team-badge" id="myTeamBadge">My Team</div>
-      <div class="budget-badge" id="myBudgetBadge">₹0 left</div>
+    <div>
+      <div class="bid-logo">🏏 AuctionXI</div>
+      <div style="font-size:11px;color:var(--muted);" id="auctionNameHeader"></div>
     </div>
+    <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔊 Sound ON</button>
+  </div>
+  <div class="my-team-panel">
+    <div class="team-stat"><div class="team-stat-val" style="color:var(--accent);font-size:15px;" id="myTeamName">-</div><div class="team-stat-lbl">My Team</div></div>
+    <div class="team-stat"><div class="team-stat-val" style="color:var(--yellow);" id="myBudget">₹0</div><div class="team-stat-lbl">Budget</div></div>
+    <div class="team-stat"><div class="team-stat-val" style="color:var(--green);" id="myPlayersBought">0</div><div class="team-stat-lbl">Bought</div></div>
+    <div class="team-stat"><div class="team-stat-val" style="color:var(--blue);" id="mySlotsLeft">0</div><div class="team-stat-lbl">Slots Left</div></div>
+  </div>
+  <div class="stage-banner stage-waiting" id="stageBanner">Waiting for auction to start...</div>
+  <div class="timer-box" id="timerBox" style="display:none;">
+    <div class="timer-lbl" id="timerLabel">GOING ONCE</div>
+    <div class="timer-num" id="timerNum" style="color:var(--yellow);">40</div>
   </div>
 
-  <!-- Stage banner -->
-  <div class="stage-banner stage-waiting" id="stageBanner">⏳ Waiting for next player...</div>
-
-  <!-- Current player -->
-  <div class="current-player-card" id="currentPlayerCard">
-    <div class="cp-waiting" id="cpWaiting">Auction hasn't started yet.<br>Stay ready!</div>
-    <div id="cpDetails" style="display:none;">
-      <div class="cp-label">🎯 Now Up for Auction</div>
-      <div class="cp-name" id="cpName">-</div>
-      <div class="cp-meta" id="cpMeta"></div>
-      <!-- Current bid -->
-      <div class="current-bid-box" id="currentBidBox">
-        <div class="current-bid-label">Current Highest Bid</div>
-        <div class="current-bid-amount" id="currentBidAmount">₹0</div>
-        <div class="current-bid-team" id="currentBidTeam">No bids yet — be first!</div>
+  <div class="view-content active" id="view-bid">
+    <div class="last-winner-box" id="lastWinnerBox" style="display:none;">
+      <span style="color:var(--green);font-weight:700;">🏆 Last Won:</span> <span id="lastWinnerText"></span>
+    </div>
+    <div class="player-card" id="playerCard">
+      <div class="player-waiting" id="cpWaiting">🏏<br><br>Waiting for auctioneer to put a player up...</div>
+      <div id="cpDetails" style="display:none;">
+        <div class="player-card-body">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">🎯 Now Up for Auction</div>
+          <div class="player-name-big" id="cpName">-</div>
+          <div style="margin-bottom:12px;">
+            <span class="player-role-center role-BAT" id="cpRoleBadge">BAT</span>
+            <span id="cpBasePriceLabel" style="font-size:13px;color:var(--muted);margin-left:8px;"></span>
+            <span id="cpStarLabel" style="font-size:13px;color:var(--accent);margin-left:6px;font-weight:700;"></span>
+          </div>
+          <div class="current-bid-box">
+            <div class="current-bid-label">Current Highest Bid</div>
+            <div class="current-bid-amount" id="currentBidAmt">₹0</div>
+            <div class="current-bid-team" id="currentBidTeamLabel">No bids yet — be first!</div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Sold banner -->
-  <div class="sold-banner" id="soldBanner" style="display:none;">
-    <div class="sold-banner-title">🔨 SOLD!</div>
-    <div class="sold-banner-detail" id="soldDetail">-</div>
-  </div>
-
-  <!-- Bid actions -->
-  <div class="bid-action-area" id="bidActionArea">
-    <button class="bid-btn bid-btn-disabled" id="mainBidBtn" onclick="placeBid()">
-      🏏 PLACE BID
-    </button>
-    <div class="custom-bid-row">
-      <input class="custom-bid-input" type="number" id="customBidInput" placeholder="Custom amount">
-      <button class="custom-bid-btn" onclick="placeCustomBid()">Bid This →</button>
+    <div class="sold-banner" id="soldBanner" style="display:none;">
+      <div class="sold-banner-title">🔨 SOLD!</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px;" id="soldDetail"></div>
     </div>
-    <div class="bid-note" id="bidNote">Wait for a player to be put up for auction</div>
+    <div class="unsold-banner" id="unsoldBanner" style="display:none;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--muted);">🚫 UNSOLD</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="unsoldDetail"></div>
+    </div>
+    <div class="bid-action-area">
+      <button class="bid-btn-main bid-btn-disabled" id="mainBidBtn" onclick="placeBid()">🏏 PLACE BID</button>
+      <div class="bid-note" id="bidNote">Wait for a player to be put up for auction</div>
+      <div class="quick-bids" id="quickBids"></div>
+    </div>
+    <div id="roundBidsList" style="padding:0 12px 12px;display:none;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">📋 Bids This Round</div>
+      <div id="roundBidsItems"></div>
+    </div>
   </div>
 
-  <!-- Recent bids for this player -->
-  <div class="recent-bids" id="recentBids" style="display:none;">
-    <div class="recent-bids-title">📋 Bids This Round</div>
-    <div id="bidsList"></div>
+  <div class="view-content" id="view-feed">
+    <div id="feedList"><div class="feed-empty">No sales yet</div></div>
+  </div>
+  <div class="view-content" id="view-teams">
+    <div id="teamsList"><div class="feed-empty">Loading...</div></div>
+  </div>
+  <div class="view-content" id="view-stats">
+    <div id="statsContent"></div>
+  </div>
+
+  <div class="bottom-tabs">
+    <div class="btab active" onclick="switchView('bid')"><span class="btab-icon">🏏</span>Bid</div>
+    <div class="btab" onclick="switchView('feed')"><span class="btab-icon">📋</span>Feed</div>
+    <div class="btab" onclick="switchView('teams')"><span class="btab-icon">👥</span>Teams</div>
+    <div class="btab" onclick="switchView('stats')"><span class="btab-icon">📊</span>Stats</div>
   </div>
 </div>
 
 <script>
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let myTeam=null,myAuction=null,currentState=null,currentOtp=null;
+let currentBids=[],allSales=[],allTeams=[],allPlayers=[];
+let soundMuted=false,timerInterval=null,lastPlayerId=null;
 
-let myTeam = null;
-let myAuction = null;
-let currentState = null;
-let currentOtp = null;
-let currentBids = [];
+function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen'+n).classList.add('active');}
 
-// ── SCREEN NAVIGATION ─────────────────────────────────────
-function showScreen(n) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen' + n).classList.add('active');
-}
-function goBack(n) { showScreen(n); }
-
-// ── STEP 1: TEAM CODE ─────────────────────────────────────
-async function submitTeamCode() {
-  const code = document.getElementById('teamCodeInput').value.trim().toUpperCase();
-  const errEl = document.getElementById('codeErr');
-  const btn = document.getElementById('codeBtn');
-  if (code.length !== 6) { errEl.textContent = 'Enter a valid 6-character team code'; return; }
-  btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
-
-  const { data, error } = await sb.from('teams').select('*, auctions(*)').eq('team_code', code).single();
-  if (error || !data) {
-    errEl.textContent = 'Team code not found. Check with your organizer.';
-    btn.textContent = 'Continue →'; btn.disabled = false; return;
-  }
-  if (data.auctions?.status === 'ended') {
-    errEl.textContent = 'This auction has ended.';
-    btn.textContent = 'Continue →'; btn.disabled = false; return;
-  }
-  myTeam = data;
-  myAuction = data.auctions;
-  document.getElementById('teamNameDisplay').textContent = data.name;
-  btn.textContent = 'Continue →'; btn.disabled = false;
-  showScreen(2);
+async function submitTeamCode(){
+  const code=document.getElementById('teamCodeInput').value.trim().toUpperCase();
+  const errEl=document.getElementById('codeErr');const btn=document.getElementById('codeBtn');
+  if(code.length!==6){errEl.textContent='Enter a 6-character team code';return;}
+  btn.textContent='Checking...';btn.disabled=true;errEl.textContent='';
+  const{data,error}=await sb.from('teams').select('*,auctions(*)').eq('team_code',code).single();
+  if(error||!data){errEl.textContent='Team code not found.';btn.textContent='Continue →';btn.disabled=false;return;}
+  if(data.auctions?.status==='ended'){errEl.textContent='This auction has ended.';btn.textContent='Continue →';btn.disabled=false;return;}
+  myTeam=data;myAuction=data.auctions;
+  document.getElementById('teamNameDisplay').textContent=data.name;
+  btn.textContent='Continue →';btn.disabled=false;showScreen(2);
 }
 
-// ── STEP 2: MOBILE VERIFICATION ───────────────────────────
-async function submitMobile() {
-  const mobile = document.getElementById('mobileInput').value.trim();
-  const errEl = document.getElementById('mobileErr');
-  const btn = document.getElementById('mobileBtn');
-  if (mobile.length !== 10 || isNaN(mobile)) {
-    errEl.textContent = 'Enter a valid 10-digit mobile number'; return;
+async function submitMobile(){
+  const mobile=document.getElementById('mobileInput').value.trim();
+  const errEl=document.getElementById('mobileErr');const btn=document.getElementById('mobileBtn');
+  if(mobile.length!==10||isNaN(mobile)){errEl.textContent='Enter valid 10-digit mobile';return;}
+  if(myTeam.captain_mobile&&myTeam.captain_mobile!==mobile){errEl.textContent='Mobile not registered for this team.';return;}
+  btn.textContent='Sending...';btn.disabled=true;errEl.textContent='';
+  currentOtp=Math.floor(100000+Math.random()*900000).toString();
+  const expiresAt=new Date(Date.now()+10*60*1000).toISOString();
+  await sb.from('otp_verifications').insert({mobile,team_code:myTeam.team_code,otp:currentOtp,expires_at:expiresAt});
+  document.getElementById('demoOtpDisplay').textContent=currentOtp;
+  document.getElementById('otpSentTo').textContent=`OTP for ${mobile}`;
+  btn.textContent='Send OTP →';btn.disabled=false;showScreen(3);
+}
+async function resendOtp(){if(document.getElementById('mobileInput').value)await submitMobile();}
+
+async function verifyOtp(){
+  const entered=document.getElementById('otpInput').value.trim();
+  const errEl=document.getElementById('otpErr');const btn=document.getElementById('otpBtn');
+  if(entered.length!==6){errEl.textContent='Enter 6-digit OTP';return;}
+  btn.textContent='Verifying...';btn.disabled=true;
+  if(entered!==currentOtp){
+    const mobile=document.getElementById('mobileInput').value.trim();
+    const{data}=await sb.from('otp_verifications').select('*').eq('mobile',mobile).eq('team_code',myTeam.team_code).eq('otp',entered).eq('verified',false).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(1).single();
+    if(!data){errEl.textContent='Invalid or expired OTP.';btn.textContent='Verify & Enter →';btn.disabled=false;return;}
+    await sb.from('otp_verifications').update({verified:true}).eq('id',data.id);
   }
-  // Check mobile matches registered captain mobile
-  if (myTeam.captain_mobile && myTeam.captain_mobile !== mobile) {
-    errEl.textContent = 'Mobile number not registered for this team. Contact organizer.';
-    return;
-  }
-  btn.textContent = 'Sending...'; btn.disabled = true; errEl.textContent = '';
-
-  // Generate OTP
-  currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
-
-  // Store OTP in DB
-  await sb.from('otp_verifications').insert({
-    mobile, team_code: myTeam.team_code,
-    otp: currentOtp, expires_at: expiresAt
-  });
-
-  // DEMO MODE: show OTP on screen
-  document.getElementById('demoOtpDisplay').textContent = currentOtp;
-  document.getElementById('otpSentTo').textContent = `OTP for +91 ${mobile}`;
-
-  // In production: send via WhatsApp or SMS here
-  // await sendWhatsApp(mobile, `Your AuctionXI OTP is: ${currentOtp}`)
-
-  btn.textContent = 'Send OTP →'; btn.disabled = false;
-  showScreen(3);
+  btn.textContent='Verify & Enter →';btn.disabled=false;enterBiddingApp();
 }
 
-async function resendOtp() {
-  document.getElementById('mobileInput').value && await submitMobile();
+async function enterBiddingApp(){
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  document.getElementById('bidApp').style.display='flex';
+  document.getElementById('myTeamName').textContent=myTeam.name;
+  document.getElementById('auctionNameHeader').textContent=myAuction.name;
+  await loadAll();subscribeRealtime();
 }
 
-// ── STEP 3: OTP VERIFY ────────────────────────────────────
-async function verifyOtp() {
-  const entered = document.getElementById('otpInput').value.trim();
-  const errEl = document.getElementById('otpErr');
-  const btn = document.getElementById('otpBtn');
-  if (entered.length !== 6) { errEl.textContent = 'Enter the 6-digit OTP'; return; }
-
-  btn.textContent = 'Verifying...'; btn.disabled = true;
-
-  // Check OTP matches
-  if (entered !== currentOtp) {
-    // Also check DB in case of resend
-    const mobile = document.getElementById('mobileInput').value.trim();
-    const { data } = await sb.from('otp_verifications')
-      .select('*').eq('mobile', mobile).eq('team_code', myTeam.team_code)
-      .eq('otp', entered).eq('verified', false)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false }).limit(1).single();
-    if (!data) {
-      errEl.textContent = 'Invalid or expired OTP. Try again.';
-      btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
-    }
-    await sb.from('otp_verifications').update({ verified: true }).eq('id', data.id);
-  }
-
-  // Verified — enter bidding app
-  btn.textContent = 'Verify & Enter →'; btn.disabled = false;
-  enterBiddingApp();
+async function loadAll(){
+  const[teamRes,playersRes,salesRes,stateRes]=await Promise.all([
+    sb.from('teams').select('*').eq('auction_id',myAuction.id).order('name'),
+    sb.from('players').select('*').eq('auction_id',myAuction.id),
+    sb.from('sales').select('*,players(*),teams(*)').eq('auction_id',myAuction.id).order('sold_at',{ascending:false}),
+    sb.from('current_state').select('*,players(*)').eq('auction_id',myAuction.id).single()
+  ]);
+  allTeams=teamRes.data||[];allPlayers=playersRes.data||[];allSales=salesRes.data||[];currentState=stateRes.data;
+  const me=allTeams.find(t=>t.id===myTeam.id);if(me)myTeam={...myTeam,...me};
+  if(currentState?.current_player_id){
+    const{data}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
+    currentBids=data||[];
+  }else{currentBids=[];}
+  renderAll();
 }
 
-// ── ENTER BIDDING APP ─────────────────────────────────────
-async function enterBiddingApp() {
-  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-  document.getElementById('bidApp').style.display = 'flex';
+function renderAll(){renderMyTeamPanel();renderBidApp();renderFeed();renderTeams();renderStats();}
 
-  document.getElementById('myTeamBadge').textContent = myTeam.name;
-  document.getElementById('myBudgetBadge').textContent = `₹${fmt(myTeam.credits)} left`;
-
-  await loadCurrentState();
-  subscribeRealtime();
-}
-
-// ── LOAD CURRENT STATE ────────────────────────────────────
-async function loadCurrentState() {
-  const { data } = await sb.from('current_state')
-    .select('*, players(*)')
-    .eq('auction_id', myAuction.id).single();
-  currentState = data;
-
-  // Also reload team credits
-  const { data: teamData } = await sb.from('teams').select('credits').eq('id', myTeam.id).single();
-  if (teamData) {
-    myTeam.credits = teamData.credits;
-    document.getElementById('myBudgetBadge').textContent = `₹${fmt(myTeam.credits)} left`;
-  }
-
-  // Load bids for current player
-  if (currentState?.current_player_id) {
-    const { data: bidsData } = await sb.from('bids')
-      .select('*, teams(name)')
-      .eq('auction_id', myAuction.id)
-      .eq('player_id', currentState.current_player_id)
-      .order('amount', { ascending: false });
-    currentBids = bidsData || [];
-  } else {
-    currentBids = [];
-  }
-  renderBidApp();
-}
-
-// ── REALTIME ──────────────────────────────────────────────
-function subscribeRealtime() {
-  sb.channel('bidder-' + myAuction.id)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'current_state', filter: `auction_id=eq.${myAuction.id}` },
-      () => loadCurrentState())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'bids', filter: `auction_id=eq.${myAuction.id}` },
-      () => loadCurrentState())
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter: `auction_id=eq.${myAuction.id}` },
-      () => loadCurrentState())
+function subscribeRealtime(){
+  sb.channel('bidder-'+myAuction.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'current_state',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'bids',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'sales',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
     .subscribe();
 }
 
-// ── RENDER BID APP ────────────────────────────────────────
-function renderBidApp() {
-  const state = currentState;
-  const stage = state?.stage || 'waiting';
-  const player = state?.players;
+function renderMyTeamPanel(){
+  const myS=allSales.filter(s=>s.team_id===myTeam.id);
+  document.getElementById('myBudget').textContent='₹'+fmt(myTeam.credits);
+  document.getElementById('myPlayersBought').textContent=myS.length;
+  document.getElementById('mySlotsLeft').textContent=Math.max(0,(myTeam.min_squad||11)-myS.length);
+}
 
+function startTimerDisplay(seconds,label,color){
+  clearInterval(timerInterval);
+  const box=document.getElementById('timerBox'),lbl=document.getElementById('timerLabel'),num=document.getElementById('timerNum');
+  box.style.display='block';lbl.textContent=label;num.style.color=color;
+  let t=seconds;num.textContent=t;
+  timerInterval=setInterval(()=>{t--;num.textContent=t;if(t<=5)playSound('tick');if(t<=0){clearInterval(timerInterval);box.style.display='none';}},1000);
+}
+function stopTimerDisplay(){clearInterval(timerInterval);document.getElementById('timerBox').style.display='none';}
+
+function renderBidApp(){
+  const state=currentState;const stage=state?.stage||'waiting';const player=state?.players;
+  const newPlayerId=state?.current_player_id;
+  if(newPlayerId!==lastPlayerId){lastPlayerId=newPlayerId;stopTimerDisplay();if(newPlayerId)playSound('newplayer');}
   // Stage banner
-  const stageMessages = {
-    waiting: '⏳ Waiting for next player...',
-    live: '🟢 BIDDING OPEN',
-    going_once: '🔔 GOING ONCE...',
-    going_twice: '🔔🔔 GOING TWICE...',
-    sold: '🔨 SOLD!'
-  };
-  const stageBanner = document.getElementById('stageBanner');
-  stageBanner.textContent = stageMessages[stage] || '⏳ Waiting...';
-  stageBanner.className = `stage-banner stage-${stage}`;
-
-  // Player card
-  if (!player) {
-    document.getElementById('cpWaiting').style.display = 'block';
-    document.getElementById('cpDetails').style.display = 'none';
-    document.getElementById('soldBanner').style.display = 'none';
-    document.getElementById('recentBids').style.display = 'none';
-    disableBidBtn('Wait for a player to be put up');
-    return;
+  const msgs={waiting:'⏳ Waiting for next player...',live:'🟢 BIDDING OPEN!',going_once:'🔔 GOING ONCE...',going_twice:'🔔🔔 GOING TWICE...',sold:'🔨 SOLD!'};
+  const banner=document.getElementById('stageBanner');banner.textContent=msgs[stage]||'⏳';banner.className='stage-banner stage-'+stage;
+  // Timers
+  if(stage==='going_once'&&state.going_once_at){const e=(Date.now()-new Date(state.going_once_at).getTime())/1000;const r=Math.max(0,Math.round(40-e));if(r>0)startTimerDisplay(r,'GOING ONCE','var(--yellow)');else stopTimerDisplay();}
+  else if(stage==='going_twice'&&state.going_twice_at){const e=(Date.now()-new Date(state.going_twice_at).getTime())/1000;const r=Math.max(0,Math.round(20-e));if(r>0)startTimerDisplay(r,'GOING TWICE','var(--red)');else stopTimerDisplay();}
+  else if(stage==='live'||stage==='waiting')stopTimerDisplay();
+  // Last winner
+  if(allSales.length){
+    const last=allSales[0];const isMe=last.team_id===myTeam.id;
+    document.getElementById('lastWinnerBox').style.display='block';
+    document.getElementById('lastWinnerText').innerHTML=`<b>${last.players?.name}</b> → <b style="color:${isMe?'var(--accent)':'var(--text)'};">${last.teams?.name}${isMe?' (YOU)':''}</b> ₹${fmt(last.amount)}`;
   }
-
-  document.getElementById('cpWaiting').style.display = 'none';
-  document.getElementById('cpDetails').style.display = 'block';
-  document.getElementById('cpName').textContent = player.name;
-  document.getElementById('cpMeta').innerHTML = `
-    <span class="role-badge role-${player.role}">${player.role}</span>
-    ${player.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(player.base_price)}</span>` : ''}
-    ${player.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ Star</span>' : ''}`;
-
-  // Current bid
-  const highestBid = currentBids[0];
-  const myHighestBid = currentBids.find(b => b.team_id === myTeam.id);
-  const amIWinning = highestBid?.team_id === myTeam.id;
-
-  document.getElementById('currentBidAmount').textContent = highestBid ? `₹${fmt(highestBid.amount)}` : '₹0';
-  if (highestBid) {
-    document.getElementById('currentBidTeam').innerHTML = amIWinning
-      ? `<span class="winning">✅ YOU are highest bidder!</span>`
-      : `<span class="losing">❌ ${highestBid.teams?.name} is leading</span>`;
-  } else {
-    document.getElementById('currentBidTeam').textContent = 'No bids yet — be first!';
+  document.getElementById('soldBanner').style.display=stage==='sold'?'block':'none';
+  document.getElementById('unsoldBanner').style.display='none';
+  const card=document.getElementById('playerCard');
+  card.className='player-card'+(stage!=='waiting'?' state-'+stage:'');
+  if(!player){
+    document.getElementById('cpWaiting').style.display='block';document.getElementById('cpDetails').style.display='none';
+    document.getElementById('roundBidsList').style.display='none';disableBidBtn('Waiting for auctioneer...');renderQuickBids(null,null);return;
   }
-
-  // Show/hide sold banner
-  if (stage === 'sold') {
-    document.getElementById('soldBanner').style.display = 'block';
-    document.getElementById('soldDetail').textContent = highestBid
-      ? `${player.name} → ${highestBid.teams?.name} for ₹${fmt(highestBid.amount)}`
-      : `${player.name} — no bids`;
-    disableBidBtn('Player sold');
-    playSound('sold');
-  } else {
-    document.getElementById('soldBanner').style.display = 'none';
+  document.getElementById('cpWaiting').style.display='none';document.getElementById('cpDetails').style.display='block';
+  document.getElementById('cpName').textContent=player.name;
+  const rb=document.getElementById('cpRoleBadge');rb.textContent=player.role;rb.className='player-role-center role-'+player.role;
+  document.getElementById('cpBasePriceLabel').textContent=player.base_price?`Base ₹${fmt(player.base_price)}`:'';
+  document.getElementById('cpStarLabel').textContent=player.star?'⭐ Star Player':'';
+  if(stage==='sold'){
+    const winner=currentBids[0];
+    document.getElementById('soldDetail').textContent=winner?`${player.name} → ${winner.teams?.name} for ₹${fmt(winner.amount)}`:player.name;
+    disableBidBtn('Player sold');renderQuickBids(null,null);
+    const amt=document.getElementById('currentBidAmt');amt.textContent=winner?`₹${fmt(winner.amount)}`:'₹0';
+    document.getElementById('currentBidTeamLabel').textContent=winner?(winner.team_id===myTeam.id?'✅ YOU WON!':'Won by '+winner.teams?.name):'No bids';
+    document.getElementById('roundBidsList').style.display='none';return;
   }
-
-  // Bid button
-  if (stage === 'live' || stage === 'going_once' || stage === 'going_twice') {
-    const nextBid = highestBid
-      ? Number(highestBid.amount) + Number(myTeam.bid_increment || 1000)
-      : Number(player.base_price || 0) + Number(myTeam.bid_increment || 1000);
-    if (amIWinning) {
-      disableBidBtn(`You're winning! Wait for others`);
-    } else if (nextBid > myTeam.credits) {
-      disableBidBtn(`Insufficient budget`);
-    } else {
-      enableBidBtn(nextBid);
-    }
-    if (stage === 'going_once') playSound('going_once');
-    if (stage === 'going_twice') playSound('going_twice');
-  } else if (stage !== 'sold') {
-    disableBidBtn('Bidding not open yet');
-  }
-
-  // Recent bids list
-  if (currentBids.length) {
-    document.getElementById('recentBids').style.display = 'block';
-    document.getElementById('bidsList').innerHTML = currentBids.slice(0,8).map(b => `
-      <div class="bid-row ${b.team_id === myTeam.id ? 'bid-row-mine' : ''}">
-        <span class="bid-row-team">${b.team_id === myTeam.id ? '⭐ You' : b.teams?.name}</span>
-        <span class="bid-row-amount">₹${fmt(b.amount)}</span>
-      </div>`).join('');
-  } else {
-    document.getElementById('recentBids').style.display = 'none';
-  }
+  const highest=currentBids[0];const amIHighest=highest?.team_id===myTeam.id;
+  document.getElementById('currentBidAmt').textContent=highest?`₹${fmt(highest.amount)}`:'₹0';
+  if(highest){document.getElementById('currentBidTeamLabel').innerHTML=amIHighest?'<span class="winning">✅ YOU are highest bidder!</span>':`<span class="losing">❌ ${highest.teams?.name} is leading</span>`;}
+  else{document.getElementById('currentBidTeamLabel').textContent='No bids yet — be first!';}
+  if(currentBids.length){
+    document.getElementById('roundBidsList').style.display='block';
+    document.getElementById('roundBidsItems').innerHTML=currentBids.slice(0,6).map(b=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:${b.team_id===myTeam.id?'var(--accent)':'var(--muted)'};">${b.team_id===myTeam.id?'⭐ You':b.teams?.name}</span><span style="color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;">${fmt(b.amount)}</span></div>`).join('');
+  }else{document.getElementById('roundBidsList').style.display='none';}
+  const mySales=allSales.filter(s=>s.team_id===myTeam.id).length;const maxP=myTeam.min_squad||11;
+  if(mySales>=maxP){disableBidBtn(`Squad full (${maxP} max)`);renderQuickBids(null,null);return;}
+  if(stage!=='live'&&stage!=='going_once'&&stage!=='going_twice'){disableBidBtn('Bidding not open');renderQuickBids(null,null);return;}
+  if(amIHighest){disableBidBtn("You're highest — wait for others");renderQuickBids(null,null);return;}
+  const increment=Number(myTeam.bid_increment||1000);const currentAmt=highest?Number(highest.amount):Number(player.base_price||0);
+  const nextBid=currentAmt+increment;
+  if(nextBid>myTeam.credits){disableBidBtn('Insufficient budget');renderQuickBids(null,null);return;}
+  enableBidBtn(nextBid);renderQuickBids(currentAmt,increment);
 }
 
-function enableBidBtn(amount) {
-  const btn = document.getElementById('mainBidBtn');
-  btn.textContent = `🏏 BID ₹${fmt(amount)}`;
-  btn.className = 'bid-btn bid-btn-active';
-  btn.dataset.amount = amount;
-  document.getElementById('bidNote').textContent = `Tap to bid ₹${fmt(amount)} (+₹${fmt(myTeam.bid_increment || 1000)} increment)`;
-}
-function disableBidBtn(msg) {
-  const btn = document.getElementById('mainBidBtn');
-  btn.textContent = '🏏 PLACE BID';
-  btn.className = 'bid-btn bid-btn-disabled';
-  btn.dataset.amount = '';
-  document.getElementById('bidNote').textContent = msg;
+function enableBidBtn(amount){const btn=document.getElementById('mainBidBtn');btn.textContent=`🏏 BID ₹${fmt(amount)}`;btn.className='bid-btn-main bid-btn-active';btn.dataset.amount=amount;document.getElementById('bidNote').textContent=`Tap to bid ₹${fmt(amount)}`;}
+function disableBidBtn(msg){const btn=document.getElementById('mainBidBtn');btn.textContent='🏏 PLACE BID';btn.className='bid-btn-main bid-btn-disabled';btn.dataset.amount='';document.getElementById('bidNote').textContent=msg;}
+
+function renderQuickBids(currentAmt,increment){
+  const el=document.getElementById('quickBids');
+  if(currentAmt===null||!increment){el.innerHTML='';return;}
+  const amounts=[1,2,3,4,5].map(m=>currentAmt+increment*m);
+  el.innerHTML=amounts.map(amt=>{const ok=amt<=myTeam.credits;return`<div class="quick-bid-btn${!ok?' disabled':''}" onclick="${ok?`quickBid(${amt})`:''}" >₹${fmt(amt)}</div>`;}).join('');
 }
 
-// ── PLACE BID ─────────────────────────────────────────────
-async function placeBid() {
-  const btn = document.getElementById('mainBidBtn');
-  const amount = parseFloat(btn.dataset.amount);
-  if (!amount || btn.className.includes('disabled')) return;
-  await submitBid(amount);
-}
+async function placeBid(){const btn=document.getElementById('mainBidBtn');const amount=parseFloat(btn.dataset.amount);if(!amount||btn.className.includes('disabled'))return;await submitBid(amount);}
+async function quickBid(amount){await submitBid(amount);}
 
-async function placeCustomBid() {
-  const amount = parseFloat(document.getElementById('customBidInput').value);
-  const highestBid = currentBids[0];
-  const minBid = highestBid ? Number(highestBid.amount) + 1 : Number(currentState?.players?.base_price || 0);
-  if (!amount || amount <= (highestBid?.amount || 0)) {
-    alert(`Bid must be higher than current bid of ₹${fmt(highestBid?.amount || 0)}`); return;
-  }
-  if (amount > myTeam.credits) { alert(`You only have ₹${fmt(myTeam.credits)} left`); return; }
-  document.getElementById('customBidInput').value = '';
-  await submitBid(amount);
-}
-
-async function submitBid(amount) {
-  if (!currentState?.current_player_id) return;
+async function submitBid(amount){
+  if(!currentState?.current_player_id)return;
+  const highest=currentBids[0];
+  if(highest?.team_id===myTeam.id){alert("You're already highest bidder! Wait for another team.");return;}
+  if(highest&&amount<=Number(highest.amount)){alert(`Bid must be higher than ₹${fmt(highest.amount)}`);return;}
+  const myBought=allSales.filter(s=>s.team_id===myTeam.id).length;
+  if(myBought>=(myTeam.min_squad||11)){alert('Your squad is full!');return;}
+  if(amount>myTeam.credits){alert(`Only ₹${fmt(myTeam.credits)} left`);return;}
   playSound('bid');
-  const { error } = await sb.from('bids').insert({
-    auction_id: myAuction.id,
-    player_id: currentState.current_player_id,
-    team_id: myTeam.id,
-    amount
-  });
-  // Update current_state with this as highest bid
-  if (!error) {
-    await sb.from('current_state').update({
-      current_bid: amount,
-      current_bid_team_id: myTeam.id,
-      updated_at: new Date().toISOString()
-    }).eq('auction_id', myAuction.id);
-  }
-  await loadCurrentState();
+  const{error}=await sb.from('bids').insert({auction_id:myAuction.id,player_id:currentState.current_player_id,team_id:myTeam.id,amount});
+  if(!error)await sb.from('current_state').update({current_bid:amount,current_bid_team_id:myTeam.id,updated_at:new Date().toISOString()}).eq('auction_id',myAuction.id);
+  await loadAll();
 }
 
-// ── SOUNDS ────────────────────────────────────────────────
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
-
-function playSound(type) {
-  try {
-    const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    const sounds = {
-      bid:         { freq: 880, type: 'sine',   dur: 0.15, vol: 0.3 },
-      going_once:  { freq: 660, type: 'sine',   dur: 0.4,  vol: 0.4 },
-      going_twice: { freq: 550, type: 'square', dur: 0.5,  vol: 0.4 },
-      sold:        { freq: 440, type: 'sine',   dur: 0.8,  vol: 0.5 }
-    };
-    const s = sounds[type] || sounds.bid;
-    osc.frequency.value = s.freq;
-    osc.type = s.type;
-    gain.gain.setValueAtTime(s.vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + s.dur);
-    if (type === 'sold') {
-      // Triumphant 3-note chord for sold
-      [440, 554, 659].forEach((f, i) => {
-        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-        o2.connect(g2); g2.connect(ctx.destination);
-        o2.frequency.value = f; o2.type = 'sine';
-        g2.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.1);
-        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8 + i * 0.1);
-        o2.start(ctx.currentTime + i * 0.1);
-        o2.stop(ctx.currentTime + 1);
-      });
-      return;
-    }
-    osc.start(); osc.stop(ctx.currentTime + s.dur);
-  } catch(e) {}
+function renderFeed(){
+  const el=document.getElementById('feedList');
+  if(!allSales.length){el.innerHTML='<div class="feed-empty">No sales yet</div>';return;}
+  el.innerHTML=allSales.map((s,i)=>{const isMe=s.team_id===myTeam.id;const time=new Date(s.sold_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  return`<div class="feed-item" style="${isMe?'background:rgba(245,158,11,0.05);border-left:3px solid var(--accent);':''}"><div class="feed-num">${allSales.length-i}</div><div class="feed-info"><div class="feed-player">${s.players?.star?'⭐ ':''}${s.players?.name} <span class="role-badge role-${s.players?.role}">${s.players?.role}</span></div><div class="feed-team" style="color:${isMe?'var(--accent)':'var(--muted)'};">${s.teams?.name}${isMe?' (YOU)':''}</div></div><div style="text-align:right;"><div class="feed-amount">₹${fmt(s.amount)}</div><div style="font-size:10px;color:var(--muted);">${time}</div></div></div>`;}).join('');
 }
 
-// ── UTILS ─────────────────────────────────────────────────
-const fmt = n => Number(n).toLocaleString('en-IN');
+function renderTeams(){
+  const el=document.getElementById('teamsList');
+  if(!allTeams.length){el.innerHTML='<div class="feed-empty">No teams yet</div>';return;}
+  el.innerHTML=`<div class="teams-list">${allTeams.map(t=>{const p=pct(t);const col=fundCol(p);const tS=allSales.filter(s=>s.team_id===t.id);const rc={BAT:0,BOWL:0,ALL:0,WK:0};tS.forEach(s=>{const r=s.players?.role;if(rc[r]!==undefined)rc[r]++;});const isMe=t.id===myTeam.id;
+  return`<div class="team-card-v${isMe?' open':''}" id="tcv-${t.id}" style="${isMe?'border-color:var(--accent);':''}"><div class="team-card-header-v" onclick="toggleTeamV('${t.id}')"><div><div class="t-name-v" style="${isMe?'color:var(--accent);':''}">${t.name}${isMe?' ⭐':''}</div><div style="font-size:12px;color:${col};">₹${fmt(t.credits)} · ${p}%</div></div><div style="text-align:right;"><div style="font-size:12px;color:var(--muted);">${tS.length}/${t.min_squad}</div><div style="font-size:13px;color:var(--muted);">▼</div></div></div>
+  <div class="fund-bar-v"><div class="fund-bar-fill-v" style="width:${p}%;background:${col};"></div></div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px;"><span class="role-pill role-pill-BAT">🏏 ${rc.BAT}</span><span class="role-pill role-pill-BOWL">🎳 ${rc.BOWL}</span><span class="role-pill role-pill-ALL">⚡ ${rc.ALL}</span><span class="role-pill role-pill-WK">🧤 ${rc.WK}</span></div>
+  <div class="team-players-v">${tS.map(s=>`<div class="tp-row-v"><span style="color:${s.players?.star?'var(--accent)':'#374151'}">★</span><span style="flex:1;font-size:13px;font-weight:600;">${s.players?.name}</span><span class="role-badge role-${s.players?.role}">${s.players?.role}</span><span style="color:var(--accent);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;">₹${fmt(s.amount)}</span></div>`).join('')||'<div style="color:var(--muted);font-size:13px;padding:4px 0;">No players yet</div>'}</div></div>`;}).join('')}</div>`;
+}
+function toggleTeamV(id){document.getElementById('tcv-'+id)?.classList.toggle('open');}
+
+function renderStats(){
+  const el=document.getElementById('statsContent');
+  const sold=new Set(allSales.map(s=>s.player_id)).size;const remaining=allPlayers.filter(p=>!p.unsold).length-sold;
+  const totalSpent=allSales.reduce((s,x)=>s+Number(x.amount),0);const totalLeft=allTeams.reduce((s,t)=>s+Number(t.credits),0);
+  const top=allSales.length?allSales.reduce((a,b)=>a.amount>b.amount?a:b):null;
+  el.innerHTML=`<div class="stats-grid"><div class="stat-card"><div class="stat-lbl">Sold</div><div class="stat-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${allPlayers.length}</span></div></div><div class="stat-card"><div class="stat-lbl">Available</div><div class="stat-val" style="color:var(--blue);">${remaining}</div></div><div class="stat-card"><div class="stat-lbl">Total Spent</div><div class="stat-val" style="color:var(--accent);">₹${fmt(totalSpent)}</div></div><div class="stat-card"><div class="stat-lbl">Budget Left</div><div class="stat-val" style="color:var(--yellow);">₹${fmt(totalLeft)}</div></div></div>${top?`<div style="padding:0 12px 12px;"><div class="stat-card" style="background:rgba(245,158,11,0.06);border-color:var(--accent);"><div class="stat-lbl">💰 Highest Sale</div><div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);">₹${fmt(top.amount)}</div><div style="font-size:13px;color:var(--muted);margin-top:3px;">${top.players?.name} → ${top.teams?.name}</div></div></div>`:''}<div style="padding:0 12px 20px;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:10px;">Budget Comparison</div>${allTeams.map(t=>{const p=pct(t);const col=fundCol(p);return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;"><div style="font-size:12px;color:${t.id===myTeam.id?'var(--accent)':'var(--muted)'};width:90px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">${t.name}</div><div style="flex:1;background:var(--border);border-radius:3px;height:11px;overflow:hidden;"><div style="width:${p}%;height:100%;background:${col};border-radius:3px;transition:width 0.5s;"></div></div><div style="font-size:11px;color:${col};width:55px;flex-shrink:0;font-weight:600;">${p}%</div></div>`;}).join('')}</div>`;
+}
+
+function switchView(name){document.querySelectorAll('.view-content').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));document.getElementById('view-'+name).classList.add('active');document.querySelector(`.btab[onclick="switchView('${name}')"]`).classList.add('active');}
+
+const AudioCtx=window.AudioContext||window.webkitAudioContext;let audioCtx=null;
+function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+function playSound(type){
+  if(soundMuted)return;
+  try{const ctx=getAudio();const defs={bid:{notes:[[880,'sine',0.15,0.3]]},newplayer:{notes:[[523,'sine',0.12,0.3],[659,'sine',0.12,0.3],[784,'sine',0.18,0.4]]},going_once:{notes:[[660,'sine',0.5,0.5],[550,'sine',0.3,0.3]]},going_twice:{notes:[[550,'square',0.35,0.4],[440,'square',0.35,0.35],[550,'square',0.35,0.4]]},sold:{notes:[[392,'sine',0.08,0.3],[523,'sine',0.08,0.3],[659,'sine',0.08,0.4],[784,'sine',0.5,0.5],[1047,'sine',0.7,0.4]]},tick:{notes:[[1000,'sine',0.04,0.12]]}};
+  const def=defs[type]||defs.bid;def.notes.forEach(([freq,wtype,dur,vol],i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=freq;o.type=wtype;g.gain.setValueAtTime(vol,ctx.currentTime+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur+i*0.15);o.start(ctx.currentTime+i*0.15);o.stop(ctx.currentTime+dur+i*0.15+0.1);});}catch(e){}
+}
+function toggleMute(){soundMuted=!soundMuted;const btn=document.getElementById('muteBtn');btn.textContent=soundMuted?'🔇 Muted':'🔊 Sound ON';btn.className=soundMuted?'mute-btn muted':'mute-btn';}
+const fmt=n=>Number(n).toLocaleString('en-IN');
+const pct=t=>Math.max(0,Math.round((Number(t.credits)/Number(t.start_credits))*100));
+const fundCol=p=>p>50?'var(--green)':p>20?'var(--yellow)':'var(--red)';
 </script>
 </body>
 </html>
