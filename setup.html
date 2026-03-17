@@ -177,6 +177,25 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
   </div>
 
+  <!-- AUCTION SETTINGS -->
+  <div class="panel" style="border-color:var(--accent);margin-bottom:16px;">
+    <div class="panel-title">⚙️ Auction Settings</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label>Default Credits per Team (₹)</label>
+        <input type="number" id="settingCredits" placeholder="e.g. 100000" min="1000" step="1000">
+        <span style="font-size:11px;color:var(--muted);">Applied to new teams</span>
+      </div>
+      <div class="form-group">
+        <label>Global Bid Step (₹) 🔒 Fixed for all</label>
+        <input type="number" id="settingBidStep" placeholder="e.g. 1000" min="100" step="100">
+        <span style="font-size:11px;color:var(--muted);">Same increment for every team</span>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveAuctionSettings()" style="margin-top:10px;width:100%;">💾 Save Settings</button>
+    <div id="settingsMsg" style="font-size:13px;margin-top:6px;min-height:16px;"></div>
+  </div>
+
   <!-- LAUNCH BOX -->
   <div class="launch-box" id="launchBox">
     <h2>🚀 Ready to Launch?</h2>
@@ -222,10 +241,30 @@ async function loadAuction() {
   document.getElementById('navAuctionName').textContent = data.name;
   document.getElementById('roomCodeDisplay').textContent = data.room_code;
   document.getElementById('newTeamCredits').placeholder = data.default_credits;
+  // Populate settings fields
+  if (data.default_credits) document.getElementById('settingCredits').value = data.default_credits;
+  if (data.bid_step) document.getElementById('settingBidStep').value = data.bid_step;
   if (data.status === 'live') {
     document.getElementById('launchBtn').textContent = '▶ Continue Live';
     document.getElementById('launchBtn').onclick = () => window.location.href = `auction.html?auction=${auctionId}`;
   }
+}
+
+async function saveAuctionSettings() {
+  const credits = parseInt(document.getElementById('settingCredits').value);
+  const bidStep = parseInt(document.getElementById('settingBidStep').value);
+  const msg = document.getElementById('settingsMsg');
+  if (!credits && !bidStep) { msg.style.color='var(--red)'; msg.textContent='Enter at least one value to save.'; return; }
+  const update = {};
+  if (credits > 0) update.default_credits = credits;
+  if (bidStep > 0) update.bid_step = bidStep;
+  const { error } = await sb.from('auctions').update(update).eq('id', auctionId);
+  if (error) { msg.style.color='var(--red)'; msg.textContent='Error: ' + error.message; return; }
+  auction = { ...auction, ...update };
+  document.getElementById('newTeamCredits').placeholder = credits || auction.default_credits;
+  msg.style.color='var(--green)';
+  msg.textContent = `✅ Saved! Bid step: ₹${bidStep?.toLocaleString('en-IN') || auction.bid_step} · Credits: ₹${credits?.toLocaleString('en-IN') || auction.default_credits}`;
+  setTimeout(() => msg.textContent = '', 3000);
 }
 
 // ── TEAMS ─────────────────────────────────────────────────
@@ -336,107 +375,4 @@ function normalizeRole(r) {
   const s = (r || '').toUpperCase().trim();
   if (['BAT','BATSMAN','BATTER'].includes(s)) return 'BAT';
   if (['BOWL','BOWLER','BOWLING'].includes(s)) return 'BOWL';
-  if (['ALL','ALLROUNDER','ALL-ROUNDER','ALL ROUNDER'].includes(s)) return 'ALL';
-  if (['WK','WICKETKEEPER','KEEPER','WICKET KEEPER'].includes(s)) return 'WK';
-  return 'BAT';
-}
-
-function renderPlayers(players) {
-  document.getElementById('playerCount').textContent = players.length;
-  document.getElementById('launchPlayers').textContent = players.length;
-  const el = document.getElementById('playersList');
-  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet.</p>'; return; }
-  el.innerHTML = `<table class="data-table">
-    <thead><tr><th>★</th><th>Player</th><th>Role</th><th>Base</th><th></th></tr></thead>
-    <tbody>${players.map(p => `<tr>
-      <td><span class="${p.star ? 'star-lit' : 'star-dim'}" style="cursor:pointer;font-size:15px;" onclick="toggleStar('${p.id}',${p.star})">★</span></td>
-      <td><b>${p.name}</b></td>
-      <td><span class="role-badge role-${p.role}">${p.role}</span></td>
-      <td>${p.base_price ? '₹' + p.base_price.toLocaleString('en-IN') : '-'}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deletePlayer('${p.id}')">✕</button></td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-async function addPlayer() {
-  const name = document.getElementById('newPlayerName').value.trim();
-  const role = document.getElementById('newPlayerRole').value;
-  const base = parseFloat(document.getElementById('newPlayerBase').value) || 0;
-  if (!name) { showMsg('playerMsg', 'Enter player name', 'error'); return; }
-  const { error } = await sb.from('players').insert({
-    auction_id: auctionId, name, role, base_price: base, star: false
-  });
-  if (error) { showMsg('playerMsg', error.message, 'error'); return; }
-  document.getElementById('newPlayerName').value = '';
-  document.getElementById('newPlayerBase').value = '';
-  showMsg('playerMsg', `✅ ${name} added`, 'success');
-  await loadPlayers();
-  document.getElementById('newPlayerName').focus();
-}
-
-async function importPlayers() {
-  const raw = document.getElementById('playerCSV').value.trim();
-  if (!raw) return;
-  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
-  let added = 0, skip = 0;
-  const inserts = [];
-  for (const line of rows) {
-    const p = line.split(',').map(s => s.trim());
-    if (!p[0]) { skip++; continue; }
-    inserts.push({
-      auction_id: auctionId,
-      name: p[0],
-      role: normalizeRole(p[1] || 'BAT'),
-      base_price: parseFloat(p[2]) || 0,
-      star: false
-    });
-  }
-  if (inserts.length) {
-    const { error } = await sb.from('players').insert(inserts);
-    if (error) { skip += inserts.length; }
-    else added = inserts.length;
-  }
-  document.getElementById('playerImportMsg').textContent = `✅ ${added} added, ${skip} skipped`;
-  document.getElementById('playerCSV').value = '';
-  setTimeout(() => document.getElementById('playerImportMsg').textContent = '', 3000);
-  await loadPlayers();
-}
-
-async function toggleStar(id, current) {
-  await sb.from('players').update({ star: !current }).eq('id', id);
-  await loadPlayers();
-}
-
-async function deletePlayer(id) {
-  if (!confirm('Remove this player?')) return;
-  await sb.from('players').delete().eq('id', id);
-  await loadPlayers();
-}
-
-// ── LAUNCH ────────────────────────────────────────────────
-async function launchAuction() {
-  const teams = parseInt(document.getElementById('launchTeams').textContent);
-  const players = parseInt(document.getElementById('launchPlayers').textContent);
-  if (teams < 2) { document.getElementById('launchMsg').innerHTML = '<span style="color:var(--red);">Add at least 2 teams before going live.</span>'; return; }
-  if (players < 1) { document.getElementById('launchMsg').innerHTML = '<span style="color:var(--red);">Add at least 1 player before going live.</span>'; return; }
-  await sb.from('auctions').update({ status: 'live' }).eq('id', auctionId);
-  window.location.href = `auction.html?auction=${auctionId}`;
-}
-
-function copyViewerLink() {
-  const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
-  navigator.clipboard.writeText(url).then(() => {
-    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied! Share on WhatsApp.</span>';
-    setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
-  });
-}
-
-// ── UTILS ─────────────────────────────────────────────────
-function showMsg(id, txt, type) {
-  const el = document.getElementById(id);
-  el.innerHTML = `<div class="msg msg-${type}">${txt}</div>`;
-  setTimeout(() => el.innerHTML = '', 3000);
-}
-</script>
-</body>
-</html>
+  if (['ALL','ALLROUNDER','ALL-ROUNDER','ALL ROUNDER'].incl
