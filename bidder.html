@@ -254,20 +254,34 @@ const SESSION_KEY='auctionxi_bidder_session';
   if(saved){
     try{
       const s=JSON.parse(saved);
-      // Verify session is still valid in DB
-      const{data:sess}=await sb.from('bidder_sessions').select('*,teams(*,auctions(*))').eq('id',s.sessionId).eq('session_token',s.token).single();
-      if(sess&&sess.teams?.auctions?.status!=='ended'){
-        myTeam=sess.teams;myAuction=sess.teams.auctions;mySessionToken=s.token;
-        // Refresh last_seen
+      const{data:sess,error}=await sb.from('bidder_sessions')
+        .select('*,teams(*,auctions(*))')
+        .eq('id',s.sessionId)
+        .eq('session_token',s.token)
+        .single();
+      if(!error&&sess&&sess.teams?.auctions?.status!=='ended'){
+        myTeam=sess.teams;
+        myAuction=sess.teams.auctions;
+        mySessionToken=s.token;
         await sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',s.sessionId);
-        enterBiddingApp(s.sessionId);return;
+        enterBiddingApp(s.sessionId);
+        return;
       }
-    }catch(e){}
+    }catch(e){ console.log('Session check failed, showing login'); }
     localStorage.removeItem(SESSION_KEY);
   }
+  // No valid session — show screen 1 (already active by default)
 })();
 
-function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen'+n).classList.add('active');}
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.style.display='none';
+    s.classList.remove('active');
+  });
+  const target=document.getElementById('screen'+n);
+  target.style.display='flex';
+  target.classList.add('active');
+}
 
 async function submitTeamCode(){
   const code=document.getElementById('teamCodeInput').value.trim().toUpperCase();
@@ -322,11 +336,15 @@ async function verifyOtp(){
 }
 
 async function enterBiddingApp(sessionId){
-  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.style.display='none';
+    s.classList.remove('active');
+  });
   document.getElementById('bidApp').style.display='flex';
   document.getElementById('myTeamName').textContent=myTeam.name;
   document.getElementById('auctionNameHeader').textContent=myAuction.name;
-  await loadAll();subscribeRealtime(sessionId);
+  await loadAll();
+  subscribeRealtime(sessionId);
 }
 
 async function logout(){
