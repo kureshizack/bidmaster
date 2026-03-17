@@ -117,10 +117,10 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="live-badge">🔴 LIVE</div>
   <div class="room-pill" id="navRoomCode">------</div>
   <div class="nav-right">
-    <button class="btn btn-ghost btn-sm" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()">🏏 Bidder Links</button>
-    <button class="btn btn-ghost btn-sm" onclick="copyViewerLink()">🔗 Viewer Link</button>
-    <button class="btn btn-ghost btn-sm" onclick="window.location.href='setup.html?auction='+auctionId">⚙ Setup</button>
-    <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">← Home</button>
+    <button class="btn btn-ghost btn-sm" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()">🏏 Bidders</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyViewerLink()">🔗 Viewers</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.location.href='setup.html?auction='+auctionId">⚙</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">🏠</button>
   </div>
 </nav>
 
@@ -215,25 +215,29 @@ input:focus,select:focus{border-color:var(--accent);}
       </div>
     </div>
 
-    <!-- Amount + Winning Team + SOLD -->
-    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:flex-end;margin-bottom:10px;">
-      <div class="form-group">
-        <label>Final Sale Amount (₹)</label>
-        <input class="amount-input" type="number" id="saleAmount" placeholder="Enter amount" min="0"
-          oninput="renderBidChips()" onkeydown="if(event.key==='Enter')confirmSold()">
-      </div>
-      <div class="form-group">
-        <label>Winning Team</label>
-        <div class="autocomplete-wrap">
-          <input type="text" id="teamInput" placeholder="Search team…" autocomplete="off"
-            oninput="filterTeamAC()" onfocus="filterTeamAC()"
-            style="width:100%;font-size:14px;padding:8px 10px;"
-            onkeydown="handleTeamKey(event)">
-          <div class="autocomplete-list" id="teamDrop" style="display:none;"></div>
+    <!-- Amount + Winning Team + SOLD — stacked for mobile -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="form-group">
+          <label>Final Amount (₹)</label>
+          <input class="amount-input" type="number" id="saleAmount" placeholder="Amount" min="0"
+            oninput="renderBidChips()" onkeydown="if(event.key==='Enter')confirmSold()">
+        </div>
+        <div class="form-group">
+          <label>Winning Team</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="teamInput" placeholder="Search team…" autocomplete="off"
+              oninput="filterTeamAC()" onfocus="filterTeamAC()"
+              style="width:100%;font-size:14px;padding:8px 10px;"
+              onkeydown="handleTeamKey(event)">
+            <div class="autocomplete-list" id="teamDrop" style="display:none;"></div>
+          </div>
         </div>
       </div>
-      <button class="btn btn-green" onclick="confirmSold()" style="height:50px;font-size:16px;white-space:nowrap;">🔨 SOLD</button>
-      <button class="btn btn-ghost" onclick="resetForm()" style="height:50px;padding:0 14px;">↺</button>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+        <button class="btn btn-green" onclick="confirmSold()" style="font-size:18px;padding:14px;">🔨 SOLD</button>
+        <button class="btn btn-ghost" onclick="resetForm()" style="padding:14px 18px;font-size:18px;">↺</button>
+      </div>
     </div>
 
     <div>
@@ -327,7 +331,7 @@ input:focus,select:focus{border-color:var(--accent);}
 </div>
 
 <script>
-const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';';
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -343,7 +347,7 @@ let acPlayerIdx = -1, acTeamIdx = -1;
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
   // Check Supabase keys are configured
-  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+  if (SUPABASE_URL === 'https://ofondrfejzcznxsvpuec.supabase.co') {
     document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
       ⚠️ Supabase URL not configured in auction.html.<br><br>
       Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
