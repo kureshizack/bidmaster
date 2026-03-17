@@ -407,6 +407,8 @@ function subscribeRealtime() {
       if (state.data?.current_player_id) {
         await loadLiveBids(state.data.current_player_id);
         playSound('bid');
+        // Every new bid resets timer back to Going Once (40s)
+        startGoingOnce();
       }
     })
     .subscribe();
@@ -654,10 +656,21 @@ function stopTimer() {
 
 // ── UNSOLD ────────────────────────────────────────────────
 async function autoMarkUnsold() {
-  // Called automatically after going twice timer expires with no bid
   if (currentBids.length > 0) {
-    // Someone bid — confirm sold instead
-    showMsg('saleMsg', 'Bid received! Please confirm SOLD.', 'success'); return;
+    // Bids exist — auto-execute SOLD with highest bidder
+    const winner = currentBids[0];
+    const pn = document.getElementById('playerInput').value.trim();
+    const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
+    if (player && winner) {
+      // Fill in the form and confirm sold automatically
+      document.getElementById('teamInput').value = winner.teams?.name || '';
+      document.getElementById('saleAmount').value = winner.amount;
+      showMsg('saleMsg', `⏰ Time up! Auto-confirming SOLD...`, 'success');
+      setTimeout(() => confirmSold(), 1000);
+    } else {
+      showMsg('saleMsg', 'Time up! Please confirm SOLD manually.', 'success');
+    }
+    return;
   }
   await markUnsold();
 }
