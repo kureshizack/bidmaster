@@ -135,20 +135,38 @@ input:focus,select:focus{border-color:var(--accent);}
 <div class="tab-content active" id="tab-sale">
   <div class="summary-bar" id="summaryBar"></div>
 
-  <!-- Current player broadcast -->
+  <!-- Current player broadcast + timer -->
   <div class="current-player-box" id="currentPlayerBox" style="display:none;">
     <div style="flex:1;">
       <div class="cp-label">🎯 Now Up for Auction — viewers can see this</div>
       <div class="cp-name" id="cpName">-</div>
       <div class="cp-meta" id="cpMeta"></div>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="clearCurrentPlayer()">✕ Clear</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <div id="stageTimerBox" style="display:none;text-align:center;">
+        <div id="stageTimerLabel" style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;"></div>
+        <div id="stageTimerCount" style="font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--accent);line-height:1;"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="clearCurrentPlayer()">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- Pause / Complete bar -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn" id="pauseBtn" onclick="togglePause()"
+      style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:8px 16px;font-size:13px;flex:1;">
+      ⏸ Pause Auction
+    </button>
+    <button class="btn" onclick="completeAuction()"
+      style="background:rgba(148,163,184,0.1);color:var(--muted);border:1px solid var(--border);padding:8px 16px;font-size:13px;flex:1;">
+      🏁 Complete Auction
+    </button>
   </div>
 
   <div class="sale-form">
     <div id="saleMsg"></div>
 
-    <!-- Row 1: Player search -->
+    <!-- Player search -->
     <div class="form-group" style="margin-bottom:10px;">
       <label>Player Name</label>
       <div class="autocomplete-wrap">
@@ -173,23 +191,31 @@ input:focus,select:focus{border-color:var(--accent);}
       <div id="liveBidsList" style="max-height:120px;overflow-y:auto;"></div>
     </div>
 
-    <!-- Going Once / Twice / Reset controls -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <button class="btn" onclick="setStage('going_once')"
-        style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:10px;font-size:13px;">
-        🔔 Going Once
-      </button>
-      <button class="btn" onclick="setStage('going_twice')"
-        style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);padding:10px;font-size:13px;">
-        🔔 Going Twice
-      </button>
-      <button class="btn" onclick="setStage('live')"
-        style="background:rgba(96,165,250,0.15);color:var(--blue);border:1px solid var(--blue);padding:10px;font-size:13px;">
-        ↺ Reset Live
-      </button>
+    <!-- Going Once / Twice / Reset — AUTO timers + manual small buttons -->
+    <div style="margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;">
+        <button class="btn" onclick="startGoingOnce()"
+          style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:12px;font-size:14px;font-weight:700;">
+          🔔 Going Once<br><span style="font-size:11px;opacity:0.8;">40 sec auto</span>
+        </button>
+        <button class="btn" onclick="startGoingTwice()"
+          style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);padding:12px;font-size:14px;font-weight:700;">
+          🔔 Going Twice<br><span style="font-size:11px;opacity:0.8;">20 sec auto</span>
+        </button>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn" onclick="markUnsold()"
+            style="background:rgba(148,163,184,0.1);color:var(--muted);border:1px solid var(--border);padding:8px;font-size:12px;">
+            🚫 Unsold
+          </button>
+          <button class="btn" onclick="setStage('live')"
+            style="background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid var(--border);padding:8px;font-size:12px;">
+            ↺ Reset Live
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Row 2: Amount + Winning Team + SOLD -->
+    <!-- Amount + Winning Team + SOLD -->
     <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:flex-end;margin-bottom:10px;">
       <div class="form-group">
         <label>Final Sale Amount (₹)</label>
@@ -301,7 +327,7 @@ input:focus,select:focus{border-color:var(--accent);}
 </div>
 
 <script>
-const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -317,7 +343,7 @@ let acPlayerIdx = -1, acTeamIdx = -1;
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
   // Check Supabase keys are configured
-if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
     document.body.innerHTML = `<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">
       ⚠️ Supabase URL not configured in auction.html.<br><br>
       Open auction.html in Notepad, replace YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY with your actual values.
@@ -499,6 +525,7 @@ document.addEventListener('click', e => {
 
 // ── CURRENT PLAYER BROADCAST ──────────────────────────────
 async function setCurrentPlayer(playerId, p) {
+  stopTimer();
   await sb.from('current_state').upsert({
     auction_id: auctionId,
     current_player_id: playerId,
@@ -570,12 +597,193 @@ function playSound(type) {
   } catch(e) {}
 }
 
-// ── STAGE CONTROL ─────────────────────────────────────────
+// ── STAGE CONTROL + TIMERS ────────────────────────────────
+let stageTimer = null;
+let timerSeconds = 0;
+
 async function setStage(stage) {
-  await sb.from('current_state').update({
-    stage, updated_at: new Date().toISOString()
-  }).eq('auction_id', auctionId);
+  clearInterval(stageTimer); stageTimer = null;
+  const now = new Date().toISOString();
+  const update = { stage, updated_at: now };
+  if (stage === 'going_once') update.going_once_at = now;
+  if (stage === 'going_twice') update.going_twice_at = now;
+  await sb.from('current_state').update(update).eq('auction_id', auctionId);
   playSound(stage);
+}
+
+function startGoingOnce() {
+  setStage('going_once');
+  runTimer(40, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
+}
+
+function startGoingTwice() {
+  setStage('going_twice');
+  runTimer(20, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
+}
+
+function runTimer(seconds, color, label, onComplete) {
+  clearInterval(stageTimer);
+  timerSeconds = seconds;
+  const box = document.getElementById('stageTimerBox');
+  const lbl = document.getElementById('stageTimerLabel');
+  const cnt = document.getElementById('stageTimerCount');
+  box.style.display = 'block';
+  lbl.textContent = label;
+  cnt.style.color = color;
+  cnt.textContent = timerSeconds;
+  stageTimer = setInterval(() => {
+    timerSeconds--;
+    cnt.textContent = timerSeconds;
+    if (timerSeconds <= 5) playSound('bid');
+    if (timerSeconds <= 0) {
+      clearInterval(stageTimer); stageTimer = null;
+      box.style.display = 'none';
+      onComplete();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(stageTimer); stageTimer = null;
+  document.getElementById('stageTimerBox').style.display = 'none';
+}
+
+// ── UNSOLD ────────────────────────────────────────────────
+async function autoMarkUnsold() {
+  // Called automatically after going twice timer expires with no bid
+  if (currentBids.length > 0) {
+    // Someone bid — confirm sold instead
+    showMsg('saleMsg', 'Bid received! Please confirm SOLD.', 'success'); return;
+  }
+  await markUnsold();
+}
+
+async function markUnsold() {
+  const pn = document.getElementById('playerInput').value.trim();
+  if (!pn) { showMsg('saleMsg', 'No player selected', 'error'); return; }
+  const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
+  if (!player) return;
+  if (!confirm(`Mark ${player.name} as UNSOLD?`)) return;
+
+  await sb.from('players').update({ unsold: true }).eq('id', player.id);
+  await sb.from('current_state').update({
+    current_player_id: null, current_bid: 0,
+    current_bid_team_id: null, stage: 'waiting',
+    updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+  await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
+
+  stopTimer();
+  showMsg('saleMsg', `🚫 ${player.name} marked as UNSOLD`, 'success');
+  resetForm();
+  await loadAll();
+  scheduleNextPlayer();
+}
+
+// ── RANDOM NEXT PLAYER (after 7s) ─────────────────────────
+function scheduleNextPlayer() {
+  const soldIds = new Set(sales.map(s => s.player_id));
+  const unsoldIds = new Set(players.filter(p => p.unsold).map(p => p.id));
+  const available = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id));
+  if (!available.length) return;
+
+  showMsg('saleMsg', `⏳ Next player coming up in 7 seconds...`, 'success');
+  setTimeout(async () => {
+    // Re-check available (might have changed)
+    const { data: freshPlayers } = await sb.from('players').select('*').eq('auction_id', auctionId);
+    const freshSales = sales.map(s => s.player_id);
+    const freshAvail = (freshPlayers || []).filter(p => !freshSales.includes(p.id) && !p.unsold);
+    if (!freshAvail.length) { showMsg('saleMsg', '🏁 All players done!', 'success'); return; }
+    const next = freshAvail[Math.floor(Math.random() * freshAvail.length)];
+    document.getElementById('playerInput').value = next.name;
+    selectPlayerById(next.id, next);
+  }, 7000);
+}
+
+function selectPlayerById(id, p) {
+  document.getElementById('playerInput').value = p.name;
+  document.getElementById('playerDrop').style.display = 'none';
+  if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
+  document.getElementById('playerStrip').innerHTML = `
+    <span style="color:${p.star?'var(--accent)':'#374151'};font-size:18px;">★</span>
+    <b style="font-size:15px;">${p.name}</b>
+    <span class="role-badge role-${p.role}">${p.role}</span>
+    ${p.base_price?`<span style="font-size:13px;">Base: <b style="color:var(--accent);">₹${fmt(p.base_price)}</b></span>`:''}
+    ${p.star?'<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ STAR PLAYER</span>':''}`;
+  setCurrentPlayer(id, p);
+  renderBidChips();
+  document.getElementById('teamInput').focus();
+}
+
+// ── PAUSE / COMPLETE ──────────────────────────────────────
+let auctionPaused = false;
+async function togglePause() {
+  auctionPaused = !auctionPaused;
+  await sb.from('auctions').update({ paused: auctionPaused }).eq('id', auctionId);
+  const btn = document.getElementById('pauseBtn');
+  if (auctionPaused) {
+    btn.textContent = '▶ Resume Auction';
+    btn.style.background = 'rgba(34,197,94,0.15)';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    stopTimer();
+    await setStage('waiting');
+  } else {
+    btn.textContent = '⏸ Pause Auction';
+    btn.style.background = 'rgba(234,179,8,0.15)';
+    btn.style.color = 'var(--yellow)';
+    btn.style.borderColor = 'var(--yellow)';
+  }
+}
+
+async function completeAuction() {
+  if (!confirm('Complete this auction?\n\nThis will end the auction for all viewers and bidders.\n\nSwipe to confirm — tap OK to proceed.')) return;
+  if (!confirm('Are you sure? This cannot be undone.')) return;
+
+  await sb.from('auctions').update({ status: 'ended' }).eq('id', auctionId);
+  await sb.from('current_state').update({
+    current_player_id: null, stage: 'waiting', updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+
+  copyWhatsAppSummary();
+  alert('✅ Auction completed! WhatsApp summary copied — paste it on your group.');
+  window.location.href = 'dashboard.html';
+}
+
+// ── WHATSAPP SUMMARY ──────────────────────────────────────
+function copyWhatsAppSummary() {
+  let msg = `🏏 *${auction.name} — Auction Complete!*\n`;
+  if (auction.league_name) msg += `🏆 ${auction.league_name}\n`;
+  msg += `\n`;
+
+  teams.forEach(t => {
+    const teamSales = sales.filter(s => s.team_id === t.id);
+    const spent = teamSales.reduce((s, x) => s + Number(x.amount), 0);
+    msg += `━━━━━━━━━━━━━━━\n`;
+    msg += `*🏏 ${t.name}*\n`;
+    if (t.captain_name) msg += `👤 Captain: ${t.captain_name}\n`;
+    msg += `💰 Spent: ₹${fmt(spent)} | Left: ₹${fmt(t.credits)}\n\n`;
+    if (teamSales.length) {
+      teamSales.forEach((s, i) => {
+        msg += `${i+1}. ${s.players?.name} (${s.players?.role}) — ₹${fmt(s.amount)}\n`;
+      });
+    } else {
+      msg += `No players bought\n`;
+    }
+    msg += `\n`;
+  });
+
+  const unsoldList = players.filter(p => p.unsold);
+  if (unsoldList.length) {
+    msg += `━━━━━━━━━━━━━━━\n`;
+    msg += `*🚫 Unsold Players (${unsoldList.length})*\n`;
+    unsoldList.forEach(p => msg += `• ${p.name} (${p.role})\n`);
+  }
+
+  msg += `\n━━━━━━━━━━━━━━━\n`;
+  msg += `Powered by 🏏 AuctionXI`;
+  navigator.clipboard.writeText(msg).catch(() => {});
+  return msg;
 }
 
 // ── LIVE BIDS ─────────────────────────────────────────────
@@ -649,9 +857,11 @@ async function confirmSold() {
   await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
 
   playSound('sold');
+  stopTimer();
   showMsg('saleMsg', `🔨 SOLD! ${player.name} → ${team.name} for ₹${fmt(amt)}`, 'success');
   resetForm();
   await loadAll();
+  scheduleNextPlayer();
   setTimeout(() => document.getElementById('playerInput').focus(), 100);
 }
 
