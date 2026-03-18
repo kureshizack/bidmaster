@@ -90,7 +90,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <input type="text" id="newTeamName" placeholder="e.g. Alpha Strikers XI">
           </div>
           <div class="form-group" style="flex:1;">
-            <label>Credits</label>
+            <label>Credits ₹</label>
             <input type="number" id="newTeamCredits" placeholder="auto">
           </div>
         </div>
@@ -103,19 +103,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <label>Captain Mobile * (for OTP)</label>
             <input type="tel" id="newCaptainMobile" placeholder="10-digit mobile number" maxlength="10">
           </div>
-          <div class="form-group" style="flex:1;">
-            <label>Bid Step ₹</label>
-            <input type="number" id="newBidIncrement" placeholder="1000" value="1000" min="100">
-          </div>
         </div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">💡 Bid step is set globally in Auction Settings below</p>
         <button class="btn btn-primary" onclick="addTeam()" style="width:100%;">+ Add Team</button>
         <div id="teamMsg" style="margin-top:8px;"></div>
       </div>
 
       <div class="panel">
         <div class="panel-title">📥 Import Teams (CSV)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, CaptainName, CaptainMobile, BidStep</b></p>
-        <textarea id="teamCSV" style="height:90px;resize:vertical;" placeholder="Alpha Strikers XI,100000,Arif Khan,9876543210,1000&#10;Azad XI,100000,Zakwan Ahmed,9123456789,1000&#10;Hussaini XI,100000,Mohsin Raza,9988776655,500"></textarea>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, CaptainName, CaptainMobile</b></p>
+        <textarea id="teamCSV" style="height:90px;resize:vertical;" placeholder="Alpha Strikers XI,100000,Arif Khan,9876543210&#10;Azad XI,100000,Zakwan Ahmed,9123456789&#10;Hussaini XI,100000,Mohsin Raza,9988776655"></textarea>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
           <button class="btn btn-primary btn-sm" onclick="importTeams()">📥 Import</button>
           <span id="teamImportMsg" style="font-size:13px;color:var(--green);"></span>
@@ -130,8 +127,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
     <!-- RIGHT: PLAYERS -->
     <div>
+      <!-- Import from Registration Portal -->
+      <div class="panel" style="border-color:var(--blue);">
+        <div class="panel-title" style="color:var(--blue);">📱 From Registration Portal</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <span style="font-size:13px;color:var(--muted);">Players registered via link: </span>
+            <b style="color:var(--blue);" id="regPortalCount">0</b>
+          </div>
+          <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="importFromRegistrations()">⬇ Import All to Auction</button>
+        </div>
+        <div id="regPortalPreview" style="font-size:12px;color:var(--muted);">Loading registered players...</div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">💡 This imports all registered players into your auction player list. Their name, role and photo are carried over automatically.</p>
+      </div>
+
       <div class="panel">
-        <div class="panel-title">🏏 Add Player</div>
+        <div class="panel-title">🏏 Add Player Manually</div>
         <div class="form-row">
           <div class="form-group" style="flex:2;">
             <label>Name</label>
@@ -169,9 +180,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       </div>
 
       <div class="panel">
-        <div class="panel-title">🏏 Players (<span id="playerCount">0</span>)</div>
+        <div class="panel-title">🏏 Auction Players (<span id="playerCount">0</span>)</div>
         <div style="max-height:300px;overflow-y:auto;" id="playersList">
-          <p style="color:var(--muted);font-size:13px;">No players yet.</p>
+          <p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>
         </div>
       </div>
     </div>
@@ -254,6 +265,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   await loadTeams();
   await loadPlayers();
   await initRegPortal();
+  await loadRegPortalPreview();
 })();
 
 async function loadAuction() {
@@ -300,15 +312,14 @@ function renderTeams(teams) {
   document.getElementById('launchTeams').textContent = teams.length;
   const el = document.getElementById('teamsList');
   if (!teams.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No teams yet.</p>'; return; }
-  el.innerHTML = '<table class="data-table"><thead><tr><th>Team</th><th>Captain</th><th>Mobile</th><th>Team Code</th><th>Bid Step</th><th></th></tr></thead><tbody>' +
+  el.innerHTML = '<table class="data-table"><thead><tr><th>Team</th><th>Captain</th><th>Mobile</th><th>Team Code</th><th></th></tr></thead><tbody>' +
     teams.map(t =>
       '<tr>' +
       '<td><b>' + t.name + '</b><br><span style="font-size:11px;color:var(--muted);">₹' + Number(t.start_credits).toLocaleString('en-IN') + '</span></td>' +
       '<td style="font-size:13px;">' + (t.captain_name || '<span style="color:var(--red);">Not set</span>') + '</td>' +
       '<td style="font-size:13px;">' + (t.captain_mobile || '<span style="color:var(--red);">Not set</span>') + '</td>' +
       '<td><span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--accent);background:var(--surface2);padding:2px 8px;border-radius:4px;letter-spacing:2px;">' + (t.team_code || '-') + '</span>' +
-      ' <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="copyTeamCode(\'' + t.team_code + '\',\'' + t.captain_mobile + '\',\'' + t.name.replace(/'/g,"&#39;") + '\')">📋 Copy</button></td>' +
-      '<td style="font-size:13px;">₹' + Number(t.bid_increment || 1000).toLocaleString('en-IN') + '</td>' +
+      ' <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="copyTeamCode(\'' + t.team_code + '\',\'' + t.captain_mobile + '\',\'' + t.name.replace(/'/g, "&#39;") + '\')">📋 Copy</button></td>' +
       '<td><button class="btn btn-danger btn-sm" onclick="deleteTeam(\'' + t.id + '\')">✕</button></td>' +
       '</tr>'
     ).join('') + '</tbody></table>';
@@ -365,7 +376,6 @@ async function importTeams() {
     const credits = parseFloat(p[1]) || auction.default_credits;
     const captainName = p[2] || '';
     const captainMobile = p[3] || '';
-    const bidIncrement = parseFloat(p[4]) || 1000;
     const teamCode = genTeamCode();
     const insertData = {
       auction_id: auctionId, name: p[0],
@@ -373,13 +383,13 @@ async function importTeams() {
       captain_name: captainName,
       captain_mobile: captainMobile,
       team_code: teamCode,
-      bid_increment: bidIncrement
+      bid_increment: auction.bid_step || 1000
     };
     if (auction.min_squad) insertData.min_squad = auction.min_squad;
     const { error } = await sb.from('teams').insert(insertData);
     if (error) skip++; else added++;
   }
-  document.getElementById('teamImportMsg').textContent = `✅ ${added} added, ${skip} skipped`;
+  document.getElementById('teamImportMsg').textContent = '✅ ' + added + ' added, ' + skip + ' skipped';
   document.getElementById('teamCSV').value = '';
   setTimeout(() => document.getElementById('teamImportMsg').textContent = '', 3000);
   await loadTeams();
@@ -391,7 +401,71 @@ async function deleteTeam(id) {
   await loadTeams();
 }
 
-// ── PLAYERS ───────────────────────────────────────────────
+// ── REGISTRATION PORTAL PREVIEW ──────────────────────────
+async function loadRegPortalPreview() {
+  const { data } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).order('registered_at', { ascending: false });
+  const regs = data || [];
+  document.getElementById('regPortalCount').textContent = regs.length;
+  if (!regs.length) {
+    document.getElementById('regPortalPreview').textContent = 'No players registered yet via the portal link.';
+    return;
+  }
+  // Check which ones are already imported
+  const { data: existing } = await sb.from('players').select('name').eq('auction_id', auctionId);
+  const existingNames = new Set((existing || []).map(p => p.name.toLowerCase().trim()));
+  const newOnes = regs.filter(r => !existingNames.has(r.name.toLowerCase().trim()));
+  document.getElementById('regPortalPreview').innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
+    regs.map(r => {
+      const imported = existingNames.has(r.name.toLowerCase().trim());
+      return '<span style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid ' +
+        (imported ? 'var(--green)' : 'var(--blue)') + ';color:' +
+        (imported ? 'var(--green)' : 'var(--blue)') + ';">' +
+        (imported ? '✅ ' : '⏳ ') + r.name + ' (' + r.role + ')' +
+        '</span>';
+    }).join('') + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;">' +
+    (newOnes.length > 0 ? newOnes.length + ' not yet imported' : '✅ All registered players imported') +
+    '</div>';
+}
+
+async function importFromRegistrations() {
+  const { data: regs } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId);
+  if (!regs?.length) {
+    alert('No registered players found. Share the registration link with players first.');
+    return;
+  }
+  // Get existing players to avoid duplicates
+  const { data: existing } = await sb.from('players').select('name').eq('auction_id', auctionId);
+  const existingNames = new Set((existing || []).map(p => p.name.toLowerCase().trim()));
+  const toInsert = regs
+    .filter(r => !existingNames.has(r.name.toLowerCase().trim()))
+    .map(r => ({
+      auction_id: auctionId,
+      name: r.name,
+      role: r.role || 'BAT',
+      base_price: 0,
+      star: false,
+      photo_url: r.photo_url || null
+    }));
+  if (!toInsert.length) {
+    alert('All registered players are already in your auction player list!');
+    return;
+  }
+  const { error } = await sb.from('players').insert(toInsert);
+  if (error) { alert('Import failed: ' + error.message); return; }
+  await loadPlayers();
+  await loadRegPortalPreview();
+  // Show success
+  const preview = document.getElementById('regPortalPreview');
+  const msg = document.createElement('div');
+  msg.style.cssText = 'background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;padding:8px 12px;border-radius:6px;font-size:13px;margin-top:8px;';
+  msg.textContent = '✅ ' + toInsert.length + ' players imported to auction!';
+  preview.appendChild(msg);
+  setTimeout(() => msg.remove(), 4000);
+}
 async function loadPlayers() {
   const { data } = await sb.from('players').select('*').eq('auction_id', auctionId).order('name');
   renderPlayers(data || []);
@@ -497,7 +571,7 @@ function copyViewerLink() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-const FAST2SMS_KEY = '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73'; // Replace with your Fast2SMS API key
+const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY'; // Replace with your Fast2SMS API key
 
 async function initRegPortal() {
   if (!auctionId) return;
