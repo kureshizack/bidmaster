@@ -106,16 +106,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       </div>
 
       <div class="panel">
-        <div class="panel-title">📥 Import Teams (CSV)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, CaptainName, CaptainMobile</b></p>
-        <textarea id="teamCSV" style="height:80px;resize:vertical;" placeholder="Alpha Strikers XI,Arif Khan,9876543210&#10;Azad XI,Zakwan Ahmed,9123456789&#10;Hussaini XI,Mohsin Raza,9988776655"></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="importTeams()">📥 Import</button>
-          <span id="teamImportMsg" style="font-size:13px;color:var(--green);"></span>
-        </div>
-      </div>
-
-      <div class="panel">
         <div class="panel-title">👥 Teams (<span id="teamCount">0</span>)</div>
         <div id="teamsList"><p style="color:var(--muted);font-size:13px;">No teams yet.</p></div>
       </div>
@@ -386,36 +376,6 @@ async function importTeams() {
   await loadTeams();
 }
 
-async function importTeams() {
-  const raw = document.getElementById('teamCSV').value.trim();
-  if (!raw) return;
-  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
-  let added = 0, skip = 0;
-  for (const line of rows) {
-    const p = line.split(',').map(s => s.trim());
-    if (!p[0]) { skip++; continue; }
-    const credits = parseFloat(p[1]) || auction.default_credits;
-    const captainName = p[2] || '';
-    const captainMobile = p[3] || '';
-    const teamCode = genTeamCode();
-    const insertData = {
-      auction_id: auctionId, name: p[0],
-      start_credits: credits, credits,
-      captain_name: captainName,
-      captain_mobile: captainMobile,
-      team_code: teamCode,
-      bid_increment: auction.bid_step || 1000
-    };
-    if (auction.min_squad) insertData.min_squad = auction.min_squad;
-    const { error } = await sb.from('teams').insert(insertData);
-    if (error) skip++; else added++;
-  }
-  document.getElementById('teamImportMsg').textContent = '✅ ' + added + ' added, ' + skip + ' skipped';
-  document.getElementById('teamCSV').value = '';
-  setTimeout(() => document.getElementById('teamImportMsg').textContent = '', 3000);
-  await loadTeams();
-}
-
 async function deleteTeam(id) {
   if (!confirm('Remove this team?')) return;
   await sb.from('teams').delete().eq('id', id);
@@ -470,8 +430,9 @@ async function importFromRegistrations() {
       auction_id: auctionId,
       name: r.name,
       role: r.role || 'BAT',
-      base_price: 0,
-      star: false
+      base_price: auction.base_price || 1000,
+      star: false,
+      photo_url: r.photo_url || null
     }));
   if (!toInsert.length) {
     alert('All registered players are already in your auction player list!');
@@ -507,10 +468,11 @@ function renderPlayers(players) {
   document.getElementById('playerCount').textContent = players.length;
   document.getElementById('launchPlayers').textContent = players.length;
   const el = document.getElementById('playersList');
-  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet.</p>'; return; }
-  el.innerHTML = '<table class="data-table"><thead><tr><th>★</th><th>Player</th><th>Role</th><th>Base</th><th></th></tr></thead><tbody>' +
+  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>'; return; }
+  el.innerHTML = '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base</th><th></th></tr></thead><tbody>' +
     players.map(p =>
       '<tr>' +
+      '<td>' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:18px;color:var(--muted);">👤</span>') + '</td>' +
       '<td><span class="' + (p.star ? 'star-lit' : 'star-dim') + '" style="cursor:pointer;font-size:15px;" onclick="toggleStar(\'' + p.id + '\',' + p.star + ')">★</span></td>' +
       '<td><b>' + p.name + '</b></td>' +
       '<td><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
