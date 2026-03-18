@@ -363,7 +363,7 @@ let acPlayerIdx = -1, acTeamIdx = -1;
   }
 
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  if (!session) { window.location.href = 'login.html'; return; }
   await loadAll();
   subscribeRealtime();
   setTimeout(() => {

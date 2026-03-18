@@ -227,7 +227,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
 (async () => {
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
   await loadAuction();
   await loadTeams();
