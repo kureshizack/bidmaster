@@ -105,12 +105,22 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Default Credits per Team</label>
+        <label>Default Credits per Team ₹</label>
         <input type="number" id="newCredits" placeholder="100000" value="100000">
       </div>
       <div class="form-group">
+        <label>Global Bid Step ₹</label>
+        <input type="number" id="newBidStep" placeholder="1000" value="1000" min="100">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
         <label>Min Squad Size</label>
         <input type="number" id="newMinSquad" placeholder="11" value="11" min="1">
+      </div>
+      <div class="form-group">
+        <label>Base Price per Player ₹</label>
+        <input type="number" id="newBasePrice" placeholder="1000" value="1000" min="0">
       </div>
     </div>
     <div id="createMsg"></div>
@@ -207,6 +217,8 @@ async function createAuction() {
   const league = document.getElementById('newLeague').value.trim();
   const credits = parseFloat(document.getElementById('newCredits').value) || 100000;
   const minSquad = parseInt(document.getElementById('newMinSquad').value) || 11;
+  const bidStep = parseFloat(document.getElementById('newBidStep').value) || 1000;
+  const basePrice = parseFloat(document.getElementById('newBasePrice').value) || 1000;
   const msgEl = document.getElementById('createMsg');
   if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
 
@@ -233,6 +245,8 @@ async function createAuction() {
     room_code: roomCode,
     default_credits: credits,
     min_squad: minSquad,
+    bid_step: bidStep,
+    base_price: basePrice,
     status: 'setup'
   }).select().single();
 
