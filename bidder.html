@@ -196,7 +196,11 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
       <div class="player-waiting" id="cpWaiting">🏏<br><br>Waiting for auctioneer to put a player up...</div>
       <div id="cpDetails" style="display:none;">
         <div class="player-card-body">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">🎯 Now Up for Auction</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:10px;">🎯 Now Up for Auction</div>
+          <!-- Player photo -->
+          <div id="cpPhotoWrap" style="margin-bottom:12px;display:none;text-align:center;">
+            <img id="cpPhoto" src="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 0 16px rgba(245,158,11,0.3);">
+          </div>
           <div class="player-name-big" id="cpName">-</div>
           <div style="margin-bottom:12px;">
             <span class="player-role-center role-BAT" id="cpRoleBadge">BAT</span>
@@ -504,6 +508,11 @@ function renderBidApp(){
   document.getElementById('cpWaiting').style.display='none';
   document.getElementById('cpDetails').style.display='block';
   document.getElementById('cpName').textContent=player.name;
+  // Show photo if available
+  const photoWrap=document.getElementById('cpPhotoWrap');
+  const photoEl=document.getElementById('cpPhoto');
+  if(player.photo_url){photoEl.src=player.photo_url;photoWrap.style.display='block';}
+  else{photoWrap.style.display='none';}
   const rb=document.getElementById('cpRoleBadge');rb.textContent=player.role;rb.className='player-role-center role-'+player.role;
   document.getElementById('cpBasePriceLabel').textContent=player.base_price?'Base ₹'+fmt(player.base_price):'';
   document.getElementById('cpStarLabel').textContent=player.star?'⭐ Star Player':'';
