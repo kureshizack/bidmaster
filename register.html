@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Player Registration — AuctionXI</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--border:#2a3a55;--gold:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(245,158,11,0.07) 0%,transparent 60%);}
+.page{max-width:480px;margin:0 auto;padding:24px 20px 60px;}
+
+/* HEADER */
+.header{text-align:center;padding:32px 0 24px;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;color:var(--gold);}
+.logo span{color:var(--text);}
+.auction-name{font-size:14px;color:var(--muted);margin-top:4px;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:var(--text);line-height:1;margin-top:20px;}
+.header-title span{color:var(--gold);}
+.header-sub{font-size:14px;color:var(--muted);margin-top:8px;line-height:1.6;}
+
+/* SUCCESS SCREEN */
+#successScreen{display:none;text-align:center;padding:40px 20px;}
+.success-icon{font-size:64px;margin-bottom:16px;}
+.success-title{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--green);letter-spacing:2px;margin-bottom:8px;}
+.success-sub{font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
+.success-card{background:var(--surface);border:1px solid var(--green);border-radius:16px;padding:20px;margin-bottom:20px;text-align:left;}
+.success-card-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.success-card-row:last-child{border-bottom:none;}
+.success-card-label{color:var(--muted);}
+.success-card-value{font-weight:700;color:var(--text);}
+.sms-notice{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px;font-size:13px;color:var(--gold);line-height:1.6;}
+
+/* LOADING SCREEN */
+#loadingScreen{text-align:center;padding:60px 20px;}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ERROR SCREEN */
+#errorScreen{display:none;text-align:center;padding:60px 20px;}
+
+/* FORM */
+#regForm{display:none;}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;}
+.form-card-title{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;}
+.form-group{margin-bottom:16px;}
+.form-group:last-child{margin-bottom:0;}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+input,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:13px 16px;border-radius:10px;font-size:15px;outline:none;font-family:'Noto Sans',sans-serif;transition:border-color 0.2s;-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--gold);}
+select option{background:var(--surface2);}
+
+/* PHOTO UPLOAD */
+.photo-upload{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.photo-upload:hover,.photo-upload.dragover{border-color:var(--gold);background:rgba(245,158,11,0.05);}
+.photo-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-preview{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);margin:0 auto 8px;display:none;}
+.photo-icon{font-size:36px;margin-bottom:8px;}
+.photo-label{font-size:13px;color:var(--muted);}
+.photo-hint{font-size:11px;color:var(--border);margin-top:4px;}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.stat-num{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--gold);}
+.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+
+/* ROLE PILLS */
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.role-pill{padding:12px;border-radius:10px;border:2px solid var(--border);text-align:center;cursor:pointer;transition:all 0.2s;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;}
+.role-pill:hover{border-color:var(--gold);}
+.role-pill.selected-BAT{background:#1e3a5f;border-color:#93c5fd;color:#93c5fd;}
+.role-pill.selected-BOWL{background:#3f1515;border-color:#fca5a5;color:#fca5a5;}
+.role-pill.selected-ALL{background:#14391f;border-color:#86efac;color:#86efac;}
+.role-pill.selected-WK{background:#3d2608;border-color:#fcd34d;color:#fcd34d;}
+
+/* SUBMIT */
+.submit-btn{width:100%;padding:18px;background:var(--gold);color:#000;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+.submit-btn:hover{background:#fbbf24;transform:translateY(-2px);}
+.submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.msg{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none;}
+.msg.error{background:rgba(239,68,68,0.1);border:1px solid var(--red);color:#fca5a5;display:block;}
+.msg.success{background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;display:block;}
+
+/* ALREADY REGISTERED */
+#alreadyScreen{display:none;text-align:center;padding:40px 20px;}
+
+/* REGISTERED LIST */
+.reg-count-bar{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.reg-count-text{font-size:13px;color:var(--muted);}
+.reg-count-num{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo">AUCTION<span>XI</span></div>
+    <div class="auction-name" id="auctionNameHeader">Loading...</div>
+    <div class="header-title">REGISTER AS<br><span>A PLAYER</span></div>
+    <div class="header-sub">Register to be part of the auction. Get notified on WhatsApp when the auction goes live.</div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loadingScreen">
+    <div class="spinner"></div>
+    <div style="color:var(--muted);font-size:14px;">Loading auction details...</div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="errorScreen">
+    <div style="font-size:48px;margin-bottom:16px;">❌</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;margin-bottom:8px;">Invalid Link</div>
+    <div style="color:var(--muted);font-size:14px;" id="errorMsg">This registration link is invalid or has expired.</div>
+  </div>
+
+  <!-- ALREADY REGISTERED -->
+  <div id="alreadyScreen">
+    <div style="font-size:48px;margin-bottom:16px;">✅</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--green);margin-bottom:8px;">Already Registered!</div>
+    <div style="color:var(--muted);font-size:14px;line-height:1.6;" id="alreadyMsg">You are already registered for this auction. You will receive the viewer link on WhatsApp before the auction starts.</div>
+  </div>
+
+  <!-- FORM -->
+  <div id="regForm">
+    <!-- Auction stats -->
+    <div class="stats-row" id="auctionStats"></div>
+
+    <div id="formMsg" class="msg"></div>
+
+    <!-- Photo -->
+    <div class="form-card">
+      <div class="form-card-title">📸 Your Photo</div>
+      <div class="photo-upload" id="photoUpload">
+        <img id="photoPreview" class="photo-preview" src="" alt="Preview">
+        <div class="photo-icon" id="photoIcon">📷</div>
+        <div class="photo-label">Tap to upload your photo</div>
+        <div class="photo-hint">JPG or PNG · Max 2MB</div>
+        <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoSelect(event)">
+      </div>
+    </div>
+
+    <!-- Personal info -->
+    <div class="form-card">
+      <div class="form-card-title">👤 Personal Details</div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="playerName" placeholder="Your full name" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>Mobile Number * (WhatsApp)</label>
+        <input type="tel" id="playerMobile" placeholder="10-digit mobile" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+    </div>
+
+    <!-- Cricket details -->
+    <div class="form-card">
+      <div class="form-card-title">🏏 Cricket Details</div>
+      <div class="form-group">
+        <label>Your Role *</label>
+        <div class="role-grid">
+          <div class="role-pill" id="role-BAT" onclick="selectRole('BAT')">🏏 Batsman</div>
+          <div class="role-pill" id="role-BOWL" onclick="selectRole('BOWL')">🎳 Bowler</div>
+          <div class="role-pill" id="role-ALL" onclick="selectRole('ALL')">⚡ All-rounder</div>
+          <div class="role-pill" id="role-WK" onclick="selectRole('WK')">🧤 Wicketkeeper</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Matches Played (approx)</label>
+        <select id="playerMatches">
+          <option value="0">Less than 10</option>
+          <option value="10">10 – 25</option>
+          <option value="25">25 – 50</option>
+          <option value="50">50 – 100</option>
+          <option value="100">100+</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitRegistration()" id="submitBtn">
+      🏏 Register for Auction
+    </button>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;">
+      You'll receive the live viewer link on WhatsApp before the auction starts
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="successScreen">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">YOU'RE IN!</div>
+    <div class="success-sub">Registration complete. We'll send you the live auction link on WhatsApp before it starts.</div>
+    <div class="success-card" id="successCard"></div>
+    <div class="sms-notice">📱 Watch for a WhatsApp message from AuctionXI with your live viewer link. Don't miss your own auction!</div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const params=new URLSearchParams(window.location.search);
+const auctionId=params.get('auction');
+let auction=null;
+let selectedRole=null;
+let photoFile=null;
+
+// ── INIT ──────────────────────────────────────────────────
+(async()=>{
+  if(!auctionId){showError('No auction specified in this link.');return;}
+  const{data,error}=await sb.from('auctions').select('*').eq('id',auctionId).single();
+  if(error||!data){showError('This auction registration link is invalid or has expired.');return;}
+  if(data.status==='ended'){showError('This auction has already ended. Registration is closed.');return;}
+  auction=data;
+  document.getElementById('auctionNameHeader').textContent=data.name+(data.league_name?' · '+data.league_name:'');
+  // Load registered count
+  const{data:regs}=await sb.from('player_registrations').select('id').eq('auction_id',auctionId);
+  const count=regs?.length||0;
+  document.getElementById('auctionStats').innerHTML=
+    '<div class="stat-box"><div class="stat-num">'+count+'</div><div class="stat-lbl">Registered</div></div>'+
+    '<div class="stat-box"><div class="stat-num">FREE</div><div class="stat-lbl">Entry</div></div>'+
+    '<div class="stat-box"><div class="stat-num">LIVE</div><div class="stat-lbl">Viewing</div></div>';
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('regForm').style.display='block';
+})();
+
+function showError(msg){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('errorScreen').style.display='block';
+  document.getElementById('errorMsg').textContent=msg;
+}
+
+// ── ROLE SELECTION ────────────────────────────────────────
+function selectRole(role){
+  selectedRole=role;
+  ['BAT','BOWL','ALL','WK'].forEach(r=>{
+    const el=document.getElementById('role-'+r);
+    el.className='role-pill'+(r===role?' selected-'+r:'');
+  });
+}
+
+// ── PHOTO HANDLING ────────────────────────────────────────
+function handlePhotoSelect(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(file.size>2*1024*1024){showFormMsg('Photo must be less than 2MB','error');return;}
+  photoFile=file;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const prev=document.getElementById('photoPreview');
+    prev.src=ev.target.result;
+    prev.style.display='block';
+    document.getElementById('photoIcon').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SUBMIT ────────────────────────────────────────────────
+async function submitRegistration(){
+  const name=document.getElementById('playerName').value.trim();
+  const mobile=document.getElementById('playerMobile').value.trim();
+  const matches=document.getElementById('playerMatches').value;
+  hideFormMsg();
+  if(!name){showFormMsg('Please enter your full name','error');return;}
+  if(!mobile||mobile.length!==10){showFormMsg('Please enter a valid 10-digit mobile number','error');return;}
+  if(!selectedRole){showFormMsg('Please select your batting/bowling role','error');return;}
+  const btn=document.getElementById('submitBtn');
+  btn.textContent='Registering...';btn.disabled=true;
+  // Check if already registered
+  const{data:existing}=await sb.from('player_registrations').select('id').eq('auction_id',auctionId).eq('mobile',mobile).single();
+  if(existing){
+    document.getElementById('regForm').style.display='none';
+    document.getElementById('alreadyScreen').style.display='block';
+    return;
+  }
+  // Upload photo if provided
+  let photoUrl=null;
+  if(photoFile){
+    const ext=photoFile.name.split('.').pop();
+    const path=auctionId+'/'+mobile+'.'+ext;
+    const{data:upData,error:upErr}=await sb.storage.from('player-photos').upload(path,photoFile,{upsert:true});
+    if(!upErr&&upData){
+      const{data:urlData}=sb.storage.from('player-photos').getPublicUrl(path);
+      photoUrl=urlData.publicUrl;
+    }
+  }
+  // Insert registration
+  const{data:reg,error:regErr}=await sb.from('player_registrations').insert({
+    auction_id:auctionId,
+    name,mobile,role:selectedRole,
+    matches_played:parseInt(matches),
+    photo_url:photoUrl,
+    registered_at:new Date().toISOString()
+  }).select().single();
+  if(regErr){
+    showFormMsg('Registration failed: '+regErr.message,'error');
+    btn.textContent='🏏 Register for Auction';btn.disabled=false;
+    return;
+  }
+  // Show success
+  document.getElementById('regForm').style.display='none';
+  document.getElementById('successScreen').style.display='block';
+  document.getElementById('successCard').innerHTML=
+    '<div class="success-card-row"><span class="success-card-label">Name</span><span class="success-card-value">'+name+'</span></div>'+
+    '<div class="success-card-row"><span class="success-card-label">Mobile</span><span class="success-card-value">'+mobile+'</span></div>'+
+    '<div class="success-card-row"><span class="success-card-label">Role</span><span class="success-card-value">'+selectedRole+'</span></div>'+
+    '<div class="success-card-row"><span class="success-card-label">Auction</span><span class="success-card-value">'+auction.name+'</span></div>'+
+    '<div class="success-card-row"><span class="success-card-label">Status</span><span class="success-card-value" style="color:var(--green);">✅ Confirmed</span></div>';
+}
+
+function showFormMsg(msg,type){
+  const el=document.getElementById('formMsg');
+  el.textContent=msg;el.className='msg '+type;el.style.display='block';
+}
+function hideFormMsg(){
+  const el=document.getElementById('formMsg');el.style.display='none';
+}
+</script>
+</body>
+</html>
