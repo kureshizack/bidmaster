@@ -148,10 +148,15 @@ input:focus,select:focus{border-color:var(--accent);}
 
   <!-- Current player broadcast + timer -->
   <div class="current-player-box" id="currentPlayerBox" style="display:none;">
-    <div style="flex:1;">
-      <div class="cp-label">🎯 Now Up for Auction — viewers can see this</div>
-      <div class="cp-name" id="cpName">-</div>
-      <div class="cp-meta" id="cpMeta"></div>
+    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+      <div id="cpPhotoWrap" style="display:none;flex-shrink:0;">
+        <img id="cpPhoto" src="" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);">
+      </div>
+      <div>
+        <div class="cp-label">🎯 Now Up for Auction — viewers can see this</div>
+        <div class="cp-name" id="cpName">-</div>
+        <div class="cp-meta" id="cpMeta"></div>
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
       <div id="stageTimerBox" style="display:none;text-align:center;">
@@ -632,6 +637,11 @@ async function setCurrentPlayer(playerId, p) {
   await sb.from('bids').delete().eq('auction_id', auctionId).neq('player_id', playerId);
   document.getElementById('currentPlayerBox').style.display = 'flex';
   document.getElementById('cpName').textContent = p.name;
+  // Show photo
+  const photoWrap = document.getElementById('cpPhotoWrap');
+  const photoEl = document.getElementById('cpPhoto');
+  if (p.photo_url) { photoEl.src = p.photo_url; photoWrap.style.display = 'block'; }
+  else { photoWrap.style.display = 'none'; }
   document.getElementById('cpMeta').innerHTML =
     '<span class="role-badge role-' + p.role + '">' + p.role + '</span>' +
     (p.base_price ? '<span style="font-size:13px;color:var(--muted);">Base ₹' + fmt(p.base_price) + '</span>' : '') +
