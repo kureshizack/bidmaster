@@ -89,10 +89,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <label>Team Name *</label>
             <input type="text" id="newTeamName" placeholder="e.g. Alpha Strikers XI">
           </div>
-          <div class="form-group" style="flex:1;">
-            <label>Credits ₹</label>
-            <input type="number" id="newTeamCredits" placeholder="auto">
-          </div>
         </div>
         <div class="form-row" style="margin-bottom:8px;">
           <div class="form-group" style="flex:2;">
@@ -104,15 +100,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <input type="tel" id="newCaptainMobile" placeholder="10-digit mobile number" maxlength="10">
           </div>
         </div>
-        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">💡 Bid step is set globally in Auction Settings below</p>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">💡 Credits and bid step are set from auction settings</p>
         <button class="btn btn-primary" onclick="addTeam()" style="width:100%;">+ Add Team</button>
         <div id="teamMsg" style="margin-top:8px;"></div>
       </div>
 
       <div class="panel">
         <div class="panel-title">📥 Import Teams (CSV)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, Credits, CaptainName, CaptainMobile</b></p>
-        <textarea id="teamCSV" style="height:90px;resize:vertical;" placeholder="Alpha Strikers XI,100000,Arif Khan,9876543210&#10;Azad XI,100000,Zakwan Ahmed,9123456789&#10;Hussaini XI,100000,Mohsin Raza,9988776655"></textarea>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>TeamName, CaptainName, CaptainMobile</b></p>
+        <textarea id="teamCSV" style="height:80px;resize:vertical;" placeholder="Alpha Strikers XI,Arif Khan,9876543210&#10;Azad XI,Zakwan Ahmed,9123456789&#10;Hussaini XI,Mohsin Raza,9988776655"></textarea>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
           <button class="btn btn-primary btn-sm" onclick="importTeams()">📥 Import</button>
           <span id="teamImportMsg" style="font-size:13px;color:var(--green);"></span>
@@ -138,9 +134,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
           <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="importFromRegistrations()">⬇ Import All to Auction</button>
         </div>
         <div id="regPortalPreview" style="font-size:12px;color:var(--muted);">Loading registered players...</div>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px;">💡 This imports all registered players into your auction player list. Their name, role and photo are carried over automatically.</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">Base price is auto-set from auction settings. Photos are imported automatically.</p>
       </div>
 
+      <!-- Add Player Manually -->
       <div class="panel">
         <div class="panel-title">🏏 Add Player Manually</div>
         <div class="form-row">
@@ -157,54 +154,65 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
               <option value="WK">WK</option>
             </select>
           </div>
-          <div class="form-group" style="flex:1;">
-            <label>Base ₹</label>
-            <input type="number" id="newPlayerBase" placeholder="0" min="0">
-          </div>
           <div class="form-group">
             <label>&nbsp;</label>
             <button class="btn btn-primary" onclick="addPlayer()">+ Add</button>
           </div>
         </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:8px;">💡 Base price auto-set from auction settings (₹<span id="basePriceHint">—</span>)</p>
         <div id="playerMsg"></div>
       </div>
 
+      <!-- Upload Players from File -->
       <div class="panel">
-        <div class="panel-title">📥 Import Players (CSV)</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">One per line: <b>Name, Role, BasePrice</b> — Roles: BAT / BOWL / ALL / WK</p>
-        <textarea id="playerCSV" style="height:100px;resize:vertical;" placeholder="Virat Kohli,BAT,2000&#10;Jasprit Bumrah,BOWL,1500&#10;MS Dhoni,WK,1000&#10;Hardik Pandya,ALL,1200"></textarea>
+        <div class="panel-title">📂 Upload Players from File</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload a .txt or .csv file — one player per line: <b>Name, Role</b> (base price auto-applied)</p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label style="background:var(--accent);color:#000;padding:8px 16px;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;">
+            📁 Choose File
+            <input type="file" id="playerFile" accept=".txt,.csv" style="display:none;" onchange="handlePlayerFile(event)">
+          </label>
+          <span id="fileLabel" style="font-size:13px;color:var(--muted);">No file chosen</span>
+        </div>
+        <div id="filePreview" style="margin-top:10px;"></div>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="importPlayers()">📥 Import</button>
+          <button class="btn btn-primary btn-sm" id="fileImportBtn" onclick="importFromFile()" style="display:none;">📥 Import Players</button>
           <span id="playerImportMsg" style="font-size:13px;color:var(--green);"></span>
         </div>
       </div>
 
+      <!-- Auction Players List -->
       <div class="panel">
         <div class="panel-title">🏏 Auction Players (<span id="playerCount">0</span>)</div>
-        <div style="max-height:300px;overflow-y:auto;" id="playersList">
+        <div style="max-height:350px;overflow-y:auto;" id="playersList">
           <p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- AUCTION SETTINGS -->
+  <!-- AUCTION INFO (read-only, set at creation) -->
   <div class="panel" style="border-color:var(--accent);margin-bottom:16px;">
     <div class="panel-title">⚙️ Auction Settings</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="form-group">
-        <label>Default Credits per Team (₹)</label>
-        <input type="number" id="settingCredits" placeholder="e.g. 100000" min="1000" step="1000">
-        <span style="font-size:11px;color:var(--muted);">Applied to new teams</span>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
       </div>
-      <div class="form-group">
-        <label>Global Bid Step (₹) 🔒 Fixed for all</label>
-        <input type="number" id="settingBidStep" placeholder="e.g. 1000" min="100" step="100">
-        <span style="font-size:11px;color:var(--muted);">Same increment for every team</span>
+      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBidStep">—</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Bid Step ₹</div>
+      </div>
+      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBasePrice">—</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Base Price ₹</div>
+      </div>
+      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoMinSquad">—</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
       </div>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="saveAuctionSettings()" style="margin-top:10px;width:100%;">💾 Save Settings</button>
-    <div id="settingsMsg" style="font-size:13px;margin-top:6px;min-height:16px;"></div>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;">🔒 These were set when you created the auction. Go to Dashboard to create a new auction with different settings.</p>
   </div>
 
   <!-- PLAYER REGISTRATION PORTAL -->
@@ -274,31 +282,16 @@ async function loadAuction() {
   auction = data;
   document.getElementById('navAuctionName').textContent = data.name;
   document.getElementById('roomCodeDisplay').textContent = data.room_code;
-  document.getElementById('newTeamCredits').placeholder = data.default_credits;
-  // Populate settings fields
-  if (data.default_credits) document.getElementById('settingCredits').value = data.default_credits;
-  if (data.bid_step) document.getElementById('settingBidStep').value = data.bid_step;
+  // Populate info panel
+  document.getElementById('infoCredits').textContent = '₹' + Number(data.default_credits || 100000).toLocaleString('en-IN');
+  document.getElementById('infoBidStep').textContent = '₹' + Number(data.bid_step || 1000).toLocaleString('en-IN');
+  document.getElementById('infoBasePrice').textContent = '₹' + Number(data.base_price || 1000).toLocaleString('en-IN');
+  document.getElementById('infoMinSquad').textContent = data.min_squad || 11;
+  document.getElementById('basePriceHint').textContent = Number(data.base_price || 1000).toLocaleString('en-IN');
   if (data.status === 'live') {
     document.getElementById('launchBtn').textContent = '▶ Continue Live';
-    document.getElementById('launchBtn').onclick = () => window.location.href = `auction.html?auction=${auctionId}`;
+    document.getElementById('launchBtn').onclick = () => window.location.href = 'auction.html?auction=' + auctionId;
   }
-}
-
-async function saveAuctionSettings() {
-  const credits = parseInt(document.getElementById('settingCredits').value);
-  const bidStep = parseInt(document.getElementById('settingBidStep').value);
-  const msg = document.getElementById('settingsMsg');
-  if (!credits && !bidStep) { msg.style.color='var(--red)'; msg.textContent='Enter at least one value to save.'; return; }
-  const update = {};
-  if (credits > 0) update.default_credits = credits;
-  if (bidStep > 0) update.bid_step = bidStep;
-  const { error } = await sb.from('auctions').update(update).eq('id', auctionId);
-  if (error) { msg.style.color='var(--red)'; msg.textContent='Error: ' + error.message; return; }
-  auction = { ...auction, ...update };
-  document.getElementById('newTeamCredits').placeholder = credits || auction.default_credits;
-  msg.style.color='var(--green)';
-  msg.textContent = `✅ Saved! Bid step: ₹${bidStep?.toLocaleString('en-IN') || auction.bid_step} · Credits: ₹${credits?.toLocaleString('en-IN') || auction.default_credits}`;
-  setTimeout(() => msg.textContent = '', 3000);
 }
 
 // ── TEAMS ─────────────────────────────────────────────────
@@ -337,8 +330,8 @@ async function addTeam() {
   const name = document.getElementById('newTeamName').value.trim();
   const captainName = document.getElementById('newCaptainName').value.trim();
   const captainMobile = document.getElementById('newCaptainMobile').value.trim();
-  const credits = parseFloat(document.getElementById('newTeamCredits').value) || auction.default_credits || 100000;
-  const bidIncrement = parseFloat(document.getElementById('newBidIncrement').value) || 1000;
+  const credits = auction.default_credits || 100000;
+  const bidIncrement = auction.bid_step || 1000;
   if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
   if (!captainName) { showMsg('teamMsg', 'Enter captain name', 'error'); return; }
   if (!captainMobile || captainMobile.length !== 10) { showMsg('teamMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
@@ -353,15 +346,43 @@ async function addTeam() {
     team_code: teamCode,
     bid_increment: bidIncrement
   };
-  // Only include min_squad if it exists on the auction
   if (auction.min_squad) insertData.min_squad = auction.min_squad;
   const { error } = await sb.from('teams').insert(insertData);
   if (error) { showMsg('teamMsg', '❌ Error: ' + error.message, 'error'); return; }
   document.getElementById('newTeamName').value = '';
   document.getElementById('newCaptainName').value = '';
   document.getElementById('newCaptainMobile').value = '';
-  document.getElementById('newTeamCredits').value = '';
-  showMsg('teamMsg', `✅ ${name} added — Team Code: ${teamCode}`, 'success');
+  showMsg('teamMsg', '✅ ' + name + ' added — Code: ' + teamCode, 'success');
+  await loadTeams();
+}
+
+async function importTeams() {
+  const raw = document.getElementById('teamCSV').value.trim();
+  if (!raw) return;
+  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
+  let added = 0, skip = 0;
+  for (const line of rows) {
+    const p = line.split(',').map(s => s.trim());
+    if (!p[0]) { skip++; continue; }
+    const credits = auction.default_credits || 100000;
+    const captainName = p[1] || '';
+    const captainMobile = p[2] || '';
+    const teamCode = genTeamCode();
+    const insertData = {
+      auction_id: auctionId, name: p[0],
+      start_credits: credits, credits,
+      captain_name: captainName,
+      captain_mobile: captainMobile,
+      team_code: teamCode,
+      bid_increment: auction.bid_step || 1000
+    };
+    if (auction.min_squad) insertData.min_squad = auction.min_squad;
+    const { error } = await sb.from('teams').insert(insertData);
+    if (error) skip++; else added++;
+  }
+  document.getElementById('teamImportMsg').textContent = '✅ ' + added + ' added, ' + skip + ' skipped';
+  document.getElementById('teamCSV').value = '';
+  setTimeout(() => document.getElementById('teamImportMsg').textContent = '', 3000);
   await loadTeams();
 }
 
@@ -411,22 +432,25 @@ async function loadRegPortalPreview() {
     document.getElementById('regPortalPreview').textContent = 'No players registered yet via the portal link.';
     return;
   }
-  // Check which ones are already imported
   const { data: existing } = await sb.from('players').select('name').eq('auction_id', auctionId);
   const existingNames = new Set((existing || []).map(p => p.name.toLowerCase().trim()));
   const newOnes = regs.filter(r => !existingNames.has(r.name.toLowerCase().trim()));
   document.getElementById('regPortalPreview').innerHTML =
-    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
+    '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">' +
     regs.map(r => {
       const imported = existingNames.has(r.name.toLowerCase().trim());
-      return '<span style="font-size:11px;padding:3px 8px;border-radius:8px;border:1px solid ' +
-        (imported ? 'var(--green)' : 'var(--blue)') + ';color:' +
-        (imported ? 'var(--green)' : 'var(--blue)') + ';">' +
-        (imported ? '✅ ' : '⏳ ') + r.name + ' (' + r.role + ')' +
-        '</span>';
+      const photoHtml = r.photo_url
+        ? '<img src="' + r.photo_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid ' + (imported ? 'var(--green)' : 'var(--blue)') + ';display:block;margin:0 auto 4px;">'
+        : '<div style="width:40px;height:40px;border-radius:50%;background:var(--surface2);border:2px solid ' + (imported ? 'var(--green)' : 'var(--blue)') + ';display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:18px;">👤</div>';
+      return '<div style="text-align:center;width:64px;">' +
+        photoHtml +
+        '<div style="font-size:10px;font-weight:600;color:var(--text);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.name + '</div>' +
+        '<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--surface2);color:var(--muted);">' + r.role + '</span>' +
+        (imported ? '<div style="font-size:9px;color:var(--green);margin-top:2px;">✅ added</div>' : '') +
+        '</div>';
     }).join('') + '</div>' +
-    '<div style="font-size:11px;color:var(--muted);margin-top:6px;">' +
-    (newOnes.length > 0 ? newOnes.length + ' not yet imported' : '✅ All registered players imported') +
+    '<div style="font-size:11px;color:var(--muted);margin-top:8px;">' +
+    (newOnes.length > 0 ? newOnes.length + ' not yet imported to auction' : '✅ All registered players imported') +
     '</div>';
 }
 
@@ -447,8 +471,7 @@ async function importFromRegistrations() {
       name: r.name,
       role: r.role || 'BAT',
       base_price: 0,
-      star: false,
-      photo_url: r.photo_url || null
+      star: false
     }));
   if (!toInsert.length) {
     alert('All registered players are already in your auction player list!');
@@ -500,43 +523,61 @@ function renderPlayers(players) {
 async function addPlayer() {
   const name = document.getElementById('newPlayerName').value.trim();
   const role = document.getElementById('newPlayerRole').value;
-  const base = parseFloat(document.getElementById('newPlayerBase').value) || 0;
+  const base = auction.base_price || 1000;
   if (!name) { showMsg('playerMsg', 'Enter player name', 'error'); return; }
   const { error } = await sb.from('players').insert({
     auction_id: auctionId, name, role, base_price: base, star: false
   });
   if (error) { showMsg('playerMsg', '❌ Error: ' + error.message, 'error'); return; }
   document.getElementById('newPlayerName').value = '';
-  document.getElementById('newPlayerBase').value = '';
-  showMsg('playerMsg', `✅ ${name} added`, 'success');
+  showMsg('playerMsg', '✅ ' + name + ' added (Base ₹' + Number(base).toLocaleString('en-IN') + ')', 'success');
   await loadPlayers();
   document.getElementById('newPlayerName').focus();
 }
 
-async function importPlayers() {
-  const raw = document.getElementById('playerCSV').value.trim();
-  if (!raw) return;
-  const rows = raw.split('\n').map(l => l.trim()).filter(l => l);
-  let added = 0, skip = 0;
-  const inserts = [];
-  for (const line of rows) {
-    const p = line.split(',').map(s => s.trim());
-    if (!p[0]) { skip++; continue; }
-    inserts.push({
-      auction_id: auctionId,
-      name: p[0],
-      role: normalizeRole(p[1] || 'BAT'),
-      base_price: parseFloat(p[2]) || 0,
-      star: false
-    });
-  }
-  if (inserts.length) {
-    const { error } = await sb.from('players').insert(inserts);
-    if (error) { skip += inserts.length; }
-    else added = inserts.length;
-  }
-  document.getElementById('playerImportMsg').textContent = `✅ ${added} added, ${skip} skipped`;
-  document.getElementById('playerCSV').value = '';
+// File-based player import
+let parsedFileRows = [];
+function handlePlayerFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('fileLabel').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split('\n').map(l => l.trim()).filter(l => l);
+    parsedFileRows = [];
+    const preview = [];
+    for (const line of lines) {
+      const parts = line.split(',').map(s => s.trim());
+      if (!parts[0]) continue;
+      const name = parts[0];
+      const role = normalizeRole(parts[1] || 'BAT');
+      parsedFileRows.push({ name, role });
+      preview.push('<span style="font-size:12px;padding:2px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:inline-block;margin:2px;">' + name + ' <span class="role-badge role-' + role + '">' + role + '</span></span>');
+    }
+    const base = auction.base_price || 1000;
+    document.getElementById('filePreview').innerHTML = preview.length ?
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">' + preview.join('') + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);">' + preview.length + ' players found · Base price ₹' + Number(base).toLocaleString('en-IN') + ' each</div>' :
+      '<div style="color:var(--red);font-size:13px;">No valid players found in file.</div>';
+    document.getElementById('fileImportBtn').style.display = parsedFileRows.length ? 'inline-block' : 'none';
+  };
+  reader.readAsText(file);
+}
+
+async function importFromFile() {
+  if (!parsedFileRows.length) return;
+  const base = auction.base_price || 1000;
+  const inserts = parsedFileRows.map(p => ({
+    auction_id: auctionId, name: p.name, role: p.role, base_price: base, star: false
+  }));
+  const { error } = await sb.from('players').insert(inserts);
+  if (error) { document.getElementById('playerImportMsg').textContent = '❌ ' + error.message; return; }
+  document.getElementById('playerImportMsg').textContent = '✅ ' + inserts.length + ' players imported';
+  document.getElementById('filePreview').innerHTML = '';
+  document.getElementById('fileLabel').textContent = 'No file chosen';
+  document.getElementById('fileImportBtn').style.display = 'none';
+  parsedFileRows = [];
+  document.getElementById('playerFile').value = '';
   setTimeout(() => document.getElementById('playerImportMsg').textContent = '', 3000);
   await loadPlayers();
 }
@@ -596,9 +637,15 @@ function copyRegLink() {
 }
 
 function shareRegWhatsApp() {
-  const url = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
-  const msg = `🏏 *${auction.name}* — Player Registration\n\nRegister yourself as a player in our upcoming auction!\n\nFill your name, mobile, role and photo:\n${url}\n\nYou'll get the live auction viewer link on WhatsApp before it starts! 🎉`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  const url = window.location.origin + '/bidmaster/register.html?auction=' + auctionId;
+  const msg = '🏏 *' + auction.name + '* — Player Registration\n\nRegister yourself as a player in our upcoming auction!\n\nFill your name, mobile, role and photo:\n' + url + '\n\nYou\'ll get the live auction viewer link on WhatsApp before it starts! 🎉';
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.querySelector('[onclick="shareRegWhatsApp()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied! Paste on WhatsApp';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 3000);
+  });
 }
 
 async function loadRegisteredPlayers() {
@@ -618,7 +665,7 @@ async function loadRegisteredPlayers() {
     '</tr></thead><tbody>' +
     data.map(p =>
       '<tr style="border-bottom:1px solid var(--border);">' +
-      '<td style="padding:6px 8px;">' + (p.photo_url ? `<img src="${p.photo_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : '👤') + '</td>' +
+      '<td style="padding:6px 8px;">' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:20px;">👤</span>') + '</td>' +
       '<td style="padding:6px 8px;font-weight:600;">' + p.name + '</td>' +
       '<td style="padding:6px 8px;font-family:monospace;">' + p.mobile + '</td>' +
       '<td style="padding:6px 8px;"><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
