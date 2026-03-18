@@ -196,6 +196,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <div id="settingsMsg" style="font-size:13px;margin-top:6px;min-height:16px;"></div>
   </div>
 
+  <!-- PLAYER REGISTRATION PORTAL -->
+  <div class="panel" style="border-color:var(--blue);margin-bottom:16px;">
+    <div class="panel-title" style="color:var(--blue);">📱 Player Registration Portal</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share this link with all players. They register with their name, mobile, role and photo. You can then send the live viewer link to all of them via SMS/WhatsApp before the auction starts.</p>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:10px;" id="regLinkDisplay">Loading...</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="copyRegLink()">📋 Copy Link</button>
+      <button class="btn btn-ghost btn-sm" onclick="shareRegWhatsApp()">📱 Share on WhatsApp</button>
+    </div>
+    <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;color:var(--muted);">Registered players: <b style="color:var(--blue);" id="regCount">0</b></span>
+      <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="loadRegisteredPlayers()">👁 View Players</button>
+    </div>
+    <div id="registeredPlayersList" style="display:none;margin-top:12px;"></div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📲 Send viewer link to ALL registered players via SMS:</div>
+      <button class="btn btn-primary btn-sm" onclick="sendSMSToAll()" id="smsBtn" style="width:100%;">🚀 Send Viewer Link via SMS</button>
+      <div id="smsMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
+    </div>
+  </div>
+
   <!-- LAUNCH BOX -->
   <div class="launch-box" id="launchBox">
     <h2>🚀 Ready to Launch?</h2>
@@ -232,6 +253,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   await loadAuction();
   await loadTeams();
   await loadPlayers();
+  await initRegPortal();
 })();
 
 async function loadAuction() {
@@ -467,11 +489,100 @@ async function launchAuction() {
 }
 
 function copyViewerLink() {
-  const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
+  const url = `${window.location.origin}/bidmaster/viewer.html?room=${auction.room_code}`;
   navigator.clipboard.writeText(url).then(() => {
     document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied! Share on WhatsApp.</span>';
     setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
   });
+}
+
+// ── REGISTRATION PORTAL ───────────────────────────────────
+const FAST2SMS_KEY = '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73'; // Replace with your Fast2SMS API key
+
+async function initRegPortal() {
+  if (!auctionId) return;
+  const regUrl = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
+  document.getElementById('regLinkDisplay').textContent = regUrl;
+  await loadRegCount();
+}
+
+async function loadRegCount() {
+  const { data } = await sb.from('player_registrations').select('id').eq('auction_id', auctionId);
+  document.getElementById('regCount').textContent = data?.length || 0;
+}
+
+function copyRegLink() {
+  const url = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showMsg('smsMsg', '✅ Registration link copied!', 'success');
+    document.getElementById('smsMsg').style.color = 'var(--green)';
+    document.getElementById('smsMsg').textContent = '✅ Registration link copied! Share with all players on WhatsApp.';
+    setTimeout(() => document.getElementById('smsMsg').textContent = '', 3000);
+  });
+}
+
+function shareRegWhatsApp() {
+  const url = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
+  const msg = `🏏 *${auction.name}* — Player Registration\n\nRegister yourself as a player in our upcoming auction!\n\nFill your name, mobile, role and photo:\n${url}\n\nYou'll get the live auction viewer link on WhatsApp before it starts! 🎉`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+async function loadRegisteredPlayers() {
+  const listEl = document.getElementById('registeredPlayersList');
+  listEl.style.display = 'block';
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading...</div>';
+  const { data } = await sb.from('player_registrations').select('*').eq('auction_id', auctionId).order('registered_at', { ascending: false });
+  if (!data?.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No players registered yet.</div>'; return; }
+  document.getElementById('regCount').textContent = data.length;
+  listEl.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+    '<thead><tr style="background:var(--surface2);">' +
+    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Photo</th>' +
+    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Name</th>' +
+    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Mobile</th>' +
+    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Role</th>' +
+    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">SMS</th>' +
+    '</tr></thead><tbody>' +
+    data.map(p =>
+      '<tr style="border-bottom:1px solid var(--border);">' +
+      '<td style="padding:6px 8px;">' + (p.photo_url ? `<img src="${p.photo_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : '👤') + '</td>' +
+      '<td style="padding:6px 8px;font-weight:600;">' + p.name + '</td>' +
+      '<td style="padding:6px 8px;font-family:monospace;">' + p.mobile + '</td>' +
+      '<td style="padding:6px 8px;"><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
+      '<td style="padding:6px 8px;color:' + (p.sms_sent ? 'var(--green)' : 'var(--muted)') + ';">' + (p.sms_sent ? '✅ Sent' : '⏳ Pending') + '</td>' +
+      '</tr>'
+    ).join('') + '</tbody></table>';
+}
+
+async function sendSMSToAll() {
+  if (!auction?.room_code) { alert('Save your auction settings first.'); return; }
+  const btn = document.getElementById('smsBtn');
+  const msgEl = document.getElementById('smsMsg');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+  const { data: players } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).eq('sms_sent', false);
+  if (!players?.length) {
+    msgEl.style.color = 'var(--muted)';
+    msgEl.textContent = 'No players to send to (all already sent or none registered).';
+    btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
+    return;
+  }
+  const viewerUrl = `${window.location.origin}/bidmaster/viewer.html?room=${auction.room_code}`;
+  const smsText = `🏏 ${auction.name} is LIVE! Watch the auction now: ${viewerUrl}`;
+  let sent = 0, failed = 0;
+  for (const player of players) {
+    try {
+      const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=${encodeURIComponent(smsText)}&flash=0&numbers=${player.mobile}`);
+      const json = await res.json();
+      if (json.return === true) {
+        await sb.from('player_registrations').update({ sms_sent: true, sms_sent_at: new Date().toISOString() }).eq('id', player.id);
+        sent++;
+      } else { failed++; }
+    } catch(e) { failed++; }
+  }
+  msgEl.style.color = sent > 0 ? 'var(--green)' : 'var(--red)';
+  msgEl.textContent = `✅ Sent to ${sent} players${failed > 0 ? ` · ${failed} failed` : ''}.`;
+  btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
+  await loadRegisteredPlayers();
 }
 
 // ── UTILS ─────────────────────────────────────────────────
