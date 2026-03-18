@@ -396,4 +396,141 @@ function renderFeed() {
   }
   el.innerHTML = sales.map((s, i) => {
     const over = s.players?.base_price && s.amount > s.players.base_price;
-    const time = new Date(s.so
+    const time = new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="feed-item">
+      <div class="feed-num">${sales.length - i}</div>
+      <div class="feed-info">
+        <div class="feed-player">
+          ${s.players?.star ? '⭐ ' : ''}${s.players?.name || '-'}
+          <span class="role-badge role-${s.players?.role}" style="margin-left:4px;">${s.players?.role || ''}</span>
+        </div>
+        <div class="feed-team">${s.teams?.name || '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${fmt(s.amount - s.players.base_price)} over base</span>` : ''}</div>
+      </div>
+      <div>
+        <div class="feed-amount">₹${fmt(s.amount)}</div>
+        <div class="feed-time">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TEAMS ─────────────────────────────────────────────────
+function renderTeams() {
+  const el = document.getElementById('teamsList');
+  if (!teams.length) { el.innerHTML = '<div class="feed-empty">No teams yet.</div>'; return; }
+  el.innerHTML = `<div class="teams-list">${teams.map(t => {
+    const p = pct(t); const col = fundCol(p);
+    const teamSales = sales.filter(s => s.team_id === t.id);
+    const rc = {BAT:0,BOWL:0,ALL:0,WK:0};
+    teamSales.forEach(s => { const r = s.players?.role; if (rc[r] !== undefined) rc[r]++; });
+    const slots = t.min_squad - teamSales.length;
+    const avg = slots > 0 ? Math.floor(t.credits / slots) : 0;
+    return `<div class="team-card" id="tc-${t.id}">
+      <div class="team-card-header" onclick="toggleTeam('${t.id}')">
+        <div>
+          <div class="team-name-row">
+            <span class="t-name">${t.name}</span>
+          </div>
+          <div class="t-credits" style="color:${col};">₹${fmt(t.credits)} · ${p}% remaining</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px;color:var(--muted);">${teamSales.length}/${t.min_squad} players</div>
+          <div class="t-chevron">▼</div>
+        </div>
+      </div>
+      <div class="fund-bar"><div class="fund-bar-fill" style="width:${p}%;background:${col};"></div></div>
+      <div class="team-stats">
+        <span class="role-pill role-pill-BAT">🏏 ${rc.BAT}</span>
+        <span class="role-pill role-pill-BOWL">🎳 ${rc.BOWL}</span>
+        <span class="role-pill role-pill-ALL">⚡ ${rc.ALL}</span>
+        <span class="role-pill role-pill-WK">🧤 ${rc.WK}</span>
+        <span class="budget-pct" style="background:${col}20;color:${col};border:1px solid ${col}40;">~₹${fmt(avg)}/slot</span>
+      </div>
+      <div class="team-players-list">
+        ${teamSales.length ? teamSales.map(s => `
+          <div class="tp-row">
+            <span style="color:${s.players?.star?'var(--accent)':'#374151'};">★</span>
+            <span class="tp-name">${s.players?.name || '-'}</span>
+            <span class="role-badge role-${s.players?.role}">${s.players?.role}</span>
+            <span class="tp-price">₹${fmt(s.amount)}</span>
+          </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:4px 0;">No players yet</div>'}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function toggleTeam(id) {
+  const card = document.getElementById('tc-' + id);
+  card.classList.toggle('open');
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function renderStats() {
+  const el = document.getElementById('statsContent');
+  const sold = players.filter(p => sales.find(s => s.player_id === p.id)).length;
+  const remaining = players.length - sold;
+  const totalSpent = sales.reduce((s, x) => s + Number(x.amount), 0);
+  const totalLeft = teams.reduce((s, t) => s + Number(t.credits), 0);
+  const topSale = sales.length ? sales.reduce((a, b) => a.amount > b.amount ? a : b) : null;
+  const mostBought = teams.length ? [...teams].sort((a, b) => {
+    return sales.filter(s => s.team_id === b.id).length - sales.filter(s => s.team_id === a.id).length;
+  })[0] : null;
+
+  el.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-lbl">Players Sold</div>
+        <div class="stat-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${players.length}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Still Available</div>
+        <div class="stat-val" style="color:var(--blue);">${remaining}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Total Spent</div>
+        <div class="stat-val" style="color:var(--accent);">₹${fmt(totalSpent)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Budget Left</div>
+        <div class="stat-val" style="color:var(--yellow);">₹${fmt(totalLeft)}</div>
+      </div>
+    </div>
+
+    ${topSale ? `<div style="padding:0 12px 10px;">
+      <div class="stat-card" style="background:rgba(245,158,11,0.06);border-color:var(--accent);">
+        <div class="stat-lbl">💰 Highest Sale</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">₹${fmt(topSale.amount)}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px;">${topSale.players?.name} → ${topSale.teams?.name}</div>
+      </div>
+    </div>` : ''}
+
+    <div style="padding:0 12px;">
+      <div class="stat-lbl" style="margin-bottom:8px;padding-left:2px;">📊 Budget Comparison</div>
+      ${teams.map(t => {
+        const p = pct(t); const col = fundCol(p);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+          <div style="font-size:12px;color:var(--muted);width:100px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">${t.name}</div>
+          <div style="flex:1;background:var(--border);border-radius:3px;height:12px;overflow:hidden;">
+            <div style="width:${p}%;height:100%;background:${col};border-radius:3px;transition:width 0.5s;"></div>
+          </div>
+          <div style="font-size:11px;color:${col};width:70px;flex-shrink:0;font-weight:600;">${p}% ₹${fmt(t.credits)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── SWITCH VIEW ───────────────────────────────────────────
+function switchView(name) {
+  document.querySelectorAll('.view-content').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.btab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`.btab[onclick="switchView('${name}')"]`).classList.add('active');
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+const fmt = n => Number(n).toLocaleString('en-IN');
+const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
+const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
+</script>
+</body>
+</html>
