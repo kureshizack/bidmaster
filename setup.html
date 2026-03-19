@@ -519,17 +519,48 @@ function renderPlayers(players) {
   document.getElementById('launchPlayers').textContent = players.length;
   const el = document.getElementById('playersList');
   if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>'; return; }
-  el.innerHTML = '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base</th><th></th></tr></thead><tbody>' +
+  el.innerHTML = '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base ₹ <span style="font-size:10px;color:var(--muted);font-weight:400;">(click to edit)</span></th><th></th></tr></thead><tbody>' +
     players.map(p =>
       '<tr>' +
       '<td>' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:18px;color:var(--muted);">👤</span>') + '</td>' +
       '<td><span class="' + (p.star ? 'star-lit' : 'star-dim') + '" style="cursor:pointer;font-size:15px;" onclick="toggleStar(\'' + p.id + '\',' + p.star + ')">★</span></td>' +
       '<td><b>' + p.name + '</b></td>' +
       '<td><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
-      '<td>' + (p.base_price ? '₹' + p.base_price.toLocaleString('en-IN') : '-') + '</td>' +
+      '<td>' +
+        '<div style="display:flex;align-items:center;gap:4px;">' +
+          '<span id="baseDisp-' + p.id + '" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;font-family:\'Rajdhani\',sans-serif;border-bottom:1px dashed var(--accent);" onclick="startEditBase(\'' + p.id + '\',' + (p.base_price||0) + ')" title="Click to edit">₹' + Number(p.base_price||0).toLocaleString('en-IN') + '</span>' +
+          '<div id="baseEdit-' + p.id + '" style="display:none;display:none;align-items:center;gap:4px;">' +
+            '<input type="number" id="baseInput-' + p.id + '" value="' + (p.base_price||0) + '" style="width:70px;padding:3px 6px;font-size:13px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:5px;outline:none;" onkeydown="if(event.key===\'Enter\')saveBase(\'' + p.id + '\');if(event.key===\'Escape\')cancelEditBase(\'' + p.id + '\');">' +
+            '<button onclick="saveBase(\'' + p.id + '\')" style="padding:3px 7px;background:var(--green);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>' +
+            '<button onclick="cancelEditBase(\'' + p.id + '\')" style="padding:3px 7px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;">✕</button>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
       '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')">✕</button></td>' +
       '</tr>'
     ).join('') + '</tbody></table>';
+}
+
+function startEditBase(id, currentVal) {
+  document.getElementById('baseDisp-' + id).style.display = 'none';
+  const editDiv = document.getElementById('baseEdit-' + id);
+  editDiv.style.display = 'flex';
+  const input = document.getElementById('baseInput-' + id);
+  input.focus(); input.select();
+}
+
+function cancelEditBase(id) {
+  document.getElementById('baseDisp-' + id).style.display = 'inline';
+  document.getElementById('baseEdit-' + id).style.display = 'none';
+}
+
+async function saveBase(id) {
+  const val = parseInt(document.getElementById('baseInput-' + id).value);
+  if (isNaN(val) || val < 0) { cancelEditBase(id); return; }
+  await sb.from('players').update({ base_price: val }).eq('id', id);
+  cancelEditBase(id);
+  document.getElementById('baseDisp-' + id).textContent = '₹' + val.toLocaleString('en-IN');
+  document.getElementById('baseDisp-' + id).style.display = 'inline';
 }
 
 async function addPlayer() {

@@ -93,41 +93,148 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
 <!-- CREATE AUCTION MODAL -->
 <div class="modal-overlay" id="createModal">
-  <div class="modal">
+  <div class="modal" style="max-width:500px;">
     <h2>🏏 Create New Auction</h2>
+
+    <!-- SECTION 1: Tournament Info -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📋 Tournament Info</div>
     <div class="form-group">
       <label>Auction / Event Name *</label>
-      <input type="text" id="newName" placeholder="e.g. Mohalla Cup 2025 Auction">
-    </div>
-    <div class="form-group">
-      <label>League Name (optional)</label>
-      <input type="text" id="newLeague" placeholder="e.g. Hussainabad Premier League">
+      <input type="text" id="newName" placeholder="e.g. Mohalla Cup 2026 Auction">
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Default Credits per Team ₹</label>
-        <input type="number" id="newCredits" placeholder="100000" value="100000">
+        <label>League Name (optional)</label>
+        <input type="text" id="newLeague" placeholder="e.g. Hussainabad Premier League">
       </div>
       <div class="form-group">
-        <label>Global Bid Step ₹</label>
+        <label>Format</label>
+        <select id="newFormat" onchange="updateMinSquad()">
+          <option value="T20">T20</option>
+          <option value="T10">T10</option>
+          <option value="T15">T15</option>
+          <option value="40-over">40-over</option>
+          <option value="ODI">ODI (50-over)</option>
+          <option value="Box">Box Cricket</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tournament Date</label>
+        <input type="date" id="newDate">
+      </div>
+      <div class="form-group">
+        <label>Location / Venue</label>
+        <input type="text" id="newLocation" placeholder="e.g. Hussainabad Ground">
+      </div>
+    </div>
+
+    <!-- SECTION 2: Auction Settings -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">⚙️ Auction Settings</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Credits per Team ₹</label>
+        <input type="number" id="newCredits" placeholder="100000" value="100000" min="1000">
+      </div>
+      <div class="form-group">
+        <label>Bid Step ₹</label>
         <input type="number" id="newBidStep" placeholder="1000" value="1000" min="100">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Min Squad Size</label>
-        <input type="number" id="newMinSquad" placeholder="11" value="11" min="1">
-      </div>
-      <div class="form-group">
-        <label>Base Price per Player ₹</label>
+        <label>Base Price / Player ₹</label>
         <input type="number" id="newBasePrice" placeholder="1000" value="1000" min="0">
       </div>
+      <div class="form-group">
+        <label>Min Squad Size</label>
+        <input type="number" id="newMinSquad" placeholder="11" value="11" min="1" max="25">
+      </div>
     </div>
-    <div id="createMsg"></div>
-    <div style="display:flex;gap:10px;margin-top:6px;">
-      <button class="btn btn-primary" style="flex:1;padding:11px;" onclick="createAuction()">Create Auction</button>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Max Teams</label>
+        <input type="number" id="newMaxTeams" placeholder="8" value="8" min="2" max="32">
+      </div>
+      <div class="form-group">
+        <label>Registration Open?</label>
+        <select id="newRegOpen">
+          <option value="yes">✅ Yes — accept registrations</option>
+          <option value="no">🔒 No — organizer adds manually</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- SECTION 3: Registration Fees -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">💰 Registration Fees</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Player Fee ₹</label>
+        <input type="number" id="newPlayerFee" placeholder="500" value="500" min="0">
+      </div>
+      <div class="form-group">
+        <label>Captain / Owner Fee ₹</label>
+        <input type="number" id="newCaptainFee" placeholder="2500" value="2500" min="0">
+      </div>
+    </div>
+    <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
+      💡 Players pay online via the registration link. Captains pay more because they own a team. You collect all fees digitally once Razorpay is connected.
+    </div>
+
+    <!-- SECTION 4: Organizer Contact -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📞 Organizer Contact</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Your Mobile * <span style="color:var(--muted);font-weight:400;">(WhatsApp)</span></label>
+        <input type="tel" id="newOrgMobile" placeholder="10-digit mobile" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
+      </div>
+      <div class="form-group">
+        <label>Email <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="email" id="newOrgEmail" placeholder="your@email.com">
+      </div>
+    </div>
+    <div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;">
+      📱 Your mobile is shown on the registration page so players know who to contact for payment. Registration link will also be sent to your number.
+    </div>
+
+    <div id="createMsg" style="margin-top:10px;"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-primary" style="flex:1;padding:13px;font-size:16px;" onclick="createAuction()">🚀 Create Auction</button>
       <button class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL — shown after auction created -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal" style="max-width:420px;text-align:center;">
+    <div style="font-size:56px;margin-bottom:12px;">🎉</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--green);margin-bottom:6px;">Auction Created!</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;" id="successModalAuctionName"></div>
+    <!-- Registration link box -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;text-align:left;">
+      <div style="font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📱 Registration Link — Share with Players</div>
+      <div style="font-family:monospace;font-size:11px;color:var(--accent);word-break:break-all;margin-bottom:10px;padding:8px;background:var(--surface);border-radius:6px;" id="successRegLink"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="copySuccessRegLink()" style="padding:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">📋 Copy Link</button>
+        <button onclick="shareSuccessWhatsApp()" style="padding:10px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid var(--green);border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">📱 WhatsApp</button>
+      </div>
+    </div>
+    <!-- Fee summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--blue);" id="successPlayerFee">₹500</div>
+        <div style="font-size:11px;color:var(--muted);">Player Fee</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="successCaptainFee">₹2,500</div>
+        <div style="font-size:11px;color:var(--muted);">Captain Fee</div>
+      </div>
+    </div>
+    <button onclick="goToSetup()" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;cursor:pointer;margin-bottom:8px;">⚙️ Go to Setup →</button>
+    <div style="font-size:12px;color:var(--muted);">Add teams and players, then Go Live</div>
   </div>
 </div>
 
@@ -212,26 +319,47 @@ function genRoomCode() {
 }
 
 // ── CREATE AUCTION ────────────────────────────────────────
+let newlyCreatedAuctionId = null;
+let newlyCreatedRegLink = null;
+let newlyCreatedAuctionData = null;
+
+function updateMinSquad() {
+  const fmt = document.getElementById('newFormat').value;
+  const squads = { 'T10':10, 'T15':11, 'T20':11, '40-over':13, 'ODI':15, 'Box':6, 'Other':11 };
+  document.getElementById('newMinSquad').value = squads[fmt] || 11;
+}
+
 async function createAuction() {
   const name = document.getElementById('newName').value.trim();
   const league = document.getElementById('newLeague').value.trim();
+  const format = document.getElementById('newFormat').value;
+  const date = document.getElementById('newDate').value;
+  const location = document.getElementById('newLocation').value.trim();
   const credits = parseFloat(document.getElementById('newCredits').value) || 100000;
   const minSquad = parseInt(document.getElementById('newMinSquad').value) || 11;
   const bidStep = parseFloat(document.getElementById('newBidStep').value) || 1000;
   const basePrice = parseFloat(document.getElementById('newBasePrice').value) || 1000;
+  const maxTeams = parseInt(document.getElementById('newMaxTeams').value) || 8;
+  const regOpen = document.getElementById('newRegOpen').value === 'yes';
+  const playerFee = parseFloat(document.getElementById('newPlayerFee').value) || 500;
+  const captainFee = parseFloat(document.getElementById('newCaptainFee').value) || 2500;
+  const orgMobile = document.getElementById('newOrgMobile').value.trim();
+  const orgEmail = document.getElementById('newOrgEmail').value.trim();
   const msgEl = document.getElementById('createMsg');
-  if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
 
-  // Freemium check — free users can have max 3 auctions
+  if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
+  if (!orgMobile || orgMobile.length !== 10) { msgEl.innerHTML = '<div class="msg msg-error">Enter your 10-digit mobile number</div>'; return; }
+
+  // Freemium check
   if (userProfile?.plan === 'free' || !userProfile) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
     if (count >= 3) {
-      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Pro for unlimited.</div>'; return;
+      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Club for more.</div>'; return;
     }
   }
 
+  // Generate unique room code
   let roomCode, attempts = 0;
-  // Ensure unique room code
   while (attempts < 10) {
     roomCode = genRoomCode();
     const { data } = await sb.from('auctions').select('id').eq('room_code', roomCode).single();
@@ -247,6 +375,15 @@ async function createAuction() {
     min_squad: minSquad,
     bid_step: bidStep,
     base_price: basePrice,
+    max_teams: maxTeams,
+    format: format,
+    tournament_date: date || null,
+    location: location || null,
+    registration_open: regOpen,
+    player_fee: playerFee,
+    captain_fee: captainFee,
+    organizer_mobile: orgMobile,
+    organizer_email: orgEmail || null,
     status: 'setup'
   }).select().single();
 
@@ -255,8 +392,64 @@ async function createAuction() {
   // Create initial current_state row
   await sb.from('current_state').insert({ auction_id: data.id });
 
+  // Save for success modal
+  newlyCreatedAuctionId = data.id;
+  newlyCreatedAuctionData = data;
+  newlyCreatedRegLink = `${window.location.origin}/bidmaster/register.html?auction=${data.id}`;
+
   closeCreateModal();
-  window.location.href = `setup.html?auction=${data.id}`;
+  showSuccessModal(data, playerFee, captainFee);
+  loadAuctions();
+
+  // Send registration link to organizer via SMS (best effort)
+  try {
+    const smsMsg = encodeURIComponent(
+      '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by AuctionXI'
+    );
+    await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + orgMobile);
+  } catch(e) { /* silent fail */ }
+}
+
+function showSuccessModal(data, playerFee, captainFee) {
+  document.getElementById('successModalAuctionName').textContent = data.name + (data.league_name ? ' · ' + data.league_name : '');
+  document.getElementById('successRegLink').textContent = newlyCreatedRegLink;
+  document.getElementById('successPlayerFee').textContent = '₹' + Number(playerFee).toLocaleString('en-IN');
+  document.getElementById('successCaptainFee').textContent = '₹' + Number(captainFee).toLocaleString('en-IN');
+  document.getElementById('successModal').classList.add('open');
+}
+
+function copySuccessRegLink() {
+  navigator.clipboard.writeText(newlyCreatedRegLink).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Link', 2000);
+  });
+}
+
+function shareSuccessWhatsApp() {
+  const d = newlyCreatedAuctionData;
+  const playerFee = d.player_fee || 500;
+  const captainFee = d.captain_fee || 2500;
+  const dateStr = d.tournament_date ? new Date(d.tournament_date).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'}) : '';
+  const msg = '🏏 *' + d.name + '* — Registration Open!\n\n' +
+    (d.league_name ? '🏆 League: ' + d.league_name + '\n' : '') +
+    (dateStr ? '📅 Date: ' + dateStr + '\n' : '') +
+    (d.location ? '📍 Venue: ' + d.location + '\n' : '') +
+    '\n🏏 Register as *Player* — ₹' + playerFee.toLocaleString('en-IN') +
+    '\n👑 Register as *Captain* — ₹' + captainFee.toLocaleString('en-IN') +
+    '\n\n🔗 Register here:\n' + newlyCreatedRegLink +
+    '\n\nFor queries contact: ' + (d.organizer_mobile || '') +
+    '\n\nPowered by AuctionXI 🏏';
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📱 WhatsApp', 2000);
+  });
+}
+
+function goToSetup() {
+  document.getElementById('successModal').classList.remove('open');
+  window.location.href = `setup.html?auction=${newlyCreatedAuctionId}`;
 }
 
 // ── OPEN AUCTION ──────────────────────────────────────────
@@ -282,6 +475,8 @@ async function deleteAuction(id, e) {
 // ── MODAL ─────────────────────────────────────────────────
 function openCreateModal() {
   document.getElementById('createModal').classList.add('open');
+  // Set today as default date
+  document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
   setTimeout(() => document.getElementById('newName').focus(), 100);
 }
 function closeCreateModal() {
@@ -290,6 +485,9 @@ function closeCreateModal() {
 }
 document.getElementById('createModal').addEventListener('click', function(e) {
   if (e.target === this) closeCreateModal();
+});
+document.getElementById('successModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
 });
 
 // ── SIGN OUT ──────────────────────────────────────────────
