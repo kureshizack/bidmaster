@@ -140,13 +140,12 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div class="logo">🏏 AuctionXI</div>
   <div class="screen-title">Verify OTP</div>
   <div class="screen-sub" id="otpSentTo">OTP sent to your number</div>
-  <div class="demo-otp-box">
-    <div style="font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;margin-bottom:6px;">Demo Mode — Your OTP</div>
-    <div class="demo-otp-code" id="demoOtpDisplay">------</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Production: sent via WhatsApp/SMS</div>
+  <!-- SMS status box — shown while sending -->
+  <div id="smsStatusBox" style="background:rgba(96,165,250,0.1);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;margin:12px 0;width:100%;text-align:center;display:none;">
+    <div style="font-size:13px;color:var(--blue);font-weight:600;" id="smsStatusText">📱 Sending OTP via SMS...</div>
   </div>
   <span class="input-label">Enter 6-digit OTP</span>
-  <input class="big-input" type="text" id="otpInput" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyOtp()">
+  <input class="big-input" type="number" id="otpInput" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyOtp()" style="letter-spacing:8px;">
   <div class="err-msg" id="otpErr"></div>
   <button class="primary-btn" onclick="verifyOtp()" id="otpBtn">Verify & Enter →</button>
   <button class="ghost-btn" onclick="resendOtp()">Resend OTP</button>
@@ -321,9 +320,33 @@ async function submitMobile(){
   currentOtp=Math.floor(100000+Math.random()*900000).toString();
   const expiresAt=new Date(Date.now()+10*60*1000).toISOString();
   await sb.from('otp_verifications').insert({mobile,team_code:myTeam.team_code,otp:currentOtp,expires_at:expiresAt});
-  document.getElementById('demoOtpDisplay').textContent=currentOtp;
-  document.getElementById('otpSentTo').textContent=`OTP for ${mobile}`;
-  btn.textContent='Send OTP →';btn.disabled=false;showScreen(3);
+
+  // Show SMS sending status
+  const smsBox=document.getElementById('smsStatusBox');
+  const smsTxt=document.getElementById('smsStatusText');
+  showScreen(3);
+  smsBox.style.display='block';
+  smsTxt.textContent='📱 Sending OTP via SMS...';
+  smsTxt.style.color='var(--blue)';
+  document.getElementById('otpSentTo').textContent='OTP sent to +91 '+mobile;
+
+  // Send via Fast2SMS
+  try {
+    const smsMsg = encodeURIComponent('Your AuctionXI OTP is: '+currentOtp+'. Valid for 10 minutes. Do not share.');
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message='+smsMsg+'&flash=0&numbers='+mobile);
+    const json = await res.json();
+    if(json.return===true){
+      smsTxt.textContent='✅ OTP sent to +91 '+mobile+' via SMS';
+      smsTxt.style.color='var(--green)';
+    } else {
+      smsTxt.textContent='⚠️ SMS failed — check with your organizer for OTP';
+      smsTxt.style.color='var(--yellow)';
+    }
+  } catch(e) {
+    smsTxt.textContent='⚠️ SMS service unavailable — contact your organizer';
+    smsTxt.style.color='var(--yellow)';
+  }
+  btn.textContent='Send OTP →';btn.disabled=false;
 }
 async function resendOtp(){if(document.getElementById('mobileInput').value)await submitMobile();}
 

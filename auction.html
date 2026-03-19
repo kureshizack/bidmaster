@@ -1072,19 +1072,30 @@ async function releasePlayer(saleId, teamId, amount, playerName, teamName) {
 // ── RENDER SALES ──────────────────────────────────────────
 function renderSales() {
   const tb = document.getElementById('salesBody');
-  if (!sales.length) { tb.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr>'; return; }
+  if (!sales.length) { tb.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr>'; return; }
   tb.innerHTML = sales.map((s, i) => {
     const over = s.players?.base_price && s.amount > s.players.base_price;
-    return `<tr>
-      <td style="color:var(--muted);">${sales.length - i}</td>
-      <td><b>${s.players?.name || '-'}</b></td>
-      <td><span class="role-badge role-${s.players?.role}">${s.players?.role || '-'}</span></td>
-      <td>${s.teams?.name || '-'}</td>
-      <td style="color:var(--accent);font-weight:700;">₹${Number(s.amount).toLocaleString('en-IN')}</td>
-      <td style="color:var(--muted);font-size:12px;">${s.players?.base_price ? '₹' + Number(s.players.base_price).toLocaleString('en-IN') : '-'}${over ? ` <span style="color:var(--red);font-size:10px;">+${s.amount - s.players.base_price}</span>` : ''}</td>
-      <td style="color:var(--muted);font-size:11px;">${new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
-      <td><button class="btn-tiny" onclick="releasePlayer('${s.id}','${s.team_id}',${s.amount},'${esc(s.players?.name)}','${esc(s.teams?.name)}')">↩</button></td>
-    </tr>`;}).join('');
+    const certUrl = window.location.origin + '/bidmaster/certificate.html?sale=' + s.id;
+    return '<tr>' +
+      '<td style="color:var(--muted);">' + (sales.length - i) + '</td>' +
+      '<td><b>' + (s.players?.name || '-') + '</b></td>' +
+      '<td><span class="role-badge role-' + s.players?.role + '">' + (s.players?.role || '-') + '</span></td>' +
+      '<td>' + (s.teams?.name || '-') + '</td>' +
+      '<td style="color:var(--accent);font-weight:700;">₹' + Number(s.amount).toLocaleString('en-IN') + '</td>' +
+      '<td style="color:var(--muted);font-size:12px;">' + (s.players?.base_price ? '₹' + Number(s.players.base_price).toLocaleString('en-IN') : '-') + (over ? ' <span style="color:var(--red);font-size:10px;">+' + (s.amount - s.players.base_price) + '</span>' : '') + '</td>' +
+      '<td style="color:var(--muted);font-size:11px;">' + new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '</td>' +
+      '<td><button class="btn-tiny" title="Share certificate" onclick="shareCertificate(\'' + s.id + '\',\'' + esc(s.players?.name) + '\')">🏅</button></td>' +
+      '<td><button class="btn-tiny" onclick="releasePlayer(\'' + s.id + '\',\'' + s.team_id + '\',' + s.amount + ',\'' + esc(s.players?.name) + '\',\'' + esc(s.teams?.name) + '\')">↩</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function shareCertificate(saleId, playerName) {
+  const certUrl = window.location.origin + '/bidmaster/certificate.html?sale=' + saleId;
+  const msg = '🏏 *' + playerName + '* — View your auction certificate!\n\n' + certUrl + '\n\nPowered by AuctionXI 🏆';
+  navigator.clipboard.writeText(msg).then(() => {
+    showMsg('saleMsg', '🏅 Certificate link copied for ' + playerName + '! Paste on WhatsApp.', 'success');
+  });
 }
 
 // ── RENDER DASHBOARD ──────────────────────────────────────

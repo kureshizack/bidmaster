@@ -325,6 +325,9 @@ async function addTeam() {
   if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
   if (!captainName) { showMsg('teamMsg', 'Enter captain name', 'error'); return; }
   if (!captainMobile || captainMobile.length !== 10) { showMsg('teamMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
+  // Plan limit check
+  const { count } = await sb.from('teams').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
+  if (!checkTeamLimit(count || 0)) return;
   const teamCode = genTeamCode();
   const insertData = {
     auction_id: auctionId,
@@ -487,6 +490,9 @@ async function addPlayer() {
   const role = document.getElementById('newPlayerRole').value;
   const base = auction.base_price || 1000;
   if (!name) { showMsg('playerMsg', 'Enter player name', 'error'); return; }
+  // Plan limit check
+  const { count } = await sb.from('players').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
+  if (!checkPlayerLimit(count || 0)) return;
   const { error } = await sb.from('players').insert({
     auction_id: auctionId, name, role, base_price: base, star: false
   });
@@ -553,6 +559,85 @@ async function deletePlayer(id) {
   if (!confirm('Remove this player?')) return;
   await sb.from('players').delete().eq('id', id);
   await loadPlayers();
+}
+
+// ── PLAN LIMITS ───────────────────────────────────────────
+const PLAN_LIMITS = {
+  free:     { teams: 6,  players: 30  },
+  club:     { teams: 8,  players: 80  },
+  district: { teams: 14, players: 150 },
+  national: { teams: 999,players: 999 }
+};
+const PLAN_NAMES = { free:'Gully', club:'Club', district:'District', national:'National' };
+const UPGRADE_PRICES = { free:'₹499/auction', club:'₹999/auction', district:'₹1,999/auction' };
+
+function getUserPlan() {
+  // For now everyone is on free until Razorpay is integrated
+  return 'free';
+}
+
+function checkTeamLimit(currentCount) {
+  const plan = getUserPlan();
+  const limit = PLAN_LIMITS[plan].teams;
+  if (currentCount >= limit) {
+    showPlanPaywall('teams', plan, limit);
+    return false;
+  }
+  // Soft warning at 80% of limit
+  if (currentCount >= limit - 1 && plan !== 'national') {
+    const msg = document.getElementById('teamMsg');
+    msg.innerHTML = '<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--accent);margin-top:8px;">⚠️ Last team slot on your plan. <a href="#" onclick="showPlanPaywall(\'teams\',\''+plan+'\','+limit+')" style="color:var(--gold);font-weight:700;">Upgrade to add more →</a></div>';
+  }
+  return true;
+}
+
+function checkPlayerLimit(currentCount) {
+  const plan = getUserPlan();
+  const limit = PLAN_LIMITS[plan].players;
+  if (currentCount >= limit) {
+    showPlanPaywall('players', plan, limit);
+    return false;
+  }
+  return true;
+}
+
+function showPlanPaywall(type, currentPlan, limit) {
+  const nextPlan = currentPlan === 'free' ? 'club' : currentPlan === 'club' ? 'district' : 'national';
+  const nextLimit = PLAN_LIMITS[nextPlan][type];
+  const price = UPGRADE_PRICES[currentPlan] || '';
+  const typeLabel = type === 'teams' ? 'teams' : 'players';
+  const icon = type === 'teams' ? '👥' : '🏏';
+
+  // Create modal
+  const existing = document.getElementById('paywallModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'paywallModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;">
+      <div style="font-size:40px;margin-bottom:12px;">${icon}</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:8px;">
+        ${PLAN_NAMES[currentPlan]} Plan Limit Reached
+      </div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+        Your <b style="color:var(--text);">${PLAN_NAMES[currentPlan]}</b> plan allows up to <b style="color:var(--text);">${limit} ${typeLabel}</b>.<br>
+        Upgrade to <b style="color:var(--gold);">${PLAN_NAMES[nextPlan]}</b> for up to <b style="color:var(--gold);">${nextLimit} ${typeLabel}</b>.
+      </div>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px;margin-bottom:20px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--accent);">${price}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">${PLAN_NAMES[nextPlan]} plan · Unlock more ${typeLabel}</div>
+      </div>
+      <button onclick="document.getElementById('paywallModal').remove()" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:8px;">
+        Upgrade to ${PLAN_NAMES[nextPlan]} — ${price}
+      </button>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer;" onclick="document.getElementById('paywallModal').remove()">
+        Not now — stay on ${PLAN_NAMES[currentPlan]}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
 }
 
 // ── LAUNCH ────────────────────────────────────────────────
