@@ -359,7 +359,7 @@ function genTeamCode() {
   return Math.random().toString(36).substring(2,8).toUpperCase();
 }
 function copyTeamCode(code, mobile, teamName) {
-  const msg = `🏏 AuctionXI Bidding Access\n\nTeam: ${teamName}\nYour Team Code: ${code}\n\nOpen: ${window.location.origin}/bidder.html\nEnter your team code + mobile number to start bidding live!`;
+  const msg = `🏏 AuctionXI Bidding Access\n\nTeam: ${teamName}\nYour Team Code: ${code}\n\nOpen: ${window.location.origin}/bidmaster/bidder.html\nEnter your team code + mobile number to start bidding live!`;
   navigator.clipboard.writeText(msg).then(() => alert('Team code + instructions copied!\nPaste this on WhatsApp to the captain.'));
 }
 
