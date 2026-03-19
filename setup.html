@@ -219,18 +219,53 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
   <!-- PLAYER REGISTRATION PORTAL -->
   <div class="panel" style="border-color:var(--blue);margin-bottom:16px;">
-    <div class="panel-title" style="color:var(--blue);">📱 Player Registration Portal</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share this link with all players. They register with their name, mobile, role and photo. You can then send the live viewer link to all of them via SMS/WhatsApp before the auction starts.</p>
+    <div class="panel-title" style="color:var(--blue);">📱 Registration Portal</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share with players and captains. Players pay ₹500 · Captains pay ₹2,500. All registrations appear here.</p>
+
+    <!-- Fees row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.25);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--blue);">₹<span id="displayPlayerFee">500</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Player Fee</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">₹<span id="displayCaptainFee">2,500</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Captain Fee</div>
+      </div>
+    </div>
+
+    <!-- Link -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:10px;" id="regLinkDisplay">Loading...</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
       <button class="btn btn-ghost btn-sm" onclick="copyRegLink()">📋 Copy Link</button>
       <button class="btn btn-ghost btn-sm" onclick="shareRegWhatsApp()">📱 Share on WhatsApp</button>
     </div>
-    <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-size:13px;color:var(--muted);">Registered players: <b style="color:var(--blue);" id="regCount">0</b></span>
-      <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="loadRegisteredPlayers()">👁 View Players</button>
+
+    <!-- Stats bar -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--blue);" id="regPlayerCount">0</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Players</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);" id="regCaptainCount">0</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Captains</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--green);" id="regRevenue">₹0</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Expected</div>
+      </div>
     </div>
-    <div id="registeredPlayersList" style="display:none;margin-top:12px;"></div>
+
+    <!-- View toggle -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-sm" id="viewPlayersBtn" style="flex:1;background:var(--blue);color:#000;font-weight:700;" onclick="loadRegisteredPlayers('player')">🏏 Players (<span id="regCount">0</span>)</button>
+      <button class="btn btn-sm" id="viewCaptainsBtn" style="flex:1;background:rgba(245,158,11,0.15);color:var(--accent);border:1px solid var(--accent);font-weight:700;" onclick="loadRegisteredPlayers('captain')">👑 Captains (<span id="regCaptainBadge">0</span>)</button>
+    </div>
+
+    <div id="registeredPlayersList" style="display:none;margin-top:4px;"></div>
+
+    <!-- SMS blast -->
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📲 Send viewer link to ALL registered players via SMS:</div>
       <button class="btn btn-primary btn-sm" onclick="sendSMSToAll()" id="smsBtn" style="width:100%;">🚀 Send Viewer Link via SMS</button>
@@ -768,33 +803,50 @@ function copyViewerLink() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY'; // Replace with your Fast2SMS API key
+const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY';
 
 async function initRegPortal() {
   if (!auctionId) return;
   const regUrl = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
   document.getElementById('regLinkDisplay').textContent = regUrl;
-  await loadRegCount();
+  await loadRegPortalPreview();
 }
 
-async function loadRegCount() {
-  const { data } = await sb.from('player_registrations').select('id').eq('auction_id', auctionId);
-  document.getElementById('regCount').textContent = data?.length || 0;
+async function loadRegPortalPreview() {
+  const { data } = await sb.from('player_registrations').select('id,is_captain,registration_fee').eq('auction_id', auctionId);
+  if (!data) return;
+  const players = data.filter(r => !r.is_captain);
+  const captains = data.filter(r => r.is_captain);
+  const revenue = data.reduce((s, r) => s + (Number(r.registration_fee) || 0), 0);
+  document.getElementById('regPlayerCount').textContent = players.length;
+  document.getElementById('regCaptainCount').textContent = captains.length;
+  document.getElementById('regRevenue').textContent = '₹' + revenue.toLocaleString('en-IN');
+  document.getElementById('regCount').textContent = players.length;
+  document.getElementById('regCaptainBadge').textContent = captains.length;
+  // Fee display
+  document.getElementById('displayPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
+  document.getElementById('displayCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
 }
 
 function copyRegLink() {
   const url = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
   navigator.clipboard.writeText(url).then(() => {
-    showMsg('smsMsg', '✅ Registration link copied!', 'success');
     document.getElementById('smsMsg').style.color = 'var(--green)';
-    document.getElementById('smsMsg').textContent = '✅ Registration link copied! Share with all players on WhatsApp.';
+    document.getElementById('smsMsg').textContent = '✅ Registration link copied! Share with players on WhatsApp.';
     setTimeout(() => document.getElementById('smsMsg').textContent = '', 3000);
   });
 }
 
 function shareRegWhatsApp() {
   const url = window.location.origin + '/bidmaster/register.html?auction=' + auctionId;
-  const msg = '🏏 *' + auction.name + '* — Player Registration\n\nRegister yourself as a player in our upcoming auction!\n\nFill your name, mobile, role and photo:\n' + url + '\n\nYou\'ll get the live auction viewer link on WhatsApp before it starts! 🎉';
+  const playerFee = auction?.player_fee || 500;
+  const captainFee = auction?.captain_fee || 2500;
+  const msg = '🏏 *' + auction.name + '* — Player Registration Open!\n\n' +
+    '📋 Register yourself:\n' +
+    '🏏 As a *Player* — ₹' + playerFee.toLocaleString('en-IN') + '\n' +
+    '👑 As a *Captain/Owner* — ₹' + captainFee.toLocaleString('en-IN') + '\n\n' +
+    '🔗 Register here:\n' + url + '\n\n' +
+    'Fill your name, mobile, role, T-shirt size and photo. You\'ll get the live auction link on WhatsApp before it starts! 🎉';
   navigator.clipboard.writeText(msg).then(() => {
     const btn = document.querySelector('[onclick="shareRegWhatsApp()"]');
     const orig = btn.textContent;
@@ -804,34 +856,134 @@ function shareRegWhatsApp() {
   });
 }
 
-async function loadRegisteredPlayers() {
+async function loadRegisteredPlayers(filter = 'player') {
   const listEl = document.getElementById('registeredPlayersList');
   listEl.style.display = 'block';
-  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading...</div>';
-  const { data } = await sb.from('player_registrations').select('*').eq('auction_id', auctionId).order('registered_at', { ascending: false });
-  if (!data?.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No players registered yet.</div>'; return; }
-  document.getElementById('regCount').textContent = data.length;
-  listEl.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-    '<thead><tr style="background:var(--surface2);">' +
-    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Photo</th>' +
-    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Name</th>' +
-    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Mobile</th>' +
-    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">Role</th>' +
-    '<th style="padding:6px 8px;text-align:left;color:var(--muted);">SMS</th>' +
-    '</tr></thead><tbody>' +
-    data.map(p =>
-      '<tr style="border-bottom:1px solid var(--border);">' +
-      '<td style="padding:6px 8px;">' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:20px;">👤</span>') + '</td>' +
-      '<td style="padding:6px 8px;font-weight:600;">' + p.name + '</td>' +
-      '<td style="padding:6px 8px;font-family:monospace;">' + p.mobile + '</td>' +
-      '<td style="padding:6px 8px;"><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
-      '<td style="padding:6px 8px;color:' + (p.sms_sent ? 'var(--green)' : 'var(--muted)') + ';">' + (p.sms_sent ? '✅ Sent' : '⏳ Pending') + '</td>' +
-      '</tr>'
-    ).join('') + '</tbody></table>';
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">Loading...</div>';
+
+  // Update button styles
+  const isCaptain = filter === 'captain';
+  document.getElementById('viewPlayersBtn').style.cssText = !isCaptain
+    ? 'flex:1;background:var(--blue);color:#000;font-weight:700;'
+    : 'flex:1;background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid var(--blue);font-weight:700;';
+  document.getElementById('viewCaptainsBtn').style.cssText = isCaptain
+    ? 'flex:1;background:var(--accent);color:#000;font-weight:700;'
+    : 'flex:1;background:rgba(245,158,11,0.1);color:var(--accent);border:1px solid var(--accent);font-weight:700;';
+
+  const { data } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).eq('is_captain', isCaptain)
+    .order('registered_at', { ascending: false });
+
+  if (!data?.length) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">' +
+      (isCaptain ? 'No captains registered yet.' : 'No players registered yet.') + '</div>';
+    return;
+  }
+
+  if (isCaptain) {
+    // Captain view — show team name + create team button
+    listEl.innerHTML = data.map(c => {
+      const alreadyImported = c.imported_to_auction;
+      return '<div style="background:var(--surface2);border:1px solid ' + (alreadyImported ? 'var(--green)' : 'rgba(245,158,11,0.3)') + ';border-radius:10px;padding:12px;margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+        (c.photo_url ? '<img src="' + c.photo_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);">' : '<div style="width:40px;height:40px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:18px;">👑</div>') +
+        '<div style="flex:1;">' +
+        '<div style="font-weight:700;font-size:14px;">' + c.name + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);">' + c.mobile + ' · 👕 ' + (c.tshirt_size || '—') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+        '<div style="font-family:\'Rajdhani\',sans-serif;font-size:16px;font-weight:700;color:var(--accent);">₹' + Number(c.registration_fee || 2500).toLocaleString('en-IN') + '</div>' +
+        '<div style="font-size:10px;color:' + (c.payment_status === 'paid' ? 'var(--green)' : 'var(--yellow)') + ';">' + (c.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending') + '</div>' +
+        '</div></div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Team Name: <b style="color:var(--text);">' + (c.captain_team_name || '—') + '</b></div>' +
+        (alreadyImported
+          ? '<div style="font-size:12px;color:var(--green);padding:6px 0;">✅ Team created in auction</div>'
+          : '<button onclick="createTeamFromCaptain(\'' + c.id + '\',\'' + (c.captain_team_name||c.name+' XI').replace(/'/g,"\\'") + '\',\'' + c.name.replace(/'/g,"\\'") + '\',\'' + c.mobile + '\')" style="width:100%;padding:8px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">👑 Create Team in Auction</button>') +
+        '</div>';
+    }).join('');
+  } else {
+    // Player view — table with photo, name, role, size, fee status, import
+    listEl.innerHTML = '<div style="overflow-x:auto;">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:1px solid var(--border);">' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Photo</th>' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Name</th>' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Role</th>' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">👕</th>' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Fee</th>' +
+      '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Action</th>' +
+      '</tr></thead><tbody>' +
+      data.map(p =>
+        '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:6px 4px;">' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:18px;">👤</span>') + '</td>' +
+        '<td style="padding:6px 4px;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.name + '</td>' +
+        '<td style="padding:6px 4px;"><span class="role-badge role-' + p.role + '">' + (p.role || '—') + '</span></td>' +
+        '<td style="padding:6px 4px;color:var(--muted);">' + (p.tshirt_size || '—') + '</td>' +
+        '<td style="padding:6px 4px;color:' + (p.payment_status === 'paid' ? 'var(--green)' : 'var(--yellow)') + ';font-size:11px;">' + (p.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending') + '</td>' +
+        '<td style="padding:6px 4px;">' + (p.imported_to_auction
+          ? '<span style="color:var(--green);font-size:11px;">✅ Added</span>'
+          : '<button onclick="importOnePlayer(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.role||'BAT') + '\',\'' + p.photo_url + '\')" style="padding:4px 8px;background:var(--blue);color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add</button>') + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody></table></div>' +
+      '<button onclick="importAllPlayers()" style="width:100%;margin-top:10px;padding:10px;background:var(--green);color:#000;border:none;border-radius:8px;font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">⚡ Import All Unimported Players to Auction</button>';
+  }
+}
+
+async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
+  if (!confirm('Create team "' + teamName + '" in auction for captain ' + captainName + '?')) return;
+  const credits = auction.default_credits || 100000;
+  const teamCode = genTeamCode();
+  const { error } = await sb.from('teams').insert({
+    auction_id: auctionId, name: teamName,
+    start_credits: credits, credits,
+    captain_name: captainName, captain_mobile: mobile,
+    team_code: teamCode,
+    bid_increment: auction.bid_step || 1000,
+    min_squad: auction.min_squad || 11
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  // Mark as imported
+  await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
+  // Copy team code to clipboard
+  const msg = '🏏 *' + auction.name + '* — Captain Access\n\nTeam: *' + teamName + '*\nCaptain: ' + captainName + '\n\n🔑 Your Team Code: *' + teamCode + '*\n\n📱 Open bidder app: ' + window.location.origin + '/bidmaster/bidder.html\nEnter team code + your mobile to start bidding live!';
+  await navigator.clipboard.writeText(msg);
+  alert('✅ Team "' + teamName + '" created!\n\nTeam code + instructions copied to clipboard.\nPaste this on WhatsApp to the captain.');
+  await loadTeams();
+  await loadRegisteredPlayers('captain');
+}
+
+async function importOnePlayer(regId, name, role, photoUrl) {
+  const base = auction.base_price || 1000;
+  const { error } = await sb.from('players').insert({
+    auction_id: auctionId, name, role, base_price: base,
+    photo_url: photoUrl || null, star: false
+  });
+  if (error) { alert('Error: ' + error.message); return; }
+  await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
+  await loadPlayers();
+  await loadRegisteredPlayers('player');
+}
+
+async function importAllPlayers() {
+  const { data } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).eq('is_captain', false).eq('imported_to_auction', false);
+  if (!data?.length) { alert('All players are already imported.'); return; }
+  const base = auction.base_price || 1000;
+  const inserts = data.map(p => ({
+    auction_id: auctionId, name: p.name, role: p.role || 'BAT',
+    base_price: base, photo_url: p.photo_url || null, star: false
+  }));
+  await sb.from('players').insert(inserts);
+  const ids = data.map(p => p.id);
+  await sb.from('player_registrations').update({ imported_to_auction: true }).in('id', ids);
+  await loadPlayers();
+  await loadRegisteredPlayers('player');
+  alert('✅ ' + data.length + ' players imported to auction!');
 }
 
 async function sendSMSToAll() {
-  if (!auction?.room_code) { alert('Save your auction settings first.'); return; }
+  if (!auction?.room_code) { alert('Go Live first to get the viewer link.'); return; }
   const btn = document.getElementById('smsBtn');
   const msgEl = document.getElementById('smsMsg');
   btn.textContent = 'Sending...'; btn.disabled = true;
@@ -839,7 +991,7 @@ async function sendSMSToAll() {
     .select('*').eq('auction_id', auctionId).eq('sms_sent', false);
   if (!players?.length) {
     msgEl.style.color = 'var(--muted)';
-    msgEl.textContent = 'No players to send to (all already sent or none registered).';
+    msgEl.textContent = 'All players already notified, or none registered yet.';
     btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
     return;
   }
@@ -857,9 +1009,8 @@ async function sendSMSToAll() {
     } catch(e) { failed++; }
   }
   msgEl.style.color = sent > 0 ? 'var(--green)' : 'var(--red)';
-  msgEl.textContent = `✅ Sent to ${sent} players${failed > 0 ? ` · ${failed} failed` : ''}.`;
+  msgEl.textContent = `✅ Sent to ${sent}${failed > 0 ? ` · ${failed} failed` : ''}.`;
   btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
-  await loadRegisteredPlayers();
 }
 
 // ── UTILS ─────────────────────────────────────────────────
