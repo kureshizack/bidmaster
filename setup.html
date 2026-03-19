@@ -205,6 +205,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <p style="font-size:11px;color:var(--muted);margin-top:10px;">🔒 These were set when you created the auction. Go to Dashboard to create a new auction with different settings.</p>
   </div>
 
+  <!-- DEV: QUICK TEST FILL -->
+  <div class="panel" style="border-color:#6b21a8;margin-bottom:16px;background:rgba(107,33,168,0.05);">
+    <div class="panel-title" style="color:#c084fc;">🧪 Quick Test Fill — Dev Only</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Instantly populate this auction with dummy teams and players for testing. Clears existing data first.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:#6b21a8;color:#fff;font-weight:700;" onclick="quickFill(6,20)">⚡ 6 Teams + 20 Players</button>
+      <button class="btn btn-sm" style="background:#6b21a8;color:#fff;font-weight:700;" onclick="quickFill(8,40)">⚡ 8 Teams + 40 Players</button>
+      <button class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);" onclick="clearAllData()">🗑 Clear All Data</button>
+    </div>
+    <div id="quickFillMsg" style="font-size:12px;margin-top:8px;min-height:16px;color:var(--green);"></div>
+  </div>
+
   <!-- PLAYER REGISTRATION PORTAL -->
   <div class="panel" style="border-color:var(--blue);margin-bottom:16px;">
     <div class="panel-title" style="color:var(--blue);">📱 Player Registration Portal</div>
@@ -558,6 +570,103 @@ async function toggleStar(id, current) {
 async function deletePlayer(id) {
   if (!confirm('Remove this player?')) return;
   await sb.from('players').delete().eq('id', id);
+  await loadPlayers();
+}
+
+// ── QUICK TEST FILL ───────────────────────────────────────
+const TEST_TEAMS = [
+  {name:'Alpha Strikers XI', captain:'Arif Khan', mobile:'9876543210'},
+  {name:'Azad Warriors',     captain:'Zakwan Ahmed', mobile:'9123456789'},
+  {name:'Hussaini Kings',    captain:'Mohsin Raza', mobile:'9988776655'},
+  {name:'Royal Challengers', captain:'Salman Sheikh', mobile:'9876501234'},
+  {name:'Super Giants XI',   captain:'Imran Ansari', mobile:'9765432109'},
+  {name:'Thunder Bolts',     captain:'Faizal Shaikh', mobile:'9654321098'},
+  {name:'Golden Eagles',     captain:'Bilal Khan', mobile:'9543210987'},
+  {name:'Storm Riders XI',   captain:'Hamza Malik', mobile:'9432109876'},
+];
+const TEST_PLAYERS = [
+  {name:'Virat Singh',    role:'BAT'},{name:'Rohit Sharma',   role:'BAT'},
+  {name:'KL Rahul',       role:'BAT'},{name:'Shikhar Das',    role:'BAT'},
+  {name:'Suryakumar',     role:'BAT'},{name:'Ishan Patel',    role:'WK'},
+  {name:'Rishabh Raj',    role:'WK'},{name:'MS Dhoni Jr',    role:'WK'},
+  {name:'Hardik Singh',   role:'ALL'},{name:'Jadeja Kumar',   role:'ALL'},
+  {name:'Axar Patel',     role:'ALL'},{name:'Krunal Shah',    role:'ALL'},
+  {name:'Jasprit Alam',   role:'BOWL'},{name:'Mohammed Ali', role:'BOWL'},
+  {name:'Bhuvnesh Kumar', role:'BOWL'},{name:'Shardul Khan',  role:'BOWL'},
+  {name:'Umesh Yadav',    role:'BOWL'},{name:'Navdeep Saini', role:'BOWL'},
+  {name:'Deepak Chahar',  role:'BOWL'},{name:'Yuzvendra Patel',role:'BOWL'},
+  {name:'Sanju Sinha',    role:'BAT'},{name:'Devdutt Singh',  role:'BAT'},
+  {name:'Prithvi Shaw',   role:'BAT'},{name:'Abhishek Sharma',role:'BAT'},
+  {name:'Ruturaj Gaikwad',role:'BAT'},{name:'Tilak Verma',   role:'BAT'},
+  {name:'Rinku Kumar',    role:'BAT'},{name:'Shivam Dube',    role:'ALL'},
+  {name:'Washington Raj', role:'ALL'},{name:'Rahul Tewatia',  role:'ALL'},
+  {name:'Arshdeep Singh', role:'BOWL'},{name:'Yash Dayal',    role:'BOWL'},
+  {name:'Akash Deep',     role:'BOWL'},{name:'Avesh Khan',    role:'BOWL'},
+  {name:'Tushar Deshpande',role:'BOWL'},{name:'Noor Ahmed',  role:'BOWL'},
+  {name:'Riyan Parag',    role:'BAT'},{name:'Dhruv Jurel',    role:'WK'},
+  {name:'Sameer Sheikh',  role:'ALL'},{name:'Faisal Siddiqui',role:'BAT'},
+];
+
+async function quickFill(numTeams, numPlayers) {
+  const msg = document.getElementById('quickFillMsg');
+  msg.style.color = 'var(--accent)';
+  msg.textContent = '⏳ Clearing existing data...';
+  // Delete existing teams and players
+  await sb.from('sales').delete().eq('auction_id', auctionId);
+  await sb.from('bids').delete().eq('auction_id', auctionId);
+  await sb.from('teams').delete().eq('auction_id', auctionId);
+  await sb.from('players').delete().eq('auction_id', auctionId);
+  await sb.from('current_state').update({
+    current_player_id: null, current_bid: 0, stage: 'waiting',
+    current_bid_team_id: null, going_once_at: null, going_twice_at: null
+  }).eq('auction_id', auctionId);
+
+  msg.textContent = '⏳ Adding ' + numTeams + ' teams...';
+  const credits = auction.default_credits || 100000;
+  const teamInserts = TEST_TEAMS.slice(0, numTeams).map(t => ({
+    auction_id: auctionId,
+    name: t.name,
+    start_credits: credits, credits,
+    captain_name: t.captain,
+    captain_mobile: t.mobile,
+    team_code: genTeamCode(),
+    bid_increment: auction.bid_step || 1000,
+    min_squad: auction.min_squad || 11
+  }));
+  await sb.from('teams').insert(teamInserts);
+
+  msg.textContent = '⏳ Adding ' + numPlayers + ' players...';
+  const base = auction.base_price || 1000;
+  const playerInserts = TEST_PLAYERS.slice(0, numPlayers).map(p => ({
+    auction_id: auctionId,
+    name: p.name, role: p.role,
+    base_price: base, star: Math.random() > 0.8
+  }));
+  await sb.from('players').insert(playerInserts);
+
+  msg.style.color = 'var(--green)';
+  msg.textContent = '✅ Done! ' + numTeams + ' teams + ' + numPlayers + ' players added. Ready to test!';
+  await loadTeams();
+  await loadPlayers();
+  await loadRegPortalPreview();
+}
+
+async function clearAllData() {
+  if (!confirm('Clear ALL teams, players and sales from this auction?')) return;
+  const msg = document.getElementById('quickFillMsg');
+  msg.style.color = 'var(--accent)';
+  msg.textContent = '⏳ Clearing...';
+  await sb.from('sales').delete().eq('auction_id', auctionId);
+  await sb.from('bids').delete().eq('auction_id', auctionId);
+  await sb.from('teams').delete().eq('auction_id', auctionId);
+  await sb.from('players').delete().eq('auction_id', auctionId);
+  await sb.from('current_state').update({
+    current_player_id: null, current_bid: 0, stage: 'waiting',
+    current_bid_team_id: null, going_once_at: null, going_twice_at: null
+  }).eq('auction_id', auctionId);
+  msg.style.color = 'var(--green)';
+  msg.textContent = '✅ All data cleared.';
+  await loadTeams();
   await loadPlayers();
 }
 
