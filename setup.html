@@ -1193,7 +1193,7 @@ function copyViewerLink() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-const FAST2SMS_KEY = '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73';
+const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY';
 
 async function initRegPortal() {
   if (!auctionId) return;
@@ -1350,10 +1350,28 @@ async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
 
 async function importOnePlayer(regId, name, role) {
   const base = auction.base_price || 1000;
-  // Get photo URL from map — safe, avoids URL-in-onclick breakage
-  const photoUrl = (window._regPhotoMap && window._regPhotoMap[regId]) || null;
+  // Re-fetch registration to get latest photo_url from DB
+  const { data: reg } = await sb.from('player_registrations')
+    .select('photo_url, mobile').eq('id', regId).single();
+  let photoUrl = reg?.photo_url || (window._regPhotoMap && window._regPhotoMap[regId]) || null;
+
+  // If photo_url exists, try to regenerate fresh public URL from storage
+  // (handles case where old URL was generated when bucket was private)
+  if (reg?.mobile) {
+    // List files matching this player's mobile to find any uploaded photo
+    const { data: files } = await sb.storage.from('player-photos')
+      .list(auctionId, { search: reg.mobile });
+    if (files?.length > 0) {
+      const file = files[0];
+      const { data: urlData } = sb.storage.from('player-photos')
+        .getPublicUrl(auctionId + '/' + file.name);
+      if (urlData?.publicUrl) photoUrl = urlData.publicUrl;
+    }
+  }
+
   const { error } = await sb.from('players').insert({
     auction_id: auctionId, name, role, base_price: base,
+    mobile: reg?.mobile || null,
     photo_url: photoUrl, star: false
   });
   if (error) { alert('Error: ' + error.message); return; }
@@ -1367,10 +1385,26 @@ async function importAllPlayers() {
     .select('*').eq('auction_id', auctionId).eq('is_captain', false).eq('imported_to_auction', false);
   if (!data?.length) { alert('All players are already imported.'); return; }
   const base = auction.base_price || 1000;
-  const inserts = data.map(p => ({
-    auction_id: auctionId, name: p.name, role: p.role || 'BAT',
-    base_price: base, photo_url: p.photo_url || null, star: false
+
+  // For each player, regenerate fresh photo URL from storage
+  const inserts = await Promise.all(data.map(async p => {
+    let photoUrl = p.photo_url || null;
+    if (p.mobile) {
+      const { data: files } = await sb.storage.from('player-photos')
+        .list(auctionId, { search: p.mobile });
+      if (files?.length > 0) {
+        const { data: urlData } = sb.storage.from('player-photos')
+          .getPublicUrl(auctionId + '/' + files[0].name);
+        if (urlData?.publicUrl) photoUrl = urlData.publicUrl;
+      }
+    }
+    return {
+      auction_id: auctionId, name: p.name, role: p.role || 'BAT',
+      base_price: base, mobile: p.mobile || null,
+      photo_url: photoUrl, star: false
+    };
   }));
+
   await sb.from('players').insert(inserts);
   const ids = data.map(p => p.id);
   await sb.from('player_registrations').update({ imported_to_auction: true }).in('id', ids);

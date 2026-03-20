@@ -43,9 +43,11 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .stage-going_twice{background:rgba(239,68,68,0.2);color:var(--red);animation:stagePulse 0.6s infinite;}
 .stage-sold{background:rgba(34,197,94,0.2);color:var(--green);}
 @keyframes stagePulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
-.timer-box{text-align:center;padding:8px;background:var(--surface);border-bottom:1px solid var(--border);}
-.timer-num{font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;line-height:1;}
-.timer-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;}
+/* Compact timer — inline with stage banner */
+.timer-box{display:none;text-align:center;padding:4px 8px;background:var(--surface);border-bottom:1px solid var(--border);}
+.timer-num{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;line-height:1;}
+.timer-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;}
+.stage-banner{padding:5px 14px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.5px;}
 .bottom-tabs{display:flex;background:var(--surface);border-top:1px solid var(--border);position:sticky;bottom:0;z-index:100;}
 .btab{flex:1;padding:10px 6px;text-align:center;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;color:var(--muted);border-top:3px solid transparent;transition:all 0.2s;}
 .btab.active{color:var(--accent);border-top-color:var(--accent);}
@@ -194,19 +196,22 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
       <div class="team-stat"><div class="team-stat-val" style="color:var(--green);" id="myPlayersBought">0</div><div class="team-stat-lbl">Bought</div></div>
       <div class="team-stat"><div class="team-stat-val" style="color:var(--blue);" id="mySlotsLeft">0</div><div class="team-stat-lbl">Slots Left</div></div>
     </div>
-    <!-- Stage banner always visible -->
-    <div class="stage-banner stage-waiting" id="stageBanner">Waiting for auction to start...</div>
-    <!-- Timer always in sticky area -->
-    <div class="timer-box" id="timerBox" style="display:none;">
-      <div class="timer-lbl" id="timerLabel">GOING ONCE</div>
-      <div class="timer-num" id="timerNum" style="color:var(--yellow);">30</div>
+    <!-- Stage banner + timer on ONE compact line -->
+    <div id="stageBannerRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 14px;min-height:30px;">
+      <div class="stage-banner stage-waiting" id="stageBanner" style="padding:0;background:none;border:none;flex:1;text-align:left;">Waiting...</div>
+      <div id="timerBox" style="display:none;align-items:center;gap:6px;flex-shrink:0;">
+        <div class="timer-lbl" id="timerLabel">GOING ONCE</div>
+        <div class="timer-num" id="timerNum" style="color:var(--yellow);">30</div>
+      </div>
     </div>
     <!-- Next player / system message -->
-    <div id="systemMsg" style="display:none;background:rgba(96,165,250,0.15);color:var(--blue);padding:8px 14px;text-align:center;font-size:13px;font-weight:600;border-bottom:1px solid var(--border);"></div>
-    <!-- Lobby status — who joined -->
-    <div id="lobbyStatusBar" style="display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:6px 14px;">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Teams Online</div>
-      <div id="lobbyStatusList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    <div id="systemMsg" style="display:none;background:rgba(96,165,250,0.15);color:var(--blue);padding:5px 14px;text-align:center;font-size:12px;font-weight:600;border-bottom:1px solid var(--border);"></div>
+    <!-- Lobby status — collapsible, compact single line -->
+    <div id="lobbyStatusBar" style="display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 10px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;">Online:</span>
+        <div id="lobbyStatusList" style="display:flex;flex-wrap:wrap;gap:4px;flex:1;"></div>
+      </div>
     </div>
   </div>
 
@@ -414,7 +419,7 @@ async function sendOtpToMobile(mobile, teamName) {
   smsTxt.style.color = 'var(--blue)';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
@@ -527,13 +532,35 @@ function hideSystemMsg(){document.getElementById('systemMsg').style.display='non
 
 function subscribeRealtime(sessionId){
   sb.channel('bidder-'+myAuction.id+'-'+myTeam.id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'current_state',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'bids',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
+    // current_state changes → only refresh bid UI (most frequent + most critical)
+    .on('postgres_changes',{event:'*',schema:'public',table:'current_state',filter:`auction_id=eq.${myAuction.id}`},async (payload)=>{
+      const{data}=await sb.from('current_state').select('*,players(*)').eq('auction_id',myAuction.id).single();
+      currentState=data;
+      if(currentState?.current_player_id){
+        const{data:bids}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
+        currentBids=bids||[];
+      }else{currentBids=[];}
+      renderBidApp();
+    })
+    // bids table → only update bid list (very frequent during active bidding)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'bids',filter:`auction_id=eq.${myAuction.id}`},async (payload)=>{
+      if(!currentState?.current_player_id) return;
+      const{data:bids}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
+      currentBids=bids||[];
+      renderBidApp();
+    })
+    // sales changes → full reload (infrequent — player sold)
     .on('postgres_changes',{event:'*',schema:'public',table:'sales',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
+    // teams changes → refresh team credits only
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'teams',filter:`auction_id=eq.${myAuction.id}`},async ()=>{
+      const{data}=await sb.from('teams').select('*').eq('auction_id',myAuction.id).order('name');
+      allTeams=data||[];
+      const me=allTeams.find(t=>t.id===myTeam.id);if(me)myTeam={...myTeam,...me};
+      renderMyTeamPanel();
+    })
     .on('postgres_changes',{event:'*',schema:'public',table:'bidder_sessions',filter:`auction_id=eq.${myAuction.id}`},()=>renderLobbyStatus())
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'auctions',filter:`id=eq.${myAuction.id}`},(payload)=>{
-      myAuction = { ...myAuction, ...payload.new };
+      myAuction={...myAuction,...payload.new};
       handleLobbyCountdown(payload.new.lobby_countdown_at);
     })
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'bidder_sessions',filter:`team_id=eq.${myTeam.id}`},()=>{
@@ -624,11 +651,19 @@ function renderMyTeamPanel(){
 function startTimerDisplay(seconds,label,color){
   clearInterval(timerInterval);
   const box=document.getElementById('timerBox'),lbl=document.getElementById('timerLabel'),num=document.getElementById('timerNum');
-  box.style.display='block';lbl.textContent=label;num.style.color=color;
+  box.style.display='flex';lbl.textContent=label;num.style.color=color;
+  // Also update stage banner row background when going once/twice
+  const row=document.getElementById('stageBannerRow');
+  if(label==='GOING ONCE')row.style.background='rgba(234,179,8,0.15)';
+  else if(label==='GOING TWICE')row.style.background='rgba(239,68,68,0.2)';
   let t=seconds;num.textContent=t;
-  timerInterval=setInterval(()=>{t--;num.textContent=t;if(t<=3)playSound('tick');if(t<=0){clearInterval(timerInterval);box.style.display='none';}},1000);
+  timerInterval=setInterval(()=>{t--;num.textContent=t;if(t<=3)playSound('tick');if(t<=0){clearInterval(timerInterval);box.style.display='none';row.style.background='';}},1000);
 }
-function stopTimerDisplay(){clearInterval(timerInterval);document.getElementById('timerBox').style.display='none';}
+function stopTimerDisplay(){
+  clearInterval(timerInterval);
+  document.getElementById('timerBox').style.display='none';
+  document.getElementById('stageBannerRow').style.background='';
+}
 
 function renderBidApp(){
   const state=currentState;const stage=state?.stage||'waiting';const player=state?.players;

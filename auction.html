@@ -368,7 +368,6 @@ let acPlayerIdx = -1, acTeamIdx = -1;
 (async () => {
   if (!auctionId) { window.location.href = 'dashboard.html'; return; }
 
-  // Check Supabase keys are configured
   if (!SUPABASE_URL || SUPABASE_URL.includes('YOUR_SUPABASE')) {
     document.body.innerHTML = '<div style="color:#ef4444;padding:40px;font-family:sans-serif;font-size:16px;">⚠️ Supabase URL not configured.</div>'; return;
   }
@@ -381,6 +380,13 @@ let acPlayerIdx = -1, acTeamIdx = -1;
     const inp = document.getElementById('playerInput');
     if (inp) inp.focus();
   }, 500);
+
+  // When organizer navigates away — stop all local timers
+  // current_state in DB is preserved so auction can be resumed
+  window.addEventListener('pagehide', () => {
+    if (stageTimer) { clearInterval(stageTimer); stageTimer = null; }
+    if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = null; }
+  });
 })();
 
 async function loadAll() {
@@ -723,8 +729,11 @@ async function setCurrentPlayer(playerId, p) {
   // Show photo
   const photoWrap = document.getElementById('cpPhotoWrap');
   const photoEl = document.getElementById('cpPhoto');
-  if (p.photo_url) { photoEl.src = p.photo_url; photoWrap.style.display = 'block'; }
-  else { photoWrap.style.display = 'none'; }
+  if (p.photo_url) {
+    photoEl.src = p.photo_url;
+    photoEl.onerror = () => { photoWrap.style.display = 'none'; };
+    photoWrap.style.display = 'block';
+  } else { photoWrap.style.display = 'none'; }
   document.getElementById('cpMeta').innerHTML =
     '<span class="role-badge role-' + p.role + '">' + p.role + '</span>' +
     (p.base_price ? '<span style="font-size:13px;color:var(--muted);">Base ₹' + fmt(p.base_price) + '</span>' : '') +
@@ -842,23 +851,43 @@ function stopTimer() {
 
 // ── UNSOLD ────────────────────────────────────────────────
 async function autoMarkUnsold() {
-  if (currentBids.length > 0) {
-    // Bids exist — auto-execute SOLD with highest bidder
-    const winner = currentBids[0];
-    const pn = document.getElementById('playerInput').value.trim();
-    const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
+  // Re-fetch bids fresh from DB — don't trust stale local currentBids
+  const cs = await sb.from('current_state').select('current_player_id').eq('auction_id', auctionId).single();
+  const currentPlayerId = cs.data?.current_player_id;
+  if (!currentPlayerId) return; // no player up
+
+  const { data: freshBids } = await sb.from('bids')
+    .select('*, teams(name)').eq('auction_id', auctionId).eq('player_id', currentPlayerId)
+    .order('amount', { ascending: false });
+
+  if (freshBids?.length > 0) {
+    // Genuine bids exist — auto-confirm SOLD with highest bidder
+    const winner = freshBids[0];
+    const player = players.find(p => p.id === currentPlayerId);
     if (player && winner) {
-      // Fill in the form and confirm sold automatically
       document.getElementById('teamInput').value = winner.teams?.name || '';
       document.getElementById('saleAmount').value = winner.amount;
-      showMsg('saleMsg', `⏰ Time up! Auto-confirming SOLD...`, 'success');
+      showMsg('saleMsg', `⏰ Time up! Auto-confirming SOLD to ${winner.teams?.name}...`, 'success');
       setTimeout(() => confirmSold(), 1000);
-    } else {
-      showMsg('saleMsg', 'Time up! Please confirm SOLD manually.', 'success');
+      return;
     }
-    return;
   }
-  await markUnsold();
+
+  // No bids — truly unsold
+  const player = players.find(p => p.id === currentPlayerId);
+  if (!player) return;
+  stopTimer();
+  await sb.from('players').update({ unsold: true }).eq('id', player.id);
+  await sb.from('current_state').update({
+    current_player_id: null, current_bid: 0,
+    current_bid_team_id: null, stage: 'waiting',
+    updated_at: new Date().toISOString()
+  }).eq('auction_id', auctionId);
+  await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
+  showMsg('saleMsg', `🚫 ${player.name} — No bids received. Marked as UNSOLD.`, 'success');
+  resetForm();
+  await loadAll();
+  scheduleNextPlayer();
 }
 
 async function markUnsold() {
