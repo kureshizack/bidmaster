@@ -199,10 +199,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
   </div>
 
-  <!-- AUCTION INFO (read-only, set at creation) -->
+  <!-- AUCTION SETTINGS (editable) -->
   <div class="panel" style="border-color:var(--accent);margin-bottom:16px;">
-    <div class="panel-title">⚙️ Auction Settings</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="panel-title" style="margin-bottom:0;">⚙️ Auction Settings</div>
+      <div id="settingsBtns" style="display:flex;gap:6px;">
+        <button onclick="editAuctionSettings()" id="editSettingsBtn" style="padding:4px 12px;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);border-radius:5px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✏️ Edit</button>
+      </div>
+    </div>
+
+    <!-- VIEW MODE -->
+    <div id="settingsView" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
       <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
         <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
@@ -220,7 +227,36 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
       </div>
     </div>
-    <p style="font-size:11px;color:var(--muted);margin-top:10px;">🔒 These were set when you created the auction. Go to Dashboard to create a new auction with different settings.</p>
+
+    <!-- EDIT MODE (hidden by default) -->
+    <div id="settingsEdit" style="display:none;">
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#fca5a5;">
+        ⚠️ Changing Credits/Team will only affect <b>new teams</b> added after this change. Existing teams keep their current credits.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Credits / Team ₹</label>
+          <input type="number" id="editCredits" placeholder="100000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Bid Step ₹</label>
+          <input type="number" id="editBidStep" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Base Price ₹</label>
+          <input type="number" id="editBasePrice" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Min Squad Size</label>
+          <input type="number" id="editMinSquad" placeholder="11" min="1" max="25" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveAuctionSettings()" style="flex:1;padding:9px;background:var(--accent);color:#000;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">💾 Save Settings</button>
+        <button onclick="cancelAuctionSettings()" style="padding:9px 16px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Cancel</button>
+      </div>
+      <div id="settingsSaveMsg" style="margin-top:8px;min-height:18px;"></div>
+    </div>
   </div>
 
   <!-- DEV: QUICK TEST FILL -->
@@ -341,16 +377,72 @@ async function loadAuction() {
   auction = data;
   document.getElementById('navAuctionName').textContent = data.name;
   document.getElementById('roomCodeDisplay').textContent = data.room_code;
-  // Populate info panel
-  document.getElementById('infoCredits').textContent = '₹' + Number(data.default_credits || 100000).toLocaleString('en-IN');
-  document.getElementById('infoBidStep').textContent = '₹' + Number(data.bid_step || 1000).toLocaleString('en-IN');
-  document.getElementById('infoBasePrice').textContent = '₹' + Number(data.base_price || 1000).toLocaleString('en-IN');
-  document.getElementById('infoMinSquad').textContent = data.min_squad || 11;
+  updateSettingsView(data);
   document.getElementById('basePriceHint').textContent = Number(data.base_price || 1000).toLocaleString('en-IN');
   if (data.status === 'live') {
     document.getElementById('launchBtn').textContent = '▶ Continue Live';
     document.getElementById('launchBtn').onclick = () => window.location.href = 'auction.html?auction=' + auctionId;
   }
+}
+
+function updateSettingsView(data) {
+  document.getElementById('infoCredits').textContent = '₹' + Number(data.default_credits || 100000).toLocaleString('en-IN');
+  document.getElementById('infoBidStep').textContent = '₹' + Number(data.bid_step || 1000).toLocaleString('en-IN');
+  document.getElementById('infoBasePrice').textContent = '₹' + Number(data.base_price || 1000).toLocaleString('en-IN');
+  document.getElementById('infoMinSquad').textContent = data.min_squad || 11;
+}
+
+function editAuctionSettings() {
+  // Pre-fill inputs with current values
+  document.getElementById('editCredits').value = auction.default_credits || 100000;
+  document.getElementById('editBidStep').value = auction.bid_step || 1000;
+  document.getElementById('editBasePrice').value = auction.base_price || 1000;
+  document.getElementById('editMinSquad').value = auction.min_squad || 11;
+  document.getElementById('settingsView').style.display = 'none';
+  document.getElementById('settingsEdit').style.display = 'block';
+  document.getElementById('editSettingsBtn').style.display = 'none';
+}
+
+function cancelAuctionSettings() {
+  document.getElementById('settingsView').style.display = 'grid';
+  document.getElementById('settingsEdit').style.display = 'none';
+  document.getElementById('editSettingsBtn').style.display = 'inline-block';
+  document.getElementById('settingsSaveMsg').textContent = '';
+}
+
+async function saveAuctionSettings() {
+  const credits = parseInt(document.getElementById('editCredits').value);
+  const bidStep = parseInt(document.getElementById('editBidStep').value);
+  const basePrice = parseInt(document.getElementById('editBasePrice').value);
+  const minSquad = parseInt(document.getElementById('editMinSquad').value);
+  const msgEl = document.getElementById('settingsSaveMsg');
+
+  if (!credits || credits < 1000) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Credits must be at least ₹1,000'; return; }
+  if (!bidStep || bidStep < 100) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Bid step must be at least ₹100'; return; }
+  if (!basePrice || basePrice < 100) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Base price must be at least ₹100'; return; }
+  if (!minSquad || minSquad < 1 || minSquad > 25) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Min squad must be 1–25'; return; }
+
+  msgEl.style.color = 'var(--accent)'; msgEl.textContent = '⏳ Saving...';
+  const { error } = await sb.from('auctions').update({
+    default_credits: credits,
+    bid_step: bidStep,
+    base_price: basePrice,
+    min_squad: minSquad
+  }).eq('id', auctionId);
+
+  if (error) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ ' + error.message; return; }
+
+  // Update local auction object
+  auction.default_credits = credits;
+  auction.bid_step = bidStep;
+  auction.base_price = basePrice;
+  auction.min_squad = minSquad;
+
+  updateSettingsView(auction);
+  document.getElementById('basePriceHint').textContent = Number(basePrice).toLocaleString('en-IN');
+  cancelAuctionSettings();
+  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ Settings saved!';
+  setTimeout(() => msgEl.textContent = '', 3000);
 }
 
 // ── TEAMS ─────────────────────────────────────────────────
