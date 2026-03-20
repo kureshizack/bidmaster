@@ -766,6 +766,10 @@ async function deletePlayer(id) {
 }
 
 // ── QUICK TEST FILL ───────────────────────────────────────
+function genTeamCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 const TEST_TEAMS = [
   {name:'Alpha Strikers XI', captain:'Arif Khan', mobile:'9876543210'},
   {name:'Azad Warriors',     captain:'Zakwan Ahmed', mobile:'9123456789'},
@@ -960,7 +964,7 @@ function copyViewerLink() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY';
+const FAST2SMS_KEY = '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73';
 
 async function initRegPortal() {
   if (!auctionId) return;
