@@ -423,11 +423,13 @@ async function saveTeamField(id, field) {
   const dispId = field === 'name' ? 'tname' : field === 'captain_name' ? 'tcap' : 'tmob';
   const val = document.getElementById(dispId + '-input-' + id).value.trim();
   if (!val) { cancelEditTeam(id, field); return; }
-  if (field === 'captain_mobile' && (val.length !== 10 || isNaN(val))) {
-    alert('Enter valid 10-digit mobile'); return;
+  if (field === 'captain_mobile') {
+    if (val.length !== 10 || isNaN(val)) { alert('Enter valid 10-digit mobile'); return; }
+    // Check duplicate mobile in teams (exclude current team)
+    const { data: dup } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', val).neq('id', id).single();
+    if (dup) { alert('❌ Mobile ' + val + ' already used by team "' + dup.name + '". Each captain must have a unique mobile.'); return; }
   }
   await sb.from('teams').update({ [field]: val }).eq('id', id);
-  // Update display
   const dispEl = document.getElementById(dispId + '-disp-' + id);
   dispEl.textContent = val;
   dispEl.style.color = 'var(--text)';
@@ -448,6 +450,12 @@ async function addTeam() {
   if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
   if (!captainName) { showMsg('teamMsg', 'Enter captain name', 'error'); return; }
   if (!captainMobile || captainMobile.length !== 10) { showMsg('teamMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
+  // Check duplicate mobile across teams in this auction
+  const { data: dupTeam } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', captainMobile).single();
+  if (dupTeam) { showMsg('teamMsg', '❌ Mobile ' + captainMobile + ' already used by team "' + dupTeam.name + '". Each captain must have a unique mobile.', 'error'); return; }
+  // Check duplicate mobile across player registrations too
+  const { data: dupReg } = await sb.from('player_registrations').select('id,name').eq('auction_id', auctionId).eq('mobile', captainMobile).single();
+  if (dupReg) { showMsg('teamMsg', '❌ Mobile ' + captainMobile + ' is already registered as a player (' + dupReg.name + '). Use a different number.', 'error'); return; }
   // Plan limit check
   const { count } = await sb.from('teams').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
   if (!checkTeamLimit(count || 0)) return;
