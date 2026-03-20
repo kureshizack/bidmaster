@@ -275,6 +275,12 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// 🔧 DEV MODE — flip to false before going live
+const DEV_MODE = false;
+// When true:  OTP shows on screen, no SMS sent, unlimited auctions
+// When false: real SMS via Fast2SMS, plan limits enforced
+// ══════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
@@ -394,11 +400,18 @@ async function sendOtpToMobile(mobile, teamName) {
   const smsBox = document.getElementById('smsStatusBox');
   const smsTxt = document.getElementById('smsStatusText');
   smsBox.style.display = 'block';
-  smsTxt.textContent = '📱 Sending OTP via SMS...';
-  smsTxt.style.color = 'var(--blue)';
   showScreen(3);
 
-  // Send SMS
+  if (DEV_MODE) {
+    // DEV MODE — show OTP on screen, skip SMS
+    smsTxt.style.color = 'var(--accent)';
+    smsTxt.innerHTML = '🔧 Dev Mode — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:26px;letter-spacing:6px;color:var(--accent);">' + currentOtp + '</b>';
+    return;
+  }
+
+  // PRODUCTION — send real SMS
+  smsTxt.textContent = '📱 Sending OTP via SMS...';
+  smsTxt.style.color = 'var(--blue)';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
     const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);

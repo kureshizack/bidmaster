@@ -292,6 +292,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// 🔧 DEV MODE — flip to false before going live
+const DEV_MODE = false;
+// ══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1149,6 +1153,17 @@ async function sendSMSToAll() {
     return;
   }
   const viewerUrl = `${window.location.origin}/bidmaster/viewer.html?room=${auction.room_code}`;
+
+  if (DEV_MODE) {
+    // DEV MODE — just copy link, don't send SMS
+    msgEl.style.color = 'var(--accent)';
+    msgEl.textContent = `🔧 Dev Mode — SMS skipped. Viewer link: ${viewerUrl}`;
+    navigator.clipboard.writeText(viewerUrl);
+    btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
+    return;
+  }
+
+  // PRODUCTION — send real SMS
   const smsText = `🏏 ${auction.name} is LIVE! Watch the auction now: ${viewerUrl}`;
   let sent = 0, failed = 0;
   for (const player of players) {

@@ -89,9 +89,24 @@ input:focus{border-color:var(--gold);}
   </div>
 
   <a href="index.html" class="back-link">← Back to home</a>
+
+  <!-- DEV MODE BANNER — hidden in production -->
+  <div id="devBanner" style="display:none;margin-top:16px;background:rgba(107,33,168,0.15);border:1px solid #a78bfa;border-radius:10px;padding:12px 16px;text-align:center;">
+    <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔧 Dev Mode Active</div>
+    <button onclick="devAutoLogin()" style="width:100%;padding:10px;background:#6b21a8;color:#fff;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">
+      ⚡ Auto Login as Test Organizer
+    </button>
+    <div style="font-size:11px;color:#a78bfa;margin-top:6px;">test@auctionxi.dev · test123456</div>
+  </div>
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// 🔧 DEV MODE — flip to false before going live
+const DEV_MODE = false;
+const DEV_EMAIL = 'test@auctionxi.dev';
+const DEV_PASSWORD = 'test123456';
+// ══════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
@@ -100,7 +115,25 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session) window.location.href='dashboard.html';
+  // Show dev banner if DEV_MODE
+  if(DEV_MODE) document.getElementById('devBanner').style.display='block';
 })();
+
+async function devAutoLogin(){
+  const btn = event.target;
+  btn.textContent='Logging in...'; btn.disabled=true;
+  // Try login first
+  let {error} = await sb.auth.signInWithPassword({email:DEV_EMAIL, password:DEV_PASSWORD});
+  if(error){
+    // Account doesn't exist — create it
+    const{data,error:signupErr}=await sb.auth.signUp({email:DEV_EMAIL,password:DEV_PASSWORD});
+    if(signupErr){ btn.textContent='⚡ Auto Login as Test Organizer'; btn.disabled=false; showMsg(signupErr.message,'error'); return; }
+    if(data.user) await sb.from('profiles').upsert({id:data.user.id,name:'Test Organizer',plan:'free'});
+    // Now login
+    await sb.auth.signInWithPassword({email:DEV_EMAIL, password:DEV_PASSWORD});
+  }
+  window.location.href='dashboard.html';
+}
 
 function switchTab(tab){
   document.getElementById('loginTab').classList.toggle('active', tab==='login');

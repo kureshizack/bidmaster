@@ -258,6 +258,10 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// 🔧 DEV MODE — flip to false before going live
+const DEV_MODE = false;
+// ══════════════════════════════════════════════════════════
 // ── SUPABASE CONFIG ────────────────────────────────────────
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -371,8 +375,8 @@ async function createAuction() {
   if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
   if (!orgMobile || orgMobile.length !== 10) { msgEl.innerHTML = '<div class="msg msg-error">Enter your 10-digit mobile number</div>'; return; }
 
-  // Freemium check
-  if (userProfile?.plan === 'free' || !userProfile) {
+  // Plan limit check — skipped in DEV_MODE
+  if (!DEV_MODE && (userProfile?.plan === 'free' || !userProfile)) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
     if (count >= 3) {
       msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Club for more.</div>'; return;

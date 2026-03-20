@@ -245,6 +245,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// 🔧 DEV MODE — flip to false before going live
+const DEV_MODE = false;
+// ══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -339,8 +343,17 @@ async function sendViewerOtp() {
   document.getElementById('verifyStep1').style.display = 'none';
   document.getElementById('verifyStep2').style.display = 'block';
 
-  // Send SMS
   statusBox.style.display = 'block';
+
+  if (DEV_MODE) {
+    // DEV MODE — show OTP on screen, skip SMS
+    statusTxt.style.color = 'var(--accent)';
+    statusTxt.innerHTML = '🔧 Dev Mode — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:26px;letter-spacing:6px;color:var(--accent);">' + _viewerOtp + '</b>';
+    btn.textContent = 'Send OTP →'; btn.disabled = false;
+    return;
+  }
+
+  // PRODUCTION — send real SMS
   statusTxt.textContent = '📱 Sending OTP...';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
