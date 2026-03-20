@@ -592,23 +592,6 @@ function handleLobbyCountdown(lobby_countdown_at) {
     }
   }, 500);
 }
-  if(sessionId){
-    // Heartbeat — keep last_seen fresh every 25s
-    const hb = setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId), 25000);
-
-    // Mark offline immediately when tab/browser closes or hides
-    const markOffline = () => {
-      const old = new Date(Date.now() - 200000).toISOString();
-      sb.from('bidder_sessions').update({last_seen: old}).eq('id', sessionId);
-    };
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) markOffline();
-      else sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId);
-    });
-    window.addEventListener('beforeunload', markOffline);
-    window.addEventListener('pagehide', markOffline);
-  }
-}
 
 function renderMyTeamPanel(){
   const myS=allSales.filter(s=>s.team_id===myTeam.id);
