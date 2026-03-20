@@ -6,6 +6,7 @@
 <title>Tournament Registration — AuctionXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 :root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--border:#2a3a55;--gold:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -284,19 +285,29 @@ select option{background:var(--surface2);}
     <div class="payment-section payment-player" id="paymentSection">
       <div class="payment-title payment-title-player" id="paymentTitle">💳 Registration Fee</div>
       <div class="payment-amount-big fee-amount-player" id="paymentAmountBig">₹500</div>
-      <div class="payment-desc" id="paymentDesc">Player registration fee for this tournament. Pay to confirm your spot in the auction.</div>
-      <div class="coming-soon-box">
-        <div>🔒 Online Payment Coming Soon</div>
-        <div>Pay the registration fee directly to your organizer. Show this screen as confirmation.</div>
+      <div class="payment-desc" id="paymentDesc">Player registration fee for this tournament. Pay online to confirm your spot.</div>
+
+      <!-- Razorpay pay button -->
+      <div id="payNowSection" style="margin:12px 0;">
+        <button id="payNowBtn" onclick="submitRegistration()"
+          style="width:100%;padding:16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:12px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;cursor:pointer;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:8px;">
+          💳 Pay &amp; Register
+        </button>
+        <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:6px;">
+          Secured by Razorpay · UPI · Cards · Net Banking · Wallets
+        </div>
       </div>
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.7;">
-        📞 Contact organizer to confirm payment:<br>
-        <b style="color:var(--text);" id="organizerContact">Details shared by organizer</b>
+
+      <!-- Paid badge — shown after payment -->
+      <div id="paymentPaidBadge" style="display:none;background:rgba(34,197,94,0.12);border:1px solid var(--green);border-radius:10px;padding:10px 14px;text-align:center;margin:8px 0;">
+        <div style="font-size:22px;margin-bottom:4px;">✅</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--green);font-size:16px;">Payment Received!</div>
+        <div id="paymentIdDisplay" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace;"></div>
       </div>
     </div>
 
-    <button class="submit-btn submit-btn-player" id="submitBtn" onclick="submitRegistration()">
-      🏏 Register as Player
+    <button class="submit-btn submit-btn-player" id="submitBtn" onclick="submitRegistration()" style="display:none;">
+      🏏 Register
     </button>
     <!-- Error/success message RIGHT ABOVE submit button so it's always visible -->
     <div id="formMsg" class="msg" style="display:none;margin-top:12px;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;text-align:center;"></div>
@@ -310,6 +321,10 @@ select option{background:var(--surface2);}
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// ── RAZORPAY CONFIG ───────────────────────────────────────
+const RAZORPAY_KEY = 'rzp_test_STUcgypHogaB2s'; // swap to live key when approved
+// ─────────────────────────────────────────────────────────
 
 const params=new URLSearchParams(window.location.search);
 const auctionId=params.get('auction');
@@ -455,93 +470,144 @@ async function submitRegistration(){
   const teamName=isCaptain?document.getElementById('captainTeamName').value.trim():'';
   hideFormMsg();
 
-  if(!name){showFormMsg('Enter your full name','error');return;}
-  if(!mobile||mobile.length!==10){showFormMsg('Enter valid 10-digit mobile','error');return;}
-  if(isCaptain&&!teamName){showFormMsg('Enter your preferred team name','error');return;}
-  if(!isCaptain&&!selectedCricketRole){showFormMsg('Select your cricket role','error');return;}
-  if(!selectedSize){showFormMsg('Select your T-shirt size','error');return;}
+  // ── VALIDATION ──────────────────────────────────────────
+  if(!name){showFormMsg('⚠️ Enter your full name','error');return;}
+  if(!mobile||mobile.length!==10){showFormMsg('⚠️ Enter valid 10-digit mobile number','error');return;}
+  if(isCaptain&&!teamName){showFormMsg('⚠️ Enter your preferred team name','error');return;}
+  if(!isCaptain&&!selectedCricketRole){showFormMsg('⚠️ Select your cricket role (Bat / Bowl / All-rounder / WK)','error');return;}
+  if(!selectedSize){showFormMsg('⚠️ Select your T-shirt size','error');return;}
 
-  const btn=document.getElementById('submitBtn');
-  btn.textContent='Registering...';btn.disabled=true;
+  const btn=document.getElementById('payNowBtn');
+  btn.textContent='Checking...'; btn.disabled=true;
 
-  // Check duplicate in registrations
+  // ── DUPLICATE CHECK ─────────────────────────────────────
   const{data:existing}=await sb.from('player_registrations').select('id,is_captain').eq('auction_id',auctionId).eq('mobile',mobile).single();
   if(existing){
     document.getElementById('regForm').style.display='none';
     document.getElementById('alreadyScreen').style.display='block';
     return;
   }
-  // Check duplicate in teams (captain mobile)
   const{data:existingTeam}=await sb.from('teams').select('id,name').eq('auction_id',auctionId).eq('captain_mobile',mobile).single();
   if(existingTeam){
-    showFormMsg('❌ Mobile ' + mobile + ' is already registered as a captain for team "' + existingTeam.name + '". Each person must use a unique mobile number.','error');
-    btn.textContent=isCaptain?'👑 Register as Captain':'🏏 Register as Player';
-    btn.disabled=false;
-    return;
+    showFormMsg('❌ Mobile already registered as captain for team "'+existingTeam.name+'"','error');
+    btn.textContent='💳 Pay & Register'; btn.disabled=false; return;
   }
 
-  // Upload photo
-  let photoUrl=null;
-  if(photoFile){
-    const ext=photoFile.name.split('.').pop().toLowerCase();
-    const path=auctionId+'/'+mobile+'.'+ext;
-    const{data:upData,error:upErr}=await sb.storage.from('player-photos').upload(path,photoFile,{upsert:true});
-    if(upErr){
-      showFormMsg('⚠️ Photo upload failed: '+upErr.message+'. Continuing without photo.','error');
-    } else {
-      const{data:urlData}=sb.storage.from('player-photos').getPublicUrl(path);
-      photoUrl=urlData.publicUrl;
+  btn.textContent='Opening payment...'; 
+
+  // ── RAZORPAY PAYMENT ────────────────────────────────────
+  const fee = isCaptain ? (auction?.captain_fee||DEFAULT_CAPTAIN_FEE) : (auction?.player_fee||DEFAULT_PLAYER_FEE);
+
+  await new Promise((resolve, reject) => {
+    const options = {
+      key: RAZORPAY_KEY,
+      amount: fee * 100,           // Razorpay takes paise
+      currency: 'INR',
+      name: auction.name || 'AuctionXI',
+      description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
+      image: 'https://kureshizack.github.io/bidmaster/favicon.ico',
+      prefill: {
+        name: name,
+        contact: '+91' + mobile,
+      },
+      notes: {
+        auction_id: auctionId,
+        player_name: name,
+        mobile: mobile,
+        type: isCaptain ? 'captain' : 'player'
+      },
+      theme: { color: '#f59e0b' },
+      modal: {
+        ondismiss: () => {
+          showFormMsg('Payment cancelled. Try again when ready.', 'error');
+          btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+          reject(new Error('cancelled'));
+        }
+      },
+      handler: async (response) => {
+        // Payment successful — response.razorpay_payment_id exists
+        resolve(response);
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', (response) => {
+      showFormMsg('❌ Payment failed: ' + response.error.description, 'error');
+      btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+      reject(new Error('failed'));
+    });
+    rzp.open();
+  }).then(async (paymentResponse) => {
+
+    const paymentId = paymentResponse.razorpay_payment_id;
+    btn.textContent = '✅ Paid! Registering...';
+
+    // Show paid badge
+    document.getElementById('paymentPaidBadge').style.display = 'block';
+    document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + paymentId;
+    document.getElementById('payNowSection').style.display = 'none';
+
+    // ── UPLOAD PHOTO ──────────────────────────────────────
+    let photoUrl = null;
+    if(photoFile){
+      const ext = photoFile.name.split('.').pop().toLowerCase();
+      const path = auctionId + '/' + mobile + '.' + ext;
+      const{data:upData, error:upErr} = await sb.storage.from('player-photos').upload(path, photoFile, {upsert:true});
+      if(!upErr){
+        const{data:urlData} = sb.storage.from('player-photos').getPublicUrl(path);
+        photoUrl = urlData.publicUrl;
+      }
     }
-  }
 
-  // Insert registration
-  const fee=isCaptain?(auction?.captain_fee||DEFAULT_CAPTAIN_FEE):(auction?.player_fee||DEFAULT_PLAYER_FEE);
-  const tshirtName=document.getElementById('tshirtName').value.trim()||null;
-  const tshirtNumber=document.getElementById('tshirtNumber').value.trim()||null;
-  const{data:reg,error:regErr}=await sb.from('player_registrations').insert({
-    auction_id:auctionId,
-    name,mobile,
-    role:isCaptain?'ALL':selectedCricketRole,
-    matches_played:parseInt(matches),
-    photo_url:photoUrl,
-    is_captain:isCaptain,
-    captain_team_name:isCaptain?teamName:null,
-    tshirt_size:selectedSize,
-    tshirt_name:tshirtName,
-    tshirt_number:tshirtNumber,
-    registration_fee:fee,
-    payment_status:'pending',
-    registered_at:new Date().toISOString()
-  }).select().single();
+    // ── SAVE REGISTRATION ─────────────────────────────────
+    const tshirtName = document.getElementById('tshirtName').value.trim()||null;
+    const tshirtNumber = document.getElementById('tshirtNumber').value.trim()||null;
+    const{data:reg, error:regErr} = await sb.from('player_registrations').insert({
+      auction_id: auctionId,
+      name, mobile,
+      role: isCaptain ? 'ALL' : selectedCricketRole,
+      matches_played: parseInt(matches),
+      photo_url: photoUrl,
+      is_captain: isCaptain,
+      captain_team_name: isCaptain ? teamName : null,
+      tshirt_size: selectedSize,
+      tshirt_name: tshirtName,
+      tshirt_number: tshirtNumber,
+      registration_fee: fee,
+      payment_status: 'paid',
+      payment_id: paymentId,
+      registered_at: new Date().toISOString()
+    }).select().single();
 
-  if(regErr){
-    showFormMsg('Registration failed: '+regErr.message,'error');
-    btn.textContent=isCaptain?'👑 Register as Captain':'🏏 Register as Player';
-    btn.disabled=false;
-    return;
-  }
+    if(regErr){
+      showFormMsg('Payment done but registration save failed: ' + regErr.message + '. Screenshot Payment ID: ' + paymentId, 'error');
+      btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+      return;
+    }
 
-  // Show success
-  document.getElementById('regForm').style.display='none';
-  document.getElementById('successScreen').style.display='block';
-  if(isCaptain){
-    document.getElementById('successEmoji').textContent='👑';
-    document.getElementById('successTitle').textContent='CAPTAIN REGISTERED!';
-    document.getElementById('successTitle').style.color='var(--gold)';
-    document.getElementById('successSub').textContent='Your captain registration is confirmed. Pay the fee to the organizer to activate your team.';
-    document.getElementById('successNotice').textContent='📞 Contact your organizer to pay ₹'+fee.toLocaleString('en-IN')+' and get your team code. You will then be able to bid from the bidder app during the live auction.';
-  } else {
-    document.getElementById('successSub').textContent='You are registered for the auction. Pay the fee to the organizer to confirm your spot.';
-    document.getElementById('successNotice').textContent='📱 You\'ll receive the live viewer link on WhatsApp before the auction starts. Pay ₹'+fee.toLocaleString('en-IN')+' to your organizer to confirm registration.';
-  }
-  document.getElementById('successCard').innerHTML=
-    '<div class="success-card-row"><span style="color:var(--muted);">Name</span><span style="font-weight:700;">'+name+'</span></div>'+
-    '<div class="success-card-row"><span style="color:var(--muted);">Mobile</span><span style="font-weight:700;">'+mobile+'</span></div>'+
-    (isCaptain?'<div class="success-card-row"><span style="color:var(--muted);">Team Name</span><span style="font-weight:700;">'+teamName+'</span></div>':
-    '<div class="success-card-row"><span style="color:var(--muted);">Role</span><span style="font-weight:700;">'+selectedCricketRole+'</span></div>')+
-    '<div class="success-card-row"><span style="color:var(--muted);">T-Shirt</span><span style="font-weight:700;">'+selectedSize+'</span></div>'+
-    '<div class="success-card-row"><span style="color:var(--muted);">Fee</span><span style="font-weight:700;color:var(--gold);">₹'+fee.toLocaleString('en-IN')+' (pending)</span></div>'+
-    '<div class="success-card-row"><span style="color:var(--muted);">Tournament</span><span style="font-weight:700;">'+auction.name+'</span></div>';
+    // ── SUCCESS SCREEN ────────────────────────────────────
+    document.getElementById('regForm').style.display = 'none';
+    document.getElementById('successScreen').style.display = 'block';
+    document.getElementById('successEmoji').textContent = isCaptain ? '👑' : '🎉';
+    document.getElementById('successTitle').textContent = isCaptain ? 'CAPTAIN REGISTERED!' : 'REGISTERED!';
+    if(isCaptain) document.getElementById('successTitle').style.color = 'var(--gold)';
+    document.getElementById('successSub').textContent = '✅ Payment confirmed! Your registration is complete.';
+    document.getElementById('successNotice').textContent = isCaptain
+      ? '📞 Contact your organizer to activate your team account for live bidding.'
+      : '📱 You\'ll receive the live viewer link on WhatsApp before the auction starts.';
+    document.getElementById('successCard').innerHTML =
+      '<div class="success-card-row"><span style="color:var(--muted);">Name</span><span style="font-weight:700;">'+name+'</span></div>'+
+      '<div class="success-card-row"><span style="color:var(--muted);">Mobile</span><span style="font-weight:700;">'+mobile+'</span></div>'+
+      (isCaptain
+        ? '<div class="success-card-row"><span style="color:var(--muted);">Team Name</span><span style="font-weight:700;">'+teamName+'</span></div>'
+        : '<div class="success-card-row"><span style="color:var(--muted);">Role</span><span style="font-weight:700;">'+selectedCricketRole+'</span></div>')+
+      '<div class="success-card-row"><span style="color:var(--muted);">T-Shirt</span><span style="font-weight:700;">'+selectedSize+'</span></div>'+
+      '<div class="success-card-row"><span style="color:var(--muted);">Fee Paid</span><span style="font-weight:700;color:var(--green);">₹'+fee.toLocaleString('en-IN')+' ✅</span></div>'+
+      '<div class="success-card-row"><span style="color:var(--muted);">Payment ID</span><span style="font-weight:700;font-size:11px;font-family:monospace;">'+paymentId+'</span></div>'+
+      '<div class="success-card-row"><span style="color:var(--muted);">Tournament</span><span style="font-weight:700;">'+auction.name+'</span></div>';
+
+  }).catch(() => {
+    // payment cancelled or failed — already handled above
+  });
 }
 
 function showFormMsg(msg, type) {
