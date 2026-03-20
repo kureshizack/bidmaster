@@ -260,7 +260,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <script>
 // ══════════════════════════════════════════════════════════
 // 🔧 DEV MODE — flip to false before going live
-const DEV_MODE = false;
+const DEV_MODE = true;
 // ══════════════════════════════════════════════════════════
 // ── SUPABASE CONFIG ────────────────────────────────────────
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
@@ -433,7 +433,7 @@ async function createAuction() {
     const smsMsg = encodeURIComponent(
       '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by AuctionXI'
     );
-    await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + orgMobile);
+    await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + orgMobile);
   } catch(e) { /* silent fail */ }
 }
 

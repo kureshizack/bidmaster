@@ -277,7 +277,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 <script>
 // ══════════════════════════════════════════════════════════
 // 🔧 DEV MODE — flip to false before going live
-const DEV_MODE = false;
+const DEV_MODE = true;
 // When true:  OTP shows on screen, no SMS sent, unlimited auctions
 // When false: real SMS via Fast2SMS, plan limits enforced
 // ══════════════════════════════════════════════════════════
@@ -414,7 +414,7 @@ async function sendOtpToMobile(mobile, teamName) {
   smsTxt.style.color = 'var(--blue)';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
