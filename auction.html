@@ -434,6 +434,13 @@ async function loadAll() {
     }
   }
   renderAll();
+  // If auction already has sales, it's been running — unlock immediately
+  if (sales.length > 0) auctionUnlocked = true;
+  // If lobby countdown was in progress when page reloaded, resume it
+  if (auction.lobby_countdown_at && sales.length === 0 && !auctionUnlocked) {
+    const elapsed = (Date.now() - new Date(auction.lobby_countdown_at).getTime()) / 1000;
+    if (elapsed < 60) renderLobby(); // re-trigger to resume timer
+  }
 }
 
 function renderAll() {
@@ -477,61 +484,78 @@ function switchTab(name) {
 
 // ── LOBBY ─────────────────────────────────────────────────
 let lobbyTimer = null;
+let auctionUnlocked = false; // becomes true once lobby countdown finishes
+
 async function renderLobby() {
   const lobbyEl = document.getElementById('lobbyPanel');
-  // Show lobby only if no player has been put up yet and no sales
-  if (sales.length > 0 || document.getElementById('currentPlayerBox').style.display === 'flex') {
-    lobbyEl.style.display = 'none'; return;
-  }
-  // Only count sessions active in last 90 seconds (heartbeat is every 30s)
+  if (sales.length > 0) { lobbyEl.style.display = 'none'; return; }
+
   const cutoff = new Date(Date.now() - 90000).toISOString();
   const { data: sessions } = await sb.from('bidder_sessions')
-    .select('team_id, teams(name)').eq('auction_id', auctionId)
+    .select('team_id').eq('auction_id', auctionId)
     .gte('last_seen', cutoff);
   const joinedIds = new Set((sessions || []).map(s => s.team_id));
   const joined = teams.filter(t => joinedIds.has(t.id));
   const notJoined = teams.filter(t => !joinedIds.has(t.id));
-  const allJoined = teams.length > 0 && notJoined.length === 0;
+  const allOnline = teams.length > 0 && notJoined.length === 0;
 
   lobbyEl.style.display = 'block';
   document.getElementById('lobbyTeamList').innerHTML = teams.map(t => {
     const has = joinedIds.has(t.id);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;border:1px solid ${has?'var(--green)':'var(--border)'};">
-      <span style="font-size:16px;">${has?'✅':'⏳'}</span>
-      <span style="font-weight:600;flex:1;">${t.name}</span>
-      <span style="font-size:12px;color:${has?'var(--green)':'var(--muted)'};">${has?'Joined':'Waiting'}</span>
-      ${t.captain_name?`<span style="font-size:11px;color:var(--muted);">${t.captain_name}</span>`:''}
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;border:1px solid ${has ? 'var(--green)' : 'var(--border)'};">
+      <span>${has ? '✅' : '⏳'}</span>
+      <span style="font-weight:600;flex:1;font-size:13px;">${t.name}</span>
+      <span style="font-size:12px;color:${has ? 'var(--green)' : 'var(--muted)'};">${has ? 'Online' : 'Waiting'}</span>
+      ${t.captain_name ? `<span style="font-size:11px;color:var(--muted);">${t.captain_name}</span>` : ''}
     </div>`;
   }).join('');
 
-  document.getElementById('lobbyStatus').textContent = `${joined.length} / ${teams.length} teams joined`;
-
-  // Need at least 2 teams joined AND all registered teams present to start countdown
-  const enoughJoined = joined.length >= 2 && notJoined.length === 0;
-
-  if (!enoughJoined && joined.length < 2 && teams.length > 0) {
-    document.getElementById('lobbyStatus').textContent =
-      `${joined.length} / ${teams.length} joined — need at least 2 teams to start`;
+  if (!allOnline) {
+    auctionUnlocked = false;
+    if (lobbyTimer) { clearInterval(lobbyTimer); lobbyTimer = null; }
+    document.getElementById('lobbyCountdown').style.display = 'none';
+    document.getElementById('lobbyStatus').innerHTML =
+      `<span style="color:var(--muted);">${joined.length} / ${teams.length} online — </span>` +
+      `<span style="color:var(--red);">🔒 Waiting for all teams</span>`;
+    // Write null to lobby_countdown_at so bidders see no countdown
+    await sb.from('auctions').update({ lobby_countdown_at: null }).eq('id', auctionId);
+    return;
   }
 
-  if (enoughJoined && !lobbyTimer) {
-    // All joined — start 60s countdown then auto-launch first player
-    document.getElementById('lobbyCountdown').style.display = 'block';
-    let t = 60;
-    document.getElementById('lobbyCountdownNum').textContent = t;
-    lobbyTimer = setInterval(() => {
-      t--;
-      document.getElementById('lobbyCountdownNum').textContent = t;
-      if (t <= 10) playSound('bid');
-      if (t <= 0) {
+  // All teams online!
+  document.getElementById('lobbyStatus').innerHTML =
+    `<span style="color:var(--green);">✅ All ${teams.length} teams online!</span>`;
+
+  if (!lobbyTimer && !auctionUnlocked) {
+    // Write countdown start time to DB — syncs all screens
+    const now = new Date().toISOString();
+    await sb.from('auctions').update({ lobby_countdown_at: now }).eq('id', auctionId);
+
+    const countdownEl = document.getElementById('lobbyCountdown');
+    const numEl = document.getElementById('lobbyCountdownNum');
+    countdownEl.style.display = 'block';
+
+    lobbyTimer = setInterval(async () => {
+      const { data: aucData } = await sb.from('auctions').select('lobby_countdown_at').eq('id', auctionId).single();
+      if (!aucData?.lobby_countdown_at) { clearInterval(lobbyTimer); lobbyTimer = null; return; }
+      const elapsed = (Date.now() - new Date(aucData.lobby_countdown_at).getTime()) / 1000;
+      const remaining = Math.max(0, Math.round(60 - elapsed));
+
+      if (remaining <= 2 && remaining > 0) {
+        numEl.innerHTML = `<div style="font-size:22px;animation:pulse 0.5s infinite;">🏏 Are you ready?<br>Let's begin!</div>`;
+      } else {
+        numEl.textContent = remaining;
+      }
+      if (remaining <= 5) playSound('bid');
+
+      if (remaining <= 0) {
         clearInterval(lobbyTimer); lobbyTimer = null;
+        auctionUnlocked = true;
         lobbyEl.style.display = 'none';
+        await sb.from('auctions').update({ lobby_countdown_at: null }).eq('id', auctionId);
         scheduleNextPlayer();
       }
     }, 1000);
-  } else if (!enoughJoined && lobbyTimer) {
-    clearInterval(lobbyTimer); lobbyTimer = null;
-    document.getElementById('lobbyCountdown').style.display = 'none';
   }
 }
 
@@ -612,17 +636,21 @@ function highlightAC(dropId, idx) {
 function selectPlayer(id) {
   const p = players.find(x => x.id === id);
   if (!p) return;
+  // Block if auction not unlocked yet (lobby countdown not done)
+  if (!auctionUnlocked && sales.length === 0) {
+    showMsg('saleMsg', '🔒 Waiting for all teams to join. Auction will start automatically after countdown.', 'error');
+    document.getElementById('playerDrop').style.display = 'none';
+    return;
+  }
   document.getElementById('playerInput').value = p.name;
   document.getElementById('playerDrop').style.display = 'none';
   if (p.base_price) document.getElementById('saleAmount').value = p.base_price;
-  // Show player strip
   document.getElementById('playerStrip').innerHTML =
     '<span style="color:' + (p.star ? 'var(--accent)' : '#374151') + ';font-size:18px;">★</span>' +
     '<b style="font-size:15px;">' + p.name + '</b>' +
     '<span class="role-badge role-' + p.role + '">' + p.role + '</span>' +
     (p.base_price ? '<span style="font-size:13px;">Base: <b style="color:var(--accent);">₹' + Number(p.base_price).toLocaleString('en-IN') + '</b></span>' : '') +
     (p.star ? '<span style="color:var(--accent);font-size:12px;font-weight:700;">⭐ STAR PLAYER</span>' : '');
-  // Broadcast to viewers
   setCurrentPlayer(id, p);
   renderBidChips();
   document.getElementById('teamInput').focus();

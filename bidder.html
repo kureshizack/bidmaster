@@ -161,6 +161,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <div id="bidApp">
+
+  <!-- LOBBY COUNTDOWN OVERLAY — shown when all teams join -->
+  <div id="lobbyOverlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+    <div style="font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:4px;color:var(--accent);margin-bottom:8px;">🏏 AUCTIONXI</div>
+    <div id="lobbyOverlayAuction" style="font-size:13px;color:var(--muted);margin-bottom:32px;"></div>
+    <div id="lobbyOverlayMsg" style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">All teams are online!</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;" id="lobbyOverlaySubMsg">Auction begins in</div>
+    <div id="lobbyOverlayNum" style="font-family:'Rajdhani',sans-serif;font-size:100px;font-weight:700;color:var(--accent);line-height:1;"></div>
+    <div id="lobbyOverlayTeams" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:24px;max-width:380px;"></div>
+    <div id="lobbyOverlayReady" style="display:none;margin-top:20px;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--green);animation:stagePulse 0.5s infinite;">🏏 Are you ready?</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;color:var(--accent);margin-top:8px;">Let's begin! 🎉</div>
+    </div>
+  </div>
+
   <!-- STICKY TOP PANEL: header + team stats + stage + timer -->
   <div style="position:sticky;top:0;z-index:100;">
     <div class="bid-header">
@@ -386,7 +401,7 @@ async function sendOtpToMobile(mobile, teamName) {
   // Send SMS
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
@@ -456,16 +471,19 @@ async function loadAll(){
     sb.from('players').select('*').eq('auction_id',myAuction.id),
     sb.from('sales').select('*,players(*),teams(*)').eq('auction_id',myAuction.id).order('sold_at',{ascending:false}),
     sb.from('current_state').select('*,players(*)').eq('auction_id',myAuction.id).single(),
-    sb.from('auctions').select('bid_step').eq('id',myAuction.id).single()
+    sb.from('auctions').select('bid_step,lobby_countdown_at').eq('id',myAuction.id).single()
   ]);
   allTeams=teamRes.data||[];allPlayers=playersRes.data||[];allSales=salesRes.data||[];currentState=stateRes.data;
-  // Use global bid_step from auction if set
   if(aucRes.data?.bid_step) myAuction.bid_step=aucRes.data.bid_step;
   const me=allTeams.find(t=>t.id===myTeam.id);if(me)myTeam={...myTeam,...me};
   if(currentState?.current_player_id){
     const{data}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
     currentBids=data||[];
   }else{currentBids=[];}
+  // Resume lobby countdown if it was active when bidder opened/reloaded
+  if(aucRes.data?.lobby_countdown_at && allSales.length===0){
+    handleLobbyCountdown(aucRes.data.lobby_countdown_at);
+  }
   renderAll();
 }
 
@@ -501,12 +519,79 @@ function subscribeRealtime(sessionId){
     .on('postgres_changes',{event:'*',schema:'public',table:'sales',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'bidder_sessions',filter:`auction_id=eq.${myAuction.id}`},()=>renderLobbyStatus())
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'auctions',filter:`id=eq.${myAuction.id}`},(payload)=>{
+      myAuction = { ...myAuction, ...payload.new };
+      handleLobbyCountdown(payload.new.lobby_countdown_at);
+    })
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'bidder_sessions',filter:`team_id=eq.${myTeam.id}`},()=>{
       localStorage.removeItem(SESSION_KEY);
       alert('Your session was ended. Another device logged in.');
       location.reload();
     })
     .subscribe();
+  if(sessionId){
+    const hb = setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId), 25000);
+    const markOffline = () => {
+      const old = new Date(Date.now() - 200000).toISOString();
+      sb.from('bidder_sessions').update({last_seen: old}).eq('id', sessionId);
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) markOffline();
+      else sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId);
+    });
+    window.addEventListener('beforeunload', markOffline);
+    window.addEventListener('pagehide', markOffline);
+  }
+}
+
+// ── LOBBY COUNTDOWN OVERLAY ───────────────────────────────
+let _lobbyCountdownInterval = null;
+
+function handleLobbyCountdown(lobby_countdown_at) {
+  const overlay = document.getElementById('lobbyOverlay');
+  if (!lobby_countdown_at) {
+    // Countdown cleared — hide overlay
+    if (_lobbyCountdownInterval) { clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null; }
+    overlay.style.display = 'none';
+    return;
+  }
+  // Show overlay and start countdown
+  overlay.style.display = 'flex';
+  document.getElementById('lobbyOverlayAuction').textContent = myAuction.name || '';
+  document.getElementById('lobbyOverlayMsg').textContent = '🎉 All teams are online!';
+
+  // Show team list
+  if (allTeams.length) {
+    document.getElementById('lobbyOverlayTeams').innerHTML = allTeams.map(t =>
+      '<span style="font-size:12px;padding:4px 10px;border-radius:12px;font-weight:700;border:1px solid var(--green);color:var(--green);">✅ ' + t.name + '</span>'
+    ).join('');
+  }
+
+  if (_lobbyCountdownInterval) clearInterval(_lobbyCountdownInterval);
+  _lobbyCountdownInterval = setInterval(() => {
+    const elapsed = (Date.now() - new Date(lobby_countdown_at).getTime()) / 1000;
+    const remaining = Math.max(0, Math.round(60 - elapsed));
+    const numEl = document.getElementById('lobbyOverlayNum');
+    const readyEl = document.getElementById('lobbyOverlayReady');
+    const subEl = document.getElementById('lobbyOverlaySubMsg');
+
+    if (remaining <= 2 && remaining > 0) {
+      numEl.style.display = 'none';
+      subEl.style.display = 'none';
+      readyEl.style.display = 'block';
+      playSound('bid');
+    } else if (remaining === 0) {
+      clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null;
+      overlay.style.display = 'none';
+    } else {
+      numEl.textContent = remaining;
+      numEl.style.display = 'block';
+      subEl.style.display = 'block';
+      readyEl.style.display = 'none';
+      if (remaining <= 5) playSound('tick');
+    }
+  }, 500);
+}
   if(sessionId){
     // Heartbeat — keep last_seen fresh every 25s
     const hb = setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId), 25000);
