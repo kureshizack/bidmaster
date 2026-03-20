@@ -324,6 +324,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📲 Send viewer link to ALL registered players via SMS:</div>
       <button class="btn btn-primary btn-sm" onclick="sendSMSToAll()" id="smsBtn" style="width:100%;">🚀 Send Viewer Link via SMS</button>
       <div id="smsMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
+      <!-- Fast2SMS test — DEV only -->
+      <div id="smsTestPanel" style="display:none;margin-top:10px;background:rgba(107,33,168,0.1);border:1px solid #a78bfa;border-radius:8px;padding:10px;">
+        <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:6px;">🔧 Dev — Test SMS Delivery</div>
+        <div style="display:flex;gap:6px;">
+          <input type="tel" id="smsTestMobile" placeholder="Test mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')"
+            style="flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:13px;outline:none;">
+          <button onclick="testSMS()" style="padding:6px 12px;background:#6b21a8;color:#fff;border:none;border-radius:5px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Send Test</button>
+        </div>
+        <div id="smsTestResult" style="font-size:12px;margin-top:6px;min-height:14px;"></div>
+      </div>
     </div>
   </div>
 
@@ -364,12 +374,42 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
+  if (DEV_MODE) document.getElementById('smsTestPanel').style.display = 'block';
   await loadAuction();
   await loadTeams();
   await loadPlayers();
   await initRegPortal();
   await loadRegPortalPreview();
 })();
+
+async function testSMS() {
+  const mobile = document.getElementById('smsTestMobile').value.trim();
+  const resultEl = document.getElementById('smsTestResult');
+  if (!mobile || mobile.length !== 10) {
+    resultEl.style.color = 'var(--red)'; resultEl.textContent = '❌ Enter valid 10-digit mobile'; return;
+  }
+  if (FAST2SMS_KEY === '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73' || !FAST2SMS_KEY) {
+    resultEl.style.color = 'var(--red)';
+    resultEl.textContent = '❌ Fast2SMS key not set — replace YOUR_FAST2SMS_API_KEY in setup.html, bidder.html, viewer.html';
+    return;
+  }
+  resultEl.style.color = 'var(--accent)'; resultEl.textContent = '⏳ Sending test SMS...';
+  try {
+    const msg = encodeURIComponent('AuctionXI test SMS. If you got this, Fast2SMS is working! ✅');
+    const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=${msg}&flash=0&numbers=${mobile}`);
+    const json = await res.json();
+    if (json.return === true) {
+      resultEl.style.color = 'var(--green)';
+      resultEl.textContent = '✅ SMS sent! Fast2SMS is working. Check +91 ' + mobile;
+    } else {
+      resultEl.style.color = 'var(--red)';
+      resultEl.textContent = '❌ Fast2SMS error: ' + (json.message || JSON.stringify(json));
+    }
+  } catch(e) {
+    resultEl.style.color = 'var(--red)';
+    resultEl.textContent = '❌ Network error: ' + e.message;
+  }
+}
 
 async function loadAuction() {
   const { data } = await sb.from('auctions').select('*').eq('id', auctionId).single();
@@ -1306,23 +1346,34 @@ async function loadRegisteredPlayers(filter = 'player') {
       '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">👕</th>' +
       '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Fee</th>' +
       '<th style="padding:6px 4px;text-align:left;color:var(--muted);font-weight:600;">Action</th>' +
+      '<th style="padding:6px 4px;"></th>' +
       '</tr></thead><tbody>' +
       data.map(p =>
         '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:6px 4px;">' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:18px;">👤</span>') + '</td>' +
+        '<td style="padding:6px 4px;">' + (p.photo_url ? '<img src="' + freshPhotoUrl(p.photo_url) + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" onerror="this.style.display=\'none\'">' : '<span style="font-size:18px;">👤</span>') + '</td>' +
         '<td style="padding:6px 4px;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + p.name + '</td>' +
         '<td style="padding:6px 4px;"><span class="role-badge role-' + p.role + '">' + (p.role || '—') + '</span></td>' +
         '<td style="padding:6px 4px;color:var(--muted);">' + (p.tshirt_size || '—') + '</td>' +
         '<td style="padding:6px 4px;color:' + (p.payment_status === 'paid' ? 'var(--green)' : 'var(--yellow)') + ';font-size:11px;">' + (p.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending') + '</td>' +
         '<td style="padding:6px 4px;">' + (p.imported_to_auction
           ? '<span style="color:var(--green);font-size:11px;">✅ Added</span>'
-          // Pass regId only — photo URL is looked up from _regPhotoMap safely
           : '<button onclick="importOnePlayer(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.role||'BAT') + '\')" style="padding:4px 8px;background:var(--blue);color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add</button>') + '</td>' +
+        '<td style="padding:6px 4px;"><button onclick="deleteRegistration(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\')" style="padding:2px 6px;background:var(--red);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;" title="Delete registration">✕</button></td>' +
         '</tr>'
       ).join('') +
       '</tbody></table></div>' +
       '<button onclick="importAllPlayers()" style="width:100%;margin-top:10px;padding:10px;background:var(--green);color:#000;border:none;border-radius:8px;font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">⚡ Import All Unimported Players to Auction</button>';
   }
+}
+
+async function deleteRegistration(regId, name) {
+  if (!confirm('Delete registration for "' + name + '"?\n\nThis allows them to re-register with the same mobile number.')) return;
+  const { error } = await sb.from('player_registrations').delete().eq('id', regId);
+  if (error) { alert('Error: ' + error.message); return; }
+  await loadRegPortalPreview();
+  // refresh whichever tab is active
+  const isPlayerTab = document.getElementById('viewPlayersBtn').style.background.includes('000') || document.getElementById('viewPlayersBtn').style.background.includes('rgb(0');
+  await loadRegisteredPlayers(isPlayerTab ? 'player' : 'captain');
 }
 
 async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
