@@ -388,11 +388,16 @@ async function sendOtpToMobile(mobile, teamName) {
     const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
     const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
-    smsTxt.textContent = json.return === true ? '✅ OTP sent to +91 ' + mobile : '⚠️ SMS failed — check with organizer for OTP';
-    smsTxt.style.color = json.return === true ? 'var(--green)' : 'var(--yellow)';
+    if (json.return === true) {
+      smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
+      smsTxt.style.color = 'var(--green)';
+    } else {
+      smsTxt.style.color = 'var(--yellow)';
+      smsTxt.innerHTML = '⚠️ SMS failed — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
+    }
   } catch(e) {
-    smsTxt.textContent = '⚠️ SMS unavailable — contact your organizer';
     smsTxt.style.color = 'var(--yellow)';
+    smsTxt.innerHTML = '⚠️ SMS unavailable — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
   }
 }
 
