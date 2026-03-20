@@ -783,8 +783,25 @@ function renderStats(){
 
 function switchView(name){document.querySelectorAll('.view-content').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.btab').forEach(t=>t.classList.remove('active'));document.getElementById('view-'+name).classList.add('active');document.querySelector(`.btab[onclick="switchView('${name}')"]`).classList.add('active');}
 
-const AudioCtx=window.AudioContext||window.webkitAudioContext;let audioCtx=null;
-function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let audioCtx=null;
+let _audioUnlocked=false;
+
+// Unlock AudioContext on first user gesture (Chrome autoplay policy)
+function unlockAudio(){
+  if(_audioUnlocked)return;
+  if(!audioCtx){audioCtx=new AudioCtx();}
+  if(audioCtx.state==='suspended'){audioCtx.resume();}
+  _audioUnlocked=true;
+}
+document.addEventListener('click',unlockAudio,{once:false,passive:true});
+document.addEventListener('touchstart',unlockAudio,{once:false,passive:true});
+
+function getAudio(){
+  if(!audioCtx){audioCtx=new AudioCtx();}
+  if(audioCtx.state==='suspended'){audioCtx.resume();}
+  return audioCtx;
+}
 function playSound(type){
   if(soundMuted)return;
   try{const ctx=getAudio();const defs={bid:{notes:[[880,'sine',0.15,0.3]]},newplayer:{notes:[[523,'sine',0.12,0.3],[659,'sine',0.12,0.3],[784,'sine',0.18,0.4]]},going_once:{notes:[[660,'sine',0.5,0.5],[550,'sine',0.3,0.3]]},going_twice:{notes:[[550,'square',0.35,0.4],[440,'square',0.35,0.35],[550,'square',0.35,0.4]]},sold:{notes:[[392,'sine',0.08,0.3],[523,'sine',0.08,0.3],[659,'sine',0.08,0.4],[784,'sine',0.5,0.5],[1047,'sine',0.7,0.4]]},tick:{notes:[[1000,'sine',0.04,0.12]]}};
