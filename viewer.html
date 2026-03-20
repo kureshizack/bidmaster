@@ -326,7 +326,7 @@ async function sendViewerOtp() {
   statusTxt.textContent = '📱 Sending OTP...';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       statusTxt.textContent = '✅ OTP sent to +91 ' + mobile;
