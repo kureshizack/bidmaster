@@ -449,11 +449,19 @@ async function submitRegistration(){
   const btn=document.getElementById('submitBtn');
   btn.textContent='Registering...';btn.disabled=true;
 
-  // Check duplicate
+  // Check duplicate in registrations
   const{data:existing}=await sb.from('player_registrations').select('id,is_captain').eq('auction_id',auctionId).eq('mobile',mobile).single();
   if(existing){
     document.getElementById('regForm').style.display='none';
     document.getElementById('alreadyScreen').style.display='block';
+    return;
+  }
+  // Check duplicate in teams (captain mobile)
+  const{data:existingTeam}=await sb.from('teams').select('id,name').eq('auction_id',auctionId).eq('captain_mobile',mobile).single();
+  if(existingTeam){
+    showFormMsg('❌ Mobile ' + mobile + ' is already registered as a captain for team "' + existingTeam.name + '". Each person must use a unique mobile number.','error');
+    btn.textContent=isCaptain?'👑 Register as Captain':'🏏 Register as Player';
+    btn.disabled=false;
     return;
   }
 
