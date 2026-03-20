@@ -1348,26 +1348,32 @@ async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
   await loadRegisteredPlayers('captain');
 }
 
+// ── PHOTO URL HELPER ──────────────────────────────────────
+// Regenerates a fresh public URL from a stored Supabase Storage URL.
+// Handles the case where the URL was generated when the bucket was private.
+function freshPhotoUrl(storedUrl) {
+  if (!storedUrl) return null;
+  try {
+    // Extract the storage path from the stored URL
+    // Format: https://PROJECT.supabase.co/storage/v1/object/public/player-photos/PATH
+    const marker = '/object/public/player-photos/';
+    const idx = storedUrl.indexOf(marker);
+    if (idx === -1) return storedUrl; // not a storage URL — use as-is
+    const path = storedUrl.substring(idx + marker.length);
+    // Regenerate fresh public URL
+    const { data } = sb.storage.from('player-photos').getPublicUrl(decodeURIComponent(path));
+    return data?.publicUrl || storedUrl;
+  } catch(e) {
+    return storedUrl;
+  }
+}
+
 async function importOnePlayer(regId, name, role) {
   const base = auction.base_price || 1000;
-  // Re-fetch registration to get latest photo_url from DB
   const { data: reg } = await sb.from('player_registrations')
     .select('photo_url, mobile').eq('id', regId).single();
-  let photoUrl = reg?.photo_url || (window._regPhotoMap && window._regPhotoMap[regId]) || null;
-
-  // If photo_url exists, try to regenerate fresh public URL from storage
-  // (handles case where old URL was generated when bucket was private)
-  if (reg?.mobile) {
-    // List files matching this player's mobile to find any uploaded photo
-    const { data: files } = await sb.storage.from('player-photos')
-      .list(auctionId, { search: reg.mobile });
-    if (files?.length > 0) {
-      const file = files[0];
-      const { data: urlData } = sb.storage.from('player-photos')
-        .getPublicUrl(auctionId + '/' + file.name);
-      if (urlData?.publicUrl) photoUrl = urlData.publicUrl;
-    }
-  }
+  const rawUrl = reg?.photo_url || (window._regPhotoMap && window._regPhotoMap[regId]) || null;
+  const photoUrl = freshPhotoUrl(rawUrl);
 
   const { error } = await sb.from('players').insert({
     auction_id: auctionId, name, role, base_price: base,
@@ -1386,23 +1392,10 @@ async function importAllPlayers() {
   if (!data?.length) { alert('All players are already imported.'); return; }
   const base = auction.base_price || 1000;
 
-  // For each player, regenerate fresh photo URL from storage
-  const inserts = await Promise.all(data.map(async p => {
-    let photoUrl = p.photo_url || null;
-    if (p.mobile) {
-      const { data: files } = await sb.storage.from('player-photos')
-        .list(auctionId, { search: p.mobile });
-      if (files?.length > 0) {
-        const { data: urlData } = sb.storage.from('player-photos')
-          .getPublicUrl(auctionId + '/' + files[0].name);
-        if (urlData?.publicUrl) photoUrl = urlData.publicUrl;
-      }
-    }
-    return {
-      auction_id: auctionId, name: p.name, role: p.role || 'BAT',
-      base_price: base, mobile: p.mobile || null,
-      photo_url: photoUrl, star: false
-    };
+  const inserts = data.map(p => ({
+    auction_id: auctionId, name: p.name, role: p.role || 'BAT',
+    base_price: base, mobile: p.mobile || null,
+    photo_url: freshPhotoUrl(p.photo_url), star: false
   }));
 
   await sb.from('players').insert(inserts);
@@ -1410,7 +1403,7 @@ async function importAllPlayers() {
   await sb.from('player_registrations').update({ imported_to_auction: true }).in('id', ids);
   await loadPlayers();
   await loadRegisteredPlayers('player');
-  alert('✅ ' + data.length + ' players imported to auction!');
+  alert('✅ ' + data.length + ' players imported!');
 }
 
 async function sendSMSToAll() {
