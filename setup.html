@@ -121,9 +121,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <span style="font-size:13px;color:var(--muted);">Players registered via link: </span>
             <b style="color:var(--blue);" id="regPortalCount">0</b>
           </div>
-          <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="importFromRegistrations()">⬇ Import All to Auction</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="importFromRegistrations()">⬇ Import All</button>
+            <button class="btn btn-sm" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid var(--green);font-weight:700;" onclick="syncPhotosFromRegistrations()" title="Fix missing photos for already-imported players">🖼 Sync Photos</button>
+          </div>
         </div>
         <div id="regPortalPreview" style="font-size:12px;color:var(--muted);">Loading registered players...</div>
+        <div id="syncPhotoMsg" style="font-size:12px;margin-top:6px;min-height:14px;"></div>
         <p style="font-size:11px;color:var(--muted);margin-top:8px;">Base price is auto-set from auction settings. Photos are imported automatically.</p>
       </div>
 
@@ -388,7 +392,7 @@ async function testSMS() {
   if (!mobile || mobile.length !== 10) {
     resultEl.style.color = 'var(--red)'; resultEl.textContent = '❌ Enter valid 10-digit mobile'; return;
   }
-  if (FAST2SMS_KEY === '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73' || !FAST2SMS_KEY) {
+  if (FAST2SMS_KEY === 'YOUR_FAST2SMS_API_KEY' || !FAST2SMS_KEY) {
     resultEl.style.color = 'var(--red)';
     resultEl.textContent = '❌ Fast2SMS key not set — replace YOUR_FAST2SMS_API_KEY in setup.html, bidder.html, viewer.html';
     return;
@@ -705,34 +709,83 @@ async function importFromRegistrations() {
     alert('No registered players found. Share the registration link with players first.');
     return;
   }
-  // Get existing players to avoid duplicates
   const { data: existing } = await sb.from('players').select('name').eq('auction_id', auctionId);
   const existingNames = new Set((existing || []).map(p => p.name.toLowerCase().trim()));
   const toInsert = regs
     .filter(r => !existingNames.has(r.name.toLowerCase().trim()))
     .map(r => ({
-      auction_id: auctionId,
-      name: r.name,
-      role: r.role || 'BAT',
-      base_price: auction.base_price || 1000,
-      star: false,
-      photo_url: r.photo_url || null
+      auction_id: auctionId, name: r.name, role: r.role || 'BAT',
+      base_price: auction.base_price || 1000, star: false,
+      mobile: r.mobile || null,
+      photo_url: freshPhotoUrl(r.photo_url)
     }));
-  if (!toInsert.length) {
-    alert('All registered players are already in your auction player list!');
-    return;
-  }
+  if (!toInsert.length) { alert('All registered players are already in your auction player list!'); return; }
   const { error } = await sb.from('players').insert(toInsert);
   if (error) { alert('Import failed: ' + error.message); return; }
   await loadPlayers();
   await loadRegPortalPreview();
-  // Show success
   const preview = document.getElementById('regPortalPreview');
   const msg = document.createElement('div');
   msg.style.cssText = 'background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;padding:8px 12px;border-radius:6px;font-size:13px;margin-top:8px;';
   msg.textContent = '✅ ' + toInsert.length + ' players imported to auction!';
   preview.appendChild(msg);
   setTimeout(() => msg.remove(), 4000);
+}
+
+// ── SYNC PHOTOS ───────────────────────────────────────────
+// Backfills photo_url for already-imported players that have null photo
+// Matches by mobile first, then by name as fallback
+async function syncPhotosFromRegistrations() {
+  const msgEl = document.getElementById('syncPhotoMsg');
+  msgEl.style.color = 'var(--accent)'; msgEl.textContent = '⏳ Syncing photos...';
+
+  // Get all players with no photo
+  const { data: playersData } = await sb.from('players')
+    .select('id, name, mobile, photo_url').eq('auction_id', auctionId);
+  const noPhoto = (playersData || []).filter(p => !p.photo_url);
+  if (!noPhoto.length) {
+    msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ All players already have photos!';
+    setTimeout(() => msgEl.textContent = '', 3000); return;
+  }
+
+  // Get all registrations with photos for this auction
+  const { data: regs } = await sb.from('player_registrations')
+    .select('name, mobile, photo_url').eq('auction_id', auctionId);
+  if (!regs?.length) {
+    msgEl.style.color = 'var(--muted)'; msgEl.textContent = 'No registrations found to sync from.';
+    return;
+  }
+
+  // Build lookup maps — by mobile (reliable) and by name (fallback)
+  const byMobile = {};
+  const byName = {};
+  regs.forEach(r => {
+    if (r.photo_url) {
+      if (r.mobile) byMobile[r.mobile] = freshPhotoUrl(r.photo_url);
+      byName[r.name.toLowerCase().trim()] = freshPhotoUrl(r.photo_url);
+    }
+  });
+
+  let updated = 0;
+  for (const player of noPhoto) {
+    // Try mobile match first, then name match
+    const photoUrl = (player.mobile && byMobile[player.mobile])
+      || byName[player.name.toLowerCase().trim()];
+    if (photoUrl) {
+      await sb.from('players').update({ photo_url: photoUrl }).eq('id', player.id);
+      updated++;
+    }
+  }
+
+  await loadPlayers(); // re-render with new photos
+  if (updated > 0) {
+    msgEl.style.color = 'var(--green)';
+    msgEl.textContent = `✅ ${updated} player photo${updated > 1 ? 's' : ''} synced!`;
+  } else {
+    msgEl.style.color = 'var(--yellow)';
+    msgEl.textContent = `⚠️ ${noPhoto.length} players without photo — no matching registrations with photo found.`;
+  }
+  setTimeout(() => msgEl.textContent = '', 5000);
 }
 async function loadPlayers() {
   const { data } = await sb.from('players').select('*').eq('auction_id', auctionId).order('name');
