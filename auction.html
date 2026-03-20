@@ -31,10 +31,11 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:6px 
 .nav-icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:5px 8px;border-radius:5px;cursor:pointer;font-size:14px;line-height:1;}
 
 /* TABS */
-.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;}
-.tab{padding:11px 15px;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;transition:all 0.2s;white-space:nowrap;}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 8px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:9px 11px;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.tab-content{display:none;padding:14px 16px;}
+.tab-content{display:none;padding:10px 12px;}
 .tab-content.active{display:block;}
 
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-bottom:12px;}
@@ -43,10 +44,10 @@ input,select{background:var(--surface2);border:1px solid var(--border);color:var
 input:focus,select:focus{border-color:var(--accent);}
 
 /* SUMMARY BAR */
-.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 13px;}
-.stat-card-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:0.4px;margin-bottom:3px;}
-.stat-card-val{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;}
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 10px;}
+.stat-card-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:0.3px;margin-bottom:2px;}
+.stat-card-val{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;line-height:1.1;}
 
 /* SALE FORM */
 .sale-form{background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:14px 16px;margin-bottom:12px;}
@@ -66,42 +67,43 @@ input:focus,select:focus{border-color:var(--accent);}
 .msg-success{background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;}
 
 /* TEAM GRID */
-.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
-.team-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 13px;}
-.team-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
-.team-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;}
-.fund-bar-bg{background:var(--border);border-radius:3px;height:7px;width:100%;overflow:hidden;margin:4px 0;}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+@media(max-width:480px){.team-grid{grid-template-columns:1fr 1fr;gap:6px;}}
+.team-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 11px;}
+.team-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.team-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;}
+.fund-bar-bg{background:var(--border);border-radius:3px;height:6px;width:100%;overflow:hidden;margin:3px 0;}
 .fund-bar-fill{height:100%;border-radius:3px;transition:width 0.4s;}
-.fund-bar-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600;}
-.role-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;}
-.role-pill{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.fund-bar-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;}
+.role-pills{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
+.role-pill{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;}
 .role-pill-BAT{background:#1e3a5f;color:#93c5fd;border:1px solid #2d5490;}
 .role-pill-BOWL{background:#3f1515;color:#fca5a5;border:1px solid #6b2020;}
 .role-pill-ALL{background:#14391f;color:#86efac;border:1px solid #1e5c30;}
 .role-pill-WK{background:#3d2608;color:#fcd34d;border:1px solid #6b4010;}
-.player-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
-.player-tag{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-size:11px;gap:4px;}
+.player-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
+.player-tag{display:inline-flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:2px 5px;font-size:10px;gap:3px;}
 .tag-price{color:var(--accent);font-weight:700;}
 .release-btn{color:var(--red);cursor:pointer;font-size:10px;opacity:0.7;}.release-btn:hover{opacity:1;}
-.role-badge{font-size:11px;border-radius:3px;padding:2px 5px;font-weight:700;}
+.role-badge{font-size:10px;border-radius:3px;padding:2px 5px;font-weight:700;}
 .role-BAT{background:#1e3a5f;color:#93c5fd;}
 .role-BOWL{background:#3f1515;color:#fca5a5;}
 .role-ALL{background:#14391f;color:#86efac;}
 .role-WK{background:#3d2608;color:#fcd34d;}
 
 /* FUND CHART */
-.chart-wrap{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}
-@media(max-width:600px){.chart-wrap{grid-template-columns:1fr;}}
-.chart-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.chart-lbl{font-size:12px;color:var(--muted);width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
-.chart-bar-bg{flex:1;background:var(--border);border-radius:3px;height:13px;overflow:hidden;}
+.chart-wrap{display:grid;grid-template-columns:1fr;gap:3px;}
+.chart-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.chart-lbl{font-size:11px;color:var(--muted);width:90px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+.chart-bar-bg{flex:1;background:var(--border);border-radius:3px;height:11px;overflow:hidden;}
 .chart-bar-fill{height:100%;border-radius:3px;transition:width 0.4s;}
-.chart-val{font-size:11px;width:80px;flex-shrink:0;font-weight:600;}
+.chart-val{font-size:11px;width:70px;flex-shrink:0;font-weight:600;}
 
 /* SALES TABLE */
-.sales-table{width:100%;border-collapse:collapse;font-size:13px;}
-.sales-table th{background:var(--surface2);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;padding:6px 9px;text-align:left;border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;}
-.sales-table td{padding:6px 9px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.sales-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.sales-table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px;}
+.sales-table th{background:var(--surface2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;padding:5px 7px;text-align:left;border-bottom:1px solid var(--border);font-family:'Rajdhani',sans-serif;font-weight:700;}
+.sales-table td{padding:5px 7px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .sales-table tr:last-child td{border-bottom:none;}
 .sales-table tr:hover td{background:var(--surface2);}
 
@@ -127,7 +129,7 @@ input:focus,select:focus{border-color:var(--accent);}
 </nav>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('sale')">🔨 Record Sale</div>
+  <div class="tab active" onclick="switchTab('sale')">🔨 Sale</div>
   <div class="tab" onclick="switchTab('dashboard')">📊 Dashboard</div>
   <div class="tab" onclick="switchTab('players')">📋 Players</div>
   <div class="tab" onclick="switchTab('strategy')">🎯 Strategy</div>
@@ -266,10 +268,12 @@ input:focus,select:focus{border-color:var(--accent);}
 
   <div class="panel">
     <div class="panel-title">🕐 Recent Sales</div>
-    <table class="sales-table" id="salesTable">
-      <thead><tr><th>#</th><th>Player</th><th>Role</th><th>Team</th><th>Amount</th><th>Base</th><th>Time</th><th></th></tr></thead>
-      <tbody id="salesBody"><tr><td colspan="8" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr></tbody>
-    </table>
+    <div class="sales-table-wrap">
+      <table class="sales-table" id="salesTable">
+        <thead><tr><th>#</th><th>Player</th><th>Role</th><th>Team</th><th>Amt</th><th>Base</th><th>Time</th><th></th><th></th></tr></thead>
+        <tbody id="salesBody"><tr><td colspan="9" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -502,7 +506,15 @@ async function renderLobby() {
 
   document.getElementById('lobbyStatus').textContent = `${joined.length} / ${teams.length} teams joined`;
 
-  if (allJoined && !lobbyTimer) {
+  // Need at least 2 teams joined AND all registered teams present to start countdown
+  const enoughJoined = joined.length >= 2 && notJoined.length === 0;
+
+  if (!enoughJoined && joined.length < 2 && teams.length > 0) {
+    document.getElementById('lobbyStatus').textContent =
+      `${joined.length} / ${teams.length} joined — need at least 2 teams to start`;
+  }
+
+  if (enoughJoined && !lobbyTimer) {
     // All joined — start 60s countdown then auto-launch first player
     document.getElementById('lobbyCountdown').style.display = 'block';
     let t = 60;
@@ -517,7 +529,7 @@ async function renderLobby() {
         scheduleNextPlayer();
       }
     }, 1000);
-  } else if (!allJoined && lobbyTimer) {
+  } else if (!enoughJoined && lobbyTimer) {
     clearInterval(lobbyTimer); lobbyTimer = null;
     document.getElementById('lobbyCountdown').style.display = 'none';
   }
@@ -1069,9 +1081,16 @@ function resetForm() {
 
 // ── RELEASE PLAYER ────────────────────────────────────────
 async function releasePlayer(saleId, teamId, amount, playerName, teamName) {
-  if (!confirm(`Release ${playerName} from ${teamName}?\n50% refund: ₹${Math.floor(amount/2).toLocaleString('en-IN')}`)) return;
+  // Check if release is allowed for this auction
+  if (auction.release_allowed === false) {
+    alert('Player release is not allowed for this auction.\n\nThe organizer disabled releases when creating this auction.');
+    return;
+  }
+  const pct = auction.release_pct ?? 50;
+  const refund = Math.floor(amount * pct / 100);
+  const refundStr = pct === 0 ? 'No refund (0%)' : `${pct}% refund: ₹${refund.toLocaleString('en-IN')}`;
+  if (!confirm(`Release ${playerName} from ${teamName}?\n${refundStr}`)) return;
   const team = teams.find(t => t.id === teamId);
-  const refund = Math.floor(amount / 2);
   await sb.from('sales').delete().eq('id', saleId);
   await sb.from('teams').update({ credits: team.credits + refund }).eq('id', teamId);
   await loadAll();
@@ -1093,7 +1112,7 @@ function renderSales() {
       '<td style="color:var(--muted);font-size:12px;">' + (s.players?.base_price ? '₹' + Number(s.players.base_price).toLocaleString('en-IN') : '-') + (over ? ' <span style="color:var(--red);font-size:10px;">+' + (s.amount - s.players.base_price) + '</span>' : '') + '</td>' +
       '<td style="color:var(--muted);font-size:11px;">' + new Date(s.sold_at).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '</td>' +
       '<td><button class="btn-tiny" title="Share certificate" onclick="shareCertificate(\'' + s.id + '\',\'' + esc(s.players?.name) + '\')">🏅</button></td>' +
-      '<td><button class="btn-tiny" onclick="releasePlayer(\'' + s.id + '\',\'' + s.team_id + '\',' + s.amount + ',\'' + esc(s.players?.name) + '\',\'' + esc(s.teams?.name) + '\')">↩</button></td>' +
+      '<td><button class="btn-tiny" title="Release player — ' + (auction?.release_allowed === false ? 'disabled for this auction' : (auction?.release_pct ?? 50) + '% refund') + '" onclick="releasePlayer(\'' + s.id + '\',\'' + s.team_id + '\',' + s.amount + ',\'' + esc(s.players?.name) + '\',\'' + esc(s.teams?.name) + '\')">↩</button></td>' +
       '</tr>';
   }).join('');
 }

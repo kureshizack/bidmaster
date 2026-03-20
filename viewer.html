@@ -188,6 +188,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <div class="now-up-label">Now Up for Auction</div>
     <div class="now-up-empty" id="nowUpEmpty">Waiting for auctioneer...</div>
     <div id="nowUpPlayer" style="display:none;">
+      <!-- Player photo -->
+      <div id="nowUpPhotoWrap" style="text-align:center;margin-bottom:10px;display:none;">
+        <img id="nowUpPhoto" src="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 0 16px rgba(245,158,11,0.3);">
+      </div>
       <div class="now-up-name" id="nowUpName"></div>
       <div class="now-up-meta" id="nowUpMeta"></div>
       <!-- Current bid display -->
@@ -326,7 +330,7 @@ async function sendViewerOtp() {
   statusTxt.textContent = '📱 Sending OTP...';
   try {
     const smsMsg = encodeURIComponent('Your AuctionXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       statusTxt.textContent = '✅ OTP sent to +91 ' + mobile;
@@ -508,6 +512,11 @@ function renderNowUp() {
     emptyEl.style.display = 'block'; playerEl.style.display = 'none'; return;
   }
   emptyEl.style.display = 'none'; playerEl.style.display = 'block';
+  // Photo
+  const photoWrap = document.getElementById('nowUpPhotoWrap');
+  const photoEl = document.getElementById('nowUpPhoto');
+  if (p.photo_url) { photoEl.src = p.photo_url; photoWrap.style.display = 'block'; }
+  else { photoWrap.style.display = 'none'; }
   document.getElementById('nowUpName').textContent = p.name;
   document.getElementById('nowUpMeta').innerHTML = `
     <span class="role-badge role-${p.role}">${p.role}</span>

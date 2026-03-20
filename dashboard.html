@@ -183,6 +183,25 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
       💡 Players pay online via the registration link. Captains pay more because they own a team. You collect all fees digitally once Razorpay is connected.
     </div>
 
+    <!-- SECTION 3b: Release Rules -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">↩ Player Release Rules</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Allow Release?</label>
+        <select id="newReleaseAllowed">
+          <option value="yes">✅ Yes — teams can release players</option>
+          <option value="no">🚫 No — no releases allowed</option>
+        </select>
+      </div>
+      <div class="form-group" id="releaseRefundGroup">
+        <label>Refund % on Release</label>
+        <input type="number" id="newReleasePct" placeholder="50" value="50" min="0" max="100">
+      </div>
+    </div>
+    <div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;">
+      💡 If a captain releases a player, they get back this % of the sale amount. Set 0% for no refund. Set 100% for full refund.
+    </div>
+
     <!-- SECTION 4: Organizer Contact -->
     <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📞 Organizer Contact</div>
     <div class="form-row">
@@ -343,6 +362,8 @@ async function createAuction() {
   const regOpen = document.getElementById('newRegOpen').value === 'yes';
   const playerFee = parseFloat(document.getElementById('newPlayerFee').value) || 500;
   const captainFee = parseFloat(document.getElementById('newCaptainFee').value) || 2500;
+  const releaseAllowed = document.getElementById('newReleaseAllowed').value === 'yes';
+  const releasePct = parseInt(document.getElementById('newReleasePct').value) || 50;
   const orgMobile = document.getElementById('newOrgMobile').value.trim();
   const orgEmail = document.getElementById('newOrgEmail').value.trim();
   const msgEl = document.getElementById('createMsg');
@@ -382,6 +403,8 @@ async function createAuction() {
     registration_open: regOpen,
     player_fee: playerFee,
     captain_fee: captainFee,
+    release_allowed: releaseAllowed,
+    release_pct: releasePct,
     organizer_mobile: orgMobile,
     organizer_email: orgEmail || null,
     status: 'setup'
