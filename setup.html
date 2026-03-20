@@ -135,7 +135,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <label>Name</label>
             <input type="text" id="newPlayerName" placeholder="Player name" onkeydown="if(event.key==='Enter')addPlayer()">
           </div>
-          <div class="form-group" style="flex:1;">
+          <div class="form-group" style="flex:1.2;">
+            <label>Mobile</label>
+            <input type="tel" id="newPlayerMobile" placeholder="10-digit" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <div class="form-group" style="flex:0.8;">
             <label>Role</label>
             <select id="newPlayerRole">
               <option value="BAT">BAT</option>
@@ -144,12 +148,26 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
               <option value="WK">WK</option>
             </select>
           </div>
-          <div class="form-group">
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group" style="flex:1;">
+            <label>Photo (optional)</label>
+            <div id="manualPhotoPreview" style="display:none;margin-bottom:4px;">
+              <img id="manualPhotoImg" src="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);">
+              <span style="font-size:11px;color:var(--green);margin-left:6px;">✅ Photo ready</span>
+              <button onclick="clearManualPhoto()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;">✕ Remove</button>
+            </div>
+            <label style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--muted);">
+              📷 Upload Photo
+              <input type="file" id="newPlayerPhoto" accept="image/*" style="display:none;" onchange="previewManualPhoto(event)">
+            </label>
+          </div>
+          <div class="form-group" style="flex:0.5;">
             <label>&nbsp;</label>
             <button class="btn btn-primary" onclick="addPlayer()">+ Add</button>
           </div>
         </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:8px;">💡 Base price auto-set from auction settings (₹<span id="basePriceHint">—</span>)</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:-4px;margin-bottom:8px;">💡 Base price auto-set from auction settings (₹<span id="basePriceHint">—</span>)</p>
         <div id="playerMsg"></div>
       </div>
 
@@ -605,15 +623,25 @@ function renderPlayers(players) {
   if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet.</p>'; return; }
   const roles = ['BAT','BOWL','ALL','WK'];
   const roleColors = {BAT:'#93c5fd',BOWL:'#fca5a5',ALL:'#86efac',WK:'#fcd34d'};
+  // Store photo map for safe passing
+  window._playerPhotoMap = {};
+  players.forEach(p => { window._playerPhotoMap[p.id] = p.photo_url || null; });
+
   el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0 6px;"><span style="border-bottom:1px dashed var(--muted);">Underlined values</span> — click to edit inline</div>' +
-    '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base ₹</th><th></th></tr></thead><tbody>' +
-    players.map(p =>
-      '<tr>' +
-      // Photo
-      '<td>' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:16px;color:var(--muted);">👤</span>') + '</td>' +
-      // Star
+    '<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Mobile</th><th>Role</th><th>Base ₹</th><th></th></tr></thead><tbody>' +
+    players.map(p => {
+      const photoHtml = p.photo_url
+        ? `<div style="position:relative;display:inline-block;">
+            <img src="${p.photo_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--green);cursor:pointer;" onclick="changePlayerPhoto('${p.id}')" title="Click to change photo">
+            <span style="position:absolute;bottom:-2px;right:-2px;background:var(--accent);border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="changePlayerPhoto('${p.id}')">✏️</span>
+           </div>`
+        : `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;">
+            <span style="font-size:20px;color:var(--muted);cursor:pointer;" onclick="changePlayerPhoto('${p.id}')" title="Add photo">👤</span>
+            <span style="font-size:9px;color:var(--accent);cursor:pointer;" onclick="changePlayerPhoto('${p.id}')">+photo</span>
+           </div>`;
+      return '<tr>' +
+      '<td>' + photoHtml + '<input type="file" id="photoFile-' + p.id + '" accept="image/*" style="display:none;" onchange="uploadPlayerPhoto(event,\'' + p.id + '\')">' + '</td>' +
       '<td><span class="' + (p.star ? 'star-lit' : 'star-dim') + '" style="cursor:pointer;font-size:15px;" onclick="toggleStar(\'' + p.id + '\',' + p.star + ')">★</span></td>' +
-      // Name — inline edit
       '<td>' +
         '<span id="pname-disp-' + p.id + '" style="font-weight:700;cursor:pointer;border-bottom:1px dashed var(--border);" onclick="startEditPlayer(\'' + p.id + '\',\'name\')">' + p.name + '</span>' +
         '<div id="pname-edit-' + p.id + '" style="display:none;">' +
@@ -622,14 +650,20 @@ function renderPlayers(players) {
           '<button onclick="cancelEditPlayer(\'' + p.id + '\',\'name\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
         '</div>' +
       '</td>' +
-      // Role — inline tap selector
+      '<td>' +
+        '<span id="pmob-disp-' + p.id + '" style="font-size:11px;font-family:monospace;cursor:pointer;color:' + (p.mobile ? 'var(--muted)' : 'var(--red)') + ';border-bottom:1px dashed var(--border);" onclick="startEditPlayer(\'' + p.id + '\',\'mobile\')">' + (p.mobile || 'Add mobile') + '</span>' +
+        '<div id="pmob-edit-' + p.id + '" style="display:none;">' +
+          '<input id="pmob-input-' + p.id + '" value="' + (p.mobile||'') + '" maxlength="10" style="width:88px;padding:3px 5px;font-size:11px;font-family:monospace;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:4px;outline:none;" onkeydown="if(event.key===\'Enter\')savePlayerMobile(\'' + p.id + '\');if(event.key===\'Escape\')cancelEditPlayer(\'' + p.id + '\',\'mobile\')" oninput="this.value=this.value.replace(/\\D/g,\'\')">' +
+          '<button onclick="savePlayerMobile(\'' + p.id + '\')" style="padding:2px 6px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;margin-left:2px;">✓</button>' +
+          '<button onclick="cancelEditPlayer(\'' + p.id + '\',\'mobile\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
+        '</div>' +
+      '</td>' +
       '<td>' +
         '<span id="prole-disp-' + p.id + '" class="role-badge role-' + p.role + '" style="cursor:pointer;border-bottom:1px dashed ' + (roleColors[p.role]||'#fff') + ';" onclick="startEditPlayer(\'' + p.id + '\',\'role\')">' + p.role + '</span>' +
         '<div id="prole-edit-' + p.id + '" style="display:none;flex-wrap:wrap;gap:2px;">' +
           roles.map(r => '<span onclick="savePlayerRole(\'' + p.id + '\',\'' + r + '\')" class="role-badge role-' + r + '" style="cursor:pointer;margin:1px;opacity:' + (r === p.role ? '1' : '0.45') + ';">' + r + '</span>').join('') +
         '</div>' +
       '</td>' +
-      // Base price — inline edit
       '<td>' +
         '<span id="baseDisp-' + p.id + '" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;font-family:\'Rajdhani\',sans-serif;border-bottom:1px dashed var(--accent);" onclick="startEditBase(\'' + p.id + '\')">₹' + Number(p.base_price||0).toLocaleString('en-IN') + '</span>' +
         '<div id="baseEdit-' + p.id + '" style="display:none;align-items:center;gap:3px;">' +
@@ -639,8 +673,8 @@ function renderPlayers(players) {
         '</div>' +
       '</td>' +
       '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')">✕</button></td>' +
-      '</tr>'
-    ).join('') + '</tbody></table>';
+      '</tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 // ── PLAYER INLINE EDIT ────────────────────────────────────
@@ -649,6 +683,10 @@ function startEditPlayer(id, field) {
     document.getElementById('pname-disp-' + id).style.display = 'none';
     document.getElementById('pname-edit-' + id).style.display = 'block';
     setTimeout(() => { const i = document.getElementById('pname-input-' + id); if(i){i.focus();i.select();} }, 10);
+  } else if (field === 'mobile') {
+    document.getElementById('pmob-disp-' + id).style.display = 'none';
+    document.getElementById('pmob-edit-' + id).style.display = 'block';
+    setTimeout(() => { const i = document.getElementById('pmob-input-' + id); if(i){i.focus();i.select();} }, 10);
   } else {
     document.getElementById('prole-disp-' + id).style.display = 'none';
     document.getElementById('prole-edit-' + id).style.display = 'flex';
@@ -658,10 +696,41 @@ function cancelEditPlayer(id, field) {
   if (field === 'name') {
     document.getElementById('pname-disp-' + id).style.display = 'inline';
     document.getElementById('pname-edit-' + id).style.display = 'none';
+  } else if (field === 'mobile') {
+    document.getElementById('pmob-disp-' + id).style.display = 'inline';
+    document.getElementById('pmob-edit-' + id).style.display = 'none';
   } else {
     document.getElementById('prole-disp-' + id).style.display = 'inline';
     document.getElementById('prole-edit-' + id).style.display = 'none';
   }
+}
+
+// Click photo circle to trigger file input
+function changePlayerPhoto(id) {
+  document.getElementById('photoFile-' + id)?.click();
+}
+async function uploadPlayerPhoto(e, playerId) {
+  const file = e.target.files[0]; if (!file) return;
+  const { data: player } = await sb.from('players').select('mobile,name').eq('id', playerId).single();
+  const ext = file.name.split('.').pop();
+  const path = auctionId + '/player_' + (player?.mobile || playerId) + '_' + Date.now() + '.' + ext;
+  const { data: upData, error } = await sb.storage.from('player-photos').upload(path, file, { upsert: true });
+  if (error) { alert('Upload failed: ' + error.message); return; }
+  const { data: urlData } = sb.storage.from('player-photos').getPublicUrl(path);
+  const photoUrl = urlData.publicUrl;
+  await sb.from('players').update({ photo_url: photoUrl }).eq('id', playerId);
+  showMsg('playerMsg', '✅ Photo updated for ' + (player?.name || 'player'), 'success');
+  await loadPlayers();
+}
+async function savePlayerMobile(id) {
+  const val = document.getElementById('pmob-input-' + id)?.value?.trim();
+  if (!val || val.length !== 10) { alert('Enter valid 10-digit mobile'); return; }
+  const { data: dup } = await sb.from('players').select('id,name').eq('auction_id', auctionId).eq('mobile', val).neq('id', id).single();
+  if (dup) { alert('❌ Mobile ' + val + ' already used by "' + dup.name + '"'); return; }
+  await sb.from('players').update({ mobile: val }).eq('id', id);
+  const d = document.getElementById('pmob-disp-' + id);
+  d.textContent = val; d.style.color = 'var(--muted)';
+  cancelEditPlayer(id, 'mobile');
 }
 async function savePlayerField(id, field) {
   const val = document.getElementById('pname-input-' + id)?.value?.trim();
@@ -697,20 +766,58 @@ async function saveBase(id) {
   cancelEditBase(id);
 }
 
+let _manualPhotoFile = null;
+function previewManualPhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  _manualPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('manualPhotoImg').src = ev.target.result;
+    document.getElementById('manualPhotoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+function clearManualPhoto() {
+  _manualPhotoFile = null;
+  document.getElementById('newPlayerPhoto').value = '';
+  document.getElementById('manualPhotoPreview').style.display = 'none';
+}
+
 async function addPlayer() {
   const name = document.getElementById('newPlayerName').value.trim();
+  const mobile = document.getElementById('newPlayerMobile').value.trim();
   const role = document.getElementById('newPlayerRole').value;
   const base = auction.base_price || 1000;
   if (!name) { showMsg('playerMsg', 'Enter player name', 'error'); return; }
+  if (!mobile || mobile.length !== 10) { showMsg('playerMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
+  // Check duplicate mobile
+  const { data: dupP } = await sb.from('players').select('id,name').eq('auction_id', auctionId).eq('mobile', mobile).single();
+  if (dupP) { showMsg('playerMsg', '❌ Mobile ' + mobile + ' already used by player "' + dupP.name + '"', 'error'); return; }
+  const { data: dupT } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', mobile).single();
+  if (dupT) { showMsg('playerMsg', '❌ Mobile ' + mobile + ' already used by team captain "' + dupT.name + '"', 'error'); return; }
   // Plan limit check
   const { count } = await sb.from('players').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
   if (!checkPlayerLimit(count || 0)) return;
+  showMsg('playerMsg', '⏳ Adding player...', 'success');
+  // Upload photo if provided
+  let photoUrl = null;
+  if (_manualPhotoFile) {
+    const ext = _manualPhotoFile.name.split('.').pop();
+    const path = auctionId + '/manual_' + mobile + '.' + ext;
+    const { data: upData, error: upErr } = await sb.storage.from('player-photos').upload(path, _manualPhotoFile, { upsert: true });
+    if (!upErr && upData) {
+      const { data: urlData } = sb.storage.from('player-photos').getPublicUrl(path);
+      photoUrl = urlData.publicUrl;
+    }
+  }
   const { error } = await sb.from('players').insert({
-    auction_id: auctionId, name, role, base_price: base, star: false
+    auction_id: auctionId, name, role, base_price: base, mobile, photo_url: photoUrl, star: false
   });
   if (error) { showMsg('playerMsg', '❌ Error: ' + error.message, 'error'); return; }
   document.getElementById('newPlayerName').value = '';
-  showMsg('playerMsg', '✅ ' + name + ' added (Base ₹' + Number(base).toLocaleString('en-IN') + ')', 'success');
+  document.getElementById('newPlayerMobile').value = '';
+  clearManualPhoto();
+  showMsg('playerMsg', '✅ ' + name + ' added', 'success');
   await loadPlayers();
   document.getElementById('newPlayerName').focus();
 }
@@ -789,26 +896,46 @@ const TEST_TEAMS = [
   {name:'Storm Riders XI',   captain:'Hamza Malik', mobile:'9432109876'},
 ];
 const TEST_PLAYERS = [
-  {name:'Virat Singh',    role:'BAT'},{name:'Rohit Sharma',   role:'BAT'},
-  {name:'KL Rahul',       role:'BAT'},{name:'Shikhar Das',    role:'BAT'},
-  {name:'Suryakumar',     role:'BAT'},{name:'Ishan Patel',    role:'WK'},
-  {name:'Rishabh Raj',    role:'WK'},{name:'MS Dhoni Jr',    role:'WK'},
-  {name:'Hardik Singh',   role:'ALL'},{name:'Jadeja Kumar',   role:'ALL'},
-  {name:'Axar Patel',     role:'ALL'},{name:'Krunal Shah',    role:'ALL'},
-  {name:'Jasprit Alam',   role:'BOWL'},{name:'Mohammed Ali', role:'BOWL'},
-  {name:'Bhuvnesh Kumar', role:'BOWL'},{name:'Shardul Khan',  role:'BOWL'},
-  {name:'Umesh Yadav',    role:'BOWL'},{name:'Navdeep Saini', role:'BOWL'},
-  {name:'Deepak Chahar',  role:'BOWL'},{name:'Yuzvendra Patel',role:'BOWL'},
-  {name:'Sanju Sinha',    role:'BAT'},{name:'Devdutt Singh',  role:'BAT'},
-  {name:'Prithvi Shaw',   role:'BAT'},{name:'Abhishek Sharma',role:'BAT'},
-  {name:'Ruturaj Gaikwad',role:'BAT'},{name:'Tilak Verma',   role:'BAT'},
-  {name:'Rinku Kumar',    role:'BAT'},{name:'Shivam Dube',    role:'ALL'},
-  {name:'Washington Raj', role:'ALL'},{name:'Rahul Tewatia',  role:'ALL'},
-  {name:'Arshdeep Singh', role:'BOWL'},{name:'Yash Dayal',    role:'BOWL'},
-  {name:'Akash Deep',     role:'BOWL'},{name:'Avesh Khan',    role:'BOWL'},
-  {name:'Tushar Deshpande',role:'BOWL'},{name:'Noor Ahmed',  role:'BOWL'},
-  {name:'Riyan Parag',    role:'BAT'},{name:'Dhruv Jurel',    role:'WK'},
-  {name:'Sameer Sheikh',  role:'ALL'},{name:'Faisal Siddiqui',role:'BAT'},
+  {name:'Virat Singh',       role:'BAT',  mobile:'9800000001', photo:'https://i.pravatar.cc/150?img=1'},
+  {name:'Rohit Sharma',      role:'BAT',  mobile:'9800000002', photo:'https://i.pravatar.cc/150?img=2'},
+  {name:'KL Rahul',          role:'BAT',  mobile:'9800000003', photo:'https://i.pravatar.cc/150?img=3'},
+  {name:'Shikhar Das',       role:'BAT',  mobile:'9800000004', photo:'https://i.pravatar.cc/150?img=4'},
+  {name:'Suryakumar',        role:'BAT',  mobile:'9800000005', photo:'https://i.pravatar.cc/150?img=5'},
+  {name:'Ishan Patel',       role:'WK',   mobile:'9800000006', photo:'https://i.pravatar.cc/150?img=6'},
+  {name:'Rishabh Raj',       role:'WK',   mobile:'9800000007', photo:'https://i.pravatar.cc/150?img=7'},
+  {name:'MS Dhoni Jr',       role:'WK',   mobile:'9800000008', photo:'https://i.pravatar.cc/150?img=8'},
+  {name:'Hardik Singh',      role:'ALL',  mobile:'9800000009', photo:'https://i.pravatar.cc/150?img=9'},
+  {name:'Jadeja Kumar',      role:'ALL',  mobile:'9800000010', photo:'https://i.pravatar.cc/150?img=10'},
+  {name:'Axar Patel',        role:'ALL',  mobile:'9800000011', photo:'https://i.pravatar.cc/150?img=11'},
+  {name:'Krunal Shah',       role:'ALL',  mobile:'9800000012', photo:'https://i.pravatar.cc/150?img=12'},
+  {name:'Jasprit Alam',      role:'BOWL', mobile:'9800000013', photo:'https://i.pravatar.cc/150?img=13'},
+  {name:'Mohammed Ali',      role:'BOWL', mobile:'9800000014', photo:'https://i.pravatar.cc/150?img=14'},
+  {name:'Bhuvnesh Kumar',    role:'BOWL', mobile:'9800000015', photo:'https://i.pravatar.cc/150?img=15'},
+  {name:'Shardul Khan',      role:'BOWL', mobile:'9800000016', photo:'https://i.pravatar.cc/150?img=16'},
+  {name:'Umesh Yadav',       role:'BOWL', mobile:'9800000017', photo:'https://i.pravatar.cc/150?img=17'},
+  {name:'Navdeep Saini',     role:'BOWL', mobile:'9800000018', photo:'https://i.pravatar.cc/150?img=18'},
+  {name:'Deepak Chahar',     role:'BOWL', mobile:'9800000019', photo:'https://i.pravatar.cc/150?img=19'},
+  {name:'Yuzvendra Patel',   role:'BOWL', mobile:'9800000020', photo:'https://i.pravatar.cc/150?img=20'},
+  {name:'Sanju Sinha',       role:'BAT',  mobile:'9800000021', photo:'https://i.pravatar.cc/150?img=21'},
+  {name:'Devdutt Singh',     role:'BAT',  mobile:'9800000022', photo:'https://i.pravatar.cc/150?img=22'},
+  {name:'Prithvi Shaw',      role:'BAT',  mobile:'9800000023', photo:'https://i.pravatar.cc/150?img=23'},
+  {name:'Abhishek Sharma',   role:'BAT',  mobile:'9800000024', photo:'https://i.pravatar.cc/150?img=24'},
+  {name:'Ruturaj Gaikwad',   role:'BAT',  mobile:'9800000025', photo:'https://i.pravatar.cc/150?img=25'},
+  {name:'Tilak Verma',       role:'BAT',  mobile:'9800000026', photo:'https://i.pravatar.cc/150?img=26'},
+  {name:'Rinku Kumar',       role:'BAT',  mobile:'9800000027', photo:'https://i.pravatar.cc/150?img=27'},
+  {name:'Shivam Dube',       role:'ALL',  mobile:'9800000028', photo:'https://i.pravatar.cc/150?img=28'},
+  {name:'Washington Raj',    role:'ALL',  mobile:'9800000029', photo:'https://i.pravatar.cc/150?img=29'},
+  {name:'Rahul Tewatia',     role:'ALL',  mobile:'9800000030', photo:'https://i.pravatar.cc/150?img=30'},
+  {name:'Arshdeep Singh',    role:'BOWL', mobile:'9800000031', photo:'https://i.pravatar.cc/150?img=31'},
+  {name:'Yash Dayal',        role:'BOWL', mobile:'9800000032', photo:'https://i.pravatar.cc/150?img=32'},
+  {name:'Akash Deep',        role:'BOWL', mobile:'9800000033', photo:'https://i.pravatar.cc/150?img=33'},
+  {name:'Avesh Khan',        role:'BOWL', mobile:'9800000034', photo:'https://i.pravatar.cc/150?img=34'},
+  {name:'Tushar Deshpande',  role:'BOWL', mobile:'9800000035', photo:'https://i.pravatar.cc/150?img=35'},
+  {name:'Noor Ahmed',        role:'BOWL', mobile:'9800000036', photo:'https://i.pravatar.cc/150?img=36'},
+  {name:'Riyan Parag',       role:'BAT',  mobile:'9800000037', photo:'https://i.pravatar.cc/150?img=37'},
+  {name:'Dhruv Jurel',       role:'WK',   mobile:'9800000038', photo:'https://i.pravatar.cc/150?img=38'},
+  {name:'Sameer Sheikh',     role:'ALL',  mobile:'9800000039', photo:'https://i.pravatar.cc/150?img=39'},
+  {name:'Faisal Siddiqui',   role:'BAT',  mobile:'9800000040', photo:'https://i.pravatar.cc/150?img=40'},
 ];
 
 async function quickFill(numTeams, numPlayers) {
@@ -844,6 +971,8 @@ async function quickFill(numTeams, numPlayers) {
   const playerInserts = TEST_PLAYERS.slice(0, numPlayers).map(p => ({
     auction_id: auctionId,
     name: p.name, role: p.role,
+    mobile: p.mobile,
+    photo_url: p.photo,
     base_price: base, star: Math.random() > 0.8
   }));
   await sb.from('players').insert(playerInserts);
