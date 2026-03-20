@@ -483,10 +483,12 @@ async function submitRegistration(){
   // Upload photo
   let photoUrl=null;
   if(photoFile){
-    const ext=photoFile.name.split('.').pop();
+    const ext=photoFile.name.split('.').pop().toLowerCase();
     const path=auctionId+'/'+mobile+'.'+ext;
     const{data:upData,error:upErr}=await sb.storage.from('player-photos').upload(path,photoFile,{upsert:true});
-    if(!upErr&&upData){
+    if(upErr){
+      showFormMsg('⚠️ Photo upload failed: '+upErr.message+'. Continuing without photo.','error');
+    } else {
       const{data:urlData}=sb.storage.from('player-photos').getPublicUrl(path);
       photoUrl=urlData.publicUrl;
     }
