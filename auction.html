@@ -14,19 +14,21 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
-nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 18px;display:flex;align-items:center;gap:10px;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);}
-.live-badge{background:var(--red);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;animation:pulse 2s infinite;}
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:6px 10px;display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow-x:hidden;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap;flex-shrink:0;}
+.live-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;animation:pulse 2s infinite;white-space:nowrap;flex-shrink:0;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-.nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
-.room-pill{font-family:monospace;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:3px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 10px;}
-.btn{padding:7px 16px;border-radius:5px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;transition:all 0.15s;white-space:nowrap;}
+.nav-right{margin-left:auto;display:flex;gap:4px;align-items:center;flex-shrink:0;}
+.room-pill{font-family:monospace;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 6px;white-space:nowrap;flex-shrink:0;max-width:80px;overflow:hidden;text-overflow:ellipsis;}
+.btn{padding:6px 12px;border-radius:5px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;transition:all 0.15s;white-space:nowrap;}
 .btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:#fbbf24;}
 .btn-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);}
 .btn-danger{background:var(--red);color:#fff;}
 .btn-green{background:var(--green);color:#000;font-size:16px;padding:12px 36px;font-weight:700;border-radius:6px;}.btn-green:hover{background:#4ade80;}
-.btn-sm{padding:4px 9px;font-size:12px;}
-.btn-tiny{padding:2px 7px;font-size:11px;background:var(--surface3);color:var(--muted);border:1px solid var(--border);border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;}.btn-tiny:hover{color:var(--text);}
+.btn-sm{padding:4px 8px;font-size:11px;}
+.btn-tiny{padding:2px 6px;font-size:11px;background:var(--surface3);color:var(--muted);border:1px solid var(--border);border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;}.btn-tiny:hover{color:var(--text);}
+/* Nav icon buttons — show emoji only */
+.nav-icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:5px 8px;border-radius:5px;cursor:pointer;font-size:14px;line-height:1;}
 
 /* TABS */
 .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;}
@@ -117,10 +119,10 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="live-badge">🔴 LIVE</div>
   <div class="room-pill" id="navRoomCode">------</div>
   <div class="nav-right">
-    <button class="btn btn-ghost btn-sm" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()">🏏 Bidders</button>
-    <button class="btn btn-ghost btn-sm" onclick="copyViewerLink()">🔗 Viewers</button>
-    <button class="btn btn-ghost btn-sm" onclick="window.location.href='setup.html?auction='+auctionId">⚙</button>
-    <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">🏠</button>
+    <button class="nav-icon-btn" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()" title="Copy bidder link">🏏</button>
+    <button class="nav-icon-btn" onclick="copyViewerLink()" title="Copy viewer link">🔗</button>
+    <button class="nav-icon-btn" onclick="window.location.href='setup.html?auction='+auctionId" title="Setup">⚙️</button>
+    <button class="nav-icon-btn" onclick="window.location.href='dashboard.html'" title="Dashboard">🏠</button>
   </div>
 </nav>
 
@@ -450,11 +452,15 @@ function subscribeRealtime() {
       if (state.data?.current_player_id) {
         await loadLiveBids(state.data.current_player_id);
         playSound('bid');
-        // Every new bid resets timer to Going Once (30s)
         startGoingOnce();
       }
     })
     .subscribe();
+
+  // ── HEARTBEAT POLL — re-check online status every 45s ───────
+  // Realtime fires on INSERT/UPDATE but NOT on heartbeat last_seen updates
+  // from bidder side. So we poll independently to drop stale sessions.
+  setInterval(() => renderLobby(), 45000);
 }
 
 // ── TABS ──────────────────────────────────────────────────
@@ -473,9 +479,11 @@ async function renderLobby() {
   if (sales.length > 0 || document.getElementById('currentPlayerBox').style.display === 'flex') {
     lobbyEl.style.display = 'none'; return;
   }
-  // Check which teams have joined via bidder_sessions
+  // Only count sessions active in last 90 seconds (heartbeat is every 30s)
+  const cutoff = new Date(Date.now() - 90000).toISOString();
   const { data: sessions } = await sb.from('bidder_sessions')
-    .select('team_id, teams(name)').eq('auction_id', auctionId);
+    .select('team_id, teams(name)').eq('auction_id', auctionId)
+    .gte('last_seen', cutoff);
   const joinedIds = new Set((sessions || []).map(s => s.team_id));
   const joined = teams.filter(t => joinedIds.has(t.id));
   const notJoined = teams.filter(t => !joinedIds.has(t.id));
@@ -1213,20 +1221,19 @@ function copyViewerLink() {
 }
 function copyBidderLinks() {
   if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
-  const base = `${window.location.origin}/bidmaster/bidder.html`;
+  const base = `${window.location.origin}/bidmaster/bidder.html?auction=${auctionId}`;
   let msg = `🏏 AuctionXI — Live Bidding\nAuction: ${auction.name}\n\n`;
-  msg += `📱 Bidding Link: ${base}\n\n`;
+  msg += `📱 Bidding Link (tap to open):\n${base}\n\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n`;
   teams.forEach(t => {
-    if (t.team_code) {
-      msg += `\n🏏 ${t.name}\n`;
-      msg += `Captain: ${t.captain_name || 'Not set'}\n`;
-      msg += `Team Code: ${t.team_code}\n`;
-      msg += `Mobile: ${t.captain_mobile || 'Not set'}\n`;
-    }
+    msg += `\n🏏 ${t.name}\n`;
+    msg += `Captain: ${t.captain_name || 'Not set'}\n`;
+    msg += `Mobile: ${t.captain_mobile || 'Not set'}\n`;
   });
-  msg += `\n━━━━━━━━━━━━━━━━━━\nOpen the link, enter your Team Code, verify mobile OTP to start bidding!`;
-  navigator.clipboard.writeText(msg).then(() => alert('All team codes copied!\n\nPaste this on your WhatsApp group to share with all captains.'));
+  msg += `\n━━━━━━━━━━━━━━━━━━\nOpen the link and enter your registered mobile number to receive an OTP and start bidding!`;
+  navigator.clipboard.writeText(msg).then(() => {
+    showMsg('saleMsg', '📋 Bidder links copied! Paste on WhatsApp group to share with all captains.', 'success');
+  });
 }
 </script>
 </body>

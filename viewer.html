@@ -15,7 +15,12 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
 
-/* ── JOIN SCREEN ── */
+/* ── VERIFY SCREEN ── */
+#verifyScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;text-align:center;}
+.verify-icon{font-size:48px;margin-bottom:12px;}
+.verify-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;margin-bottom:6px;}
+.verify-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.otp-box{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px;margin:12px 0;width:100%;text-align:center;}
 #joinScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;text-align:center;}
 .join-logo{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--accent);margin-bottom:6px;}
 .join-tagline{font-size:14px;color:var(--muted);margin-bottom:40px;}
@@ -126,6 +131,38 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div class="join-error" id="joinError"></div>
 </div>
 
+<!-- VERIFY SCREEN — shown for paid auctions -->
+<div id="verifyScreen">
+  <div class="verify-icon" id="verifyIcon">📱</div>
+  <div class="verify-title" id="verifyTitle">Verify to Watch</div>
+  <div class="verify-sub" id="verifySub">This is a paid auction. Enter your registered mobile to get a one-time access code.</div>
+
+  <!-- Step 1: Mobile -->
+  <div id="verifyStep1" style="width:100%;">
+    <div class="join-label">Your Mobile Number</div>
+    <input class="room-input" type="tel" id="viewerMobile" maxlength="10" placeholder="9876543210"
+      style="font-size:20px;letter-spacing:4px;"
+      oninput="this.value=this.value.replace(/\D/g,'')"
+      onkeydown="if(event.key==='Enter')sendViewerOtp()">
+    <button class="join-btn" onclick="sendViewerOtp()" id="viewerMobileBtn">Send OTP →</button>
+    <div class="join-error" id="viewerMobileErr"></div>
+    <div class="otp-box" id="viewerOtpStatus" style="display:none;">
+      <div style="font-size:13px;color:var(--accent);font-weight:600;" id="viewerOtpStatusText"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: OTP -->
+  <div id="verifyStep2" style="display:none;width:100%;">
+    <div class="join-label" id="viewerOtpLabel">Enter 6-digit OTP</div>
+    <input class="room-input" type="number" id="viewerOtpInput" maxlength="6" placeholder="000000"
+      style="font-size:28px;letter-spacing:8px;"
+      onkeydown="if(event.key==='Enter')verifyViewerOtp()">
+    <button class="join-btn" onclick="verifyViewerOtp()" id="viewerOtpBtn">Verify & Watch →</button>
+    <div class="join-error" id="viewerOtpErr"></div>
+    <button style="margin-top:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;" onclick="document.getElementById('verifyStep1').style.display='block';document.getElementById('verifyStep2').style.display='none';">← Back</button>
+  </div>
+</div>
+
 <!-- MAIN APP -->
 <div id="app">
   <!-- Header -->
@@ -211,6 +248,10 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── JOIN ROOM ─────────────────────────────────────────────
+let _pendingAuction = null;
+let _viewerOtp = null;
+let _viewerMobile = null;
+
 async function joinRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   const errEl = document.getElementById('joinError');
@@ -223,20 +264,120 @@ async function joinRoom() {
     errEl.textContent = 'Room not found. Check the code and try again.';
     btn.textContent = 'Join Auction →'; btn.disabled = false; return;
   }
+  btn.textContent = 'Join Auction →'; btn.disabled = false;
+
+  _pendingAuction = data;
+
+  // If auction requires viewer verification (registered players only)
+  if (data.registration_open) {
+    // Show verify screen — only registered players can watch
+    document.getElementById('joinScreen').style.display = 'none';
+    document.getElementById('verifyScreen').style.display = 'flex';
+    document.getElementById('verifyTitle').textContent = '🔐 Verify to Watch';
+    document.getElementById('verifySub').textContent =
+      data.name + ' — Enter your registered mobile number to receive an OTP and join the live auction.';
+  } else {
+    // Open access — go straight in
+    enterViewer(data);
+  }
+}
+
+async function sendViewerOtp() {
+  const mobile = document.getElementById('viewerMobile').value.trim();
+  const errEl = document.getElementById('viewerMobileErr');
+  const btn = document.getElementById('viewerMobileBtn');
+  const statusBox = document.getElementById('viewerOtpStatus');
+  const statusTxt = document.getElementById('viewerOtpStatusText');
+
+  if (mobile.length !== 10 || isNaN(mobile)) { errEl.textContent = 'Enter a valid 10-digit mobile number'; return; }
+
+  // Check if this mobile is a registered player or captain for this auction
+  const { data: reg } = await sb.from('player_registrations')
+    .select('id,name,is_captain').eq('auction_id', _pendingAuction.id).eq('mobile', mobile).single();
+
+  // Also check if it's an organizer mobile
+  const isOrganizer = _pendingAuction.organizer_mobile === mobile;
+
+  if (!reg && !isOrganizer) {
+    // Allow captains (teams) too
+    const { data: team } = await sb.from('teams').select('id').eq('auction_id', _pendingAuction.id).eq('captain_mobile', mobile).single();
+    if (!team) {
+      errEl.textContent = 'Mobile not registered for this auction. Contact the organizer.';
+      return;
+    }
+  }
+
+  btn.textContent = 'Sending...'; btn.disabled = true; errEl.textContent = '';
+  _viewerMobile = mobile;
+  _viewerOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  await sb.from('otp_verifications').insert({
+    mobile, team_code: 'VIEWER_' + _pendingAuction.room_code,
+    otp: _viewerOtp, expires_at: expiresAt
+  });
+
+  // Show step 2
+  document.getElementById('verifyStep1').style.display = 'none';
+  document.getElementById('verifyStep2').style.display = 'block';
+
+  // Send SMS
+  statusBox.style.display = 'block';
+  statusTxt.textContent = '📱 Sending OTP...';
+  try {
+    const smsMsg = encodeURIComponent('Your AuctionXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const json = await res.json();
+    statusTxt.textContent = json.return === true
+      ? '✅ OTP sent to +91 ' + mobile
+      : '⚠️ SMS failed — ask organizer for OTP';
+    statusTxt.style.color = json.return === true ? 'var(--green)' : 'var(--yellow)';
+  } catch(e) {
+    statusTxt.textContent = '⚠️ SMS unavailable — contact organizer';
+    statusTxt.style.color = 'var(--yellow)';
+  }
+  btn.textContent = 'Send OTP →'; btn.disabled = false;
+}
+
+async function verifyViewerOtp() {
+  const entered = document.getElementById('viewerOtpInput').value.trim();
+  const errEl = document.getElementById('viewerOtpErr');
+  const btn = document.getElementById('viewerOtpBtn');
+
+  if (entered.length !== 6) { errEl.textContent = 'Enter the 6-digit OTP'; return; }
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+
+  if (entered !== _viewerOtp) {
+    // Double check DB in case of resend
+    const { data } = await sb.from('otp_verifications')
+      .select('*').eq('mobile', _viewerMobile)
+      .eq('otp', entered).eq('verified', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false }).limit(1).single();
+    if (!data) {
+      errEl.textContent = 'Invalid or expired OTP. Try again.';
+      btn.textContent = 'Verify & Watch →'; btn.disabled = false; return;
+    }
+    await sb.from('otp_verifications').update({ verified: true }).eq('id', data.id);
+  }
+
+  btn.textContent = 'Verify & Watch →'; btn.disabled = false;
+  document.getElementById('verifyScreen').style.display = 'none';
+  enterViewer(_pendingAuction);
+}
+
+function enterViewer(data) {
   auction = data;
   document.getElementById('joinScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('appRoomCode').textContent = code;
+  document.getElementById('appRoomCode').textContent = data.room_code;
 
   if (data.status === 'ended') {
     document.getElementById('liveStatus').textContent = 'ENDED';
-    document.getElementById('liveStatus').style.background = 'rgba(148,163,184,0.1)';
-    document.getElementById('liveStatus').style.borderColor = 'var(--muted)';
-    document.getElementById('liveStatus').style.color = 'var(--muted)';
-    document.getElementById('liveStatus').style.animation = 'none';
+    document.getElementById('liveStatus').style.cssText += ';background:rgba(148,163,184,0.1);border-color:var(--muted);color:var(--muted);animation:none;';
   }
-
-  await loadAll();
+  loadAll();
   subscribeRealtime();
 }
 

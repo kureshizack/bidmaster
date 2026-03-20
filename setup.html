@@ -342,25 +342,97 @@ function renderTeams(teams) {
   document.getElementById('launchTeams').textContent = teams.length;
   const el = document.getElementById('teamsList');
   if (!teams.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No teams yet.</p>'; return; }
-  el.innerHTML = '<table class="data-table"><thead><tr><th>Team</th><th>Captain</th><th>Mobile</th><th>Team Code</th><th></th></tr></thead><tbody>' +
-    teams.map(t =>
-      '<tr>' +
-      '<td><b>' + t.name + '</b><br><span style="font-size:11px;color:var(--muted);">₹' + Number(t.start_credits).toLocaleString('en-IN') + '</span></td>' +
-      '<td style="font-size:13px;">' + (t.captain_name || '<span style="color:var(--red);">Not set</span>') + '</td>' +
-      '<td style="font-size:13px;">' + (t.captain_mobile || '<span style="color:var(--red);">Not set</span>') + '</td>' +
-      '<td><span style="font-family:monospace;font-size:13px;font-weight:700;color:var(--accent);background:var(--surface2);padding:2px 8px;border-radius:4px;letter-spacing:2px;">' + (t.team_code || '-') + '</span>' +
-      ' <button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="copyTeamCode(\'' + t.team_code + '\',\'' + t.captain_mobile + '\',\'' + t.name.replace(/'/g, "&#39;") + '\')">📋 Copy</button></td>' +
-      '<td><button class="btn btn-danger btn-sm" onclick="deleteTeam(\'' + t.id + '\')">✕</button></td>' +
-      '</tr>'
-    ).join('') + '</tbody></table>';
+
+  el.innerHTML = teams.map(t => `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;" id="teamRow-${t.id}">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <!-- Team Name -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+            <span id="tname-disp-${t.id}" style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;cursor:pointer;border-bottom:1px dashed var(--border);" onclick="startEditTeam('${t.id}','name','${(t.name||'').replace(/'/g,"\\'")}')">
+              ${t.name}
+            </span>
+            <span style="font-size:11px;color:var(--muted);">₹${Number(t.start_credits).toLocaleString('en-IN')}</span>
+          </div>
+          <div id="tname-edit-${t.id}" style="display:none;margin-bottom:5px;">
+            <div style="display:flex;gap:4px;">
+              <input id="tname-input-${t.id}" value="${(t.name||'').replace(/"/g,'&quot;')}" style="flex:1;padding:4px 8px;font-size:14px;background:var(--surface);border:1px solid var(--accent);color:var(--text);border-radius:5px;outline:none;" onkeydown="if(event.key==='Enter')saveTeamField('${t.id}','name');if(event.key==='Escape')cancelEditTeam('${t.id}','name')">
+              <button onclick="saveTeamField('${t.id}','name')" style="padding:3px 8px;background:var(--green);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>
+              <button onclick="cancelEditTeam('${t.id}','name')" style="padding:3px 7px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <!-- Captain Name -->
+          <div style="display:flex;align-items:center;gap-4px;margin-bottom:4px;">
+            <span style="font-size:11px;color:var(--muted);margin-right:4px;">👤</span>
+            <span id="tcap-disp-${t.id}" style="font-size:13px;cursor:pointer;color:${t.captain_name?'var(--text)':'var(--red)'};border-bottom:1px dashed var(--border);" onclick="startEditTeam('${t.id}','captain_name','${(t.captain_name||'').replace(/'/g,"\\'")}')">
+              ${t.captain_name || 'Set captain name'}
+            </span>
+          </div>
+          <div id="tcap-edit-${t.id}" style="display:none;margin-bottom:4px;">
+            <div style="display:flex;gap:4px;">
+              <input id="tcap-input-${t.id}" value="${(t.captain_name||'').replace(/"/g,'&quot;')}" placeholder="Captain name" style="flex:1;padding:4px 8px;font-size:13px;background:var(--surface);border:1px solid var(--accent);color:var(--text);border-radius:5px;outline:none;" onkeydown="if(event.key==='Enter')saveTeamField('${t.id}','captain_name');if(event.key==='Escape')cancelEditTeam('${t.id}','captain_name')">
+              <button onclick="saveTeamField('${t.id}','captain_name')" style="padding:3px 8px;background:var(--green);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>
+              <button onclick="cancelEditTeam('${t.id}','captain_name')" style="padding:3px 7px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+          <!-- Captain Mobile -->
+          <div style="display:flex;align-items:center;margin-bottom:2px;">
+            <span style="font-size:11px;color:var(--muted);margin-right:4px;">📱</span>
+            <span id="tmob-disp-${t.id}" style="font-size:13px;cursor:pointer;color:${t.captain_mobile?'var(--muted)':'var(--red)'};font-family:monospace;border-bottom:1px dashed var(--border);" onclick="startEditTeam('${t.id}','captain_mobile','${t.captain_mobile||''}')">
+              ${t.captain_mobile || 'Set mobile'}
+            </span>
+          </div>
+          <div id="tmob-edit-${t.id}" style="display:none;">
+            <div style="display:flex;gap:4px;">
+              <input id="tmob-input-${t.id}" value="${t.captain_mobile||''}" placeholder="10-digit mobile" maxlength="10" style="flex:1;padding:4px 8px;font-size:13px;background:var(--surface);border:1px solid var(--accent);color:var(--text);border-radius:5px;outline:none;font-family:monospace;" onkeydown="if(event.key==='Enter')saveTeamField('${t.id}','captain_mobile');if(event.key==='Escape')cancelEditTeam('${t.id}','captain_mobile')">
+              <button onclick="saveTeamField('${t.id}','captain_mobile')" style="padding:3px 8px;background:var(--green);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>
+              <button onclick="cancelEditTeam('${t.id}','captain_mobile')" style="padding:3px 7px;background:var(--surface);color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;">✕</button>
+            </div>
+          </div>
+        </div>
+        <!-- Actions -->
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;">
+          <button class="btn btn-danger btn-sm" onclick="deleteTeam('${t.id}')">✕</button>
+          <button onclick="copyTeamAccess('${auction.room_code}','${t.captain_mobile||''}','${(t.name||'').replace(/'/g,"\\'")}','${(t.captain_name||'').replace(/'/g,"\\'")}');" style="padding:3px 8px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
-function genTeamCode() {
-  return Math.random().toString(36).substring(2,8).toUpperCase();
+// ── TEAM INLINE EDIT ──────────────────────────────────────
+function startEditTeam(id, field, currentVal) {
+  const dispId = field === 'name' ? 'tname' : field === 'captain_name' ? 'tcap' : 'tmob';
+  document.getElementById(dispId + '-disp-' + id).style.display = 'none';
+  document.getElementById(dispId + '-edit-' + id).style.display = 'block';
+  const input = document.getElementById(dispId + '-input-' + id);
+  input.focus(); input.select();
 }
-function copyTeamCode(code, mobile, teamName) {
-  const msg = `🏏 AuctionXI Bidding Access\n\nTeam: ${teamName}\nYour Team Code: ${code}\n\nOpen: ${window.location.origin}/bidmaster/bidder.html\nEnter your team code + mobile number to start bidding live!`;
-  navigator.clipboard.writeText(msg).then(() => alert('Team code + instructions copied!\nPaste this on WhatsApp to the captain.'));
+
+function cancelEditTeam(id, field) {
+  const dispId = field === 'name' ? 'tname' : field === 'captain_name' ? 'tcap' : 'tmob';
+  document.getElementById(dispId + '-disp-' + id).style.display = 'inline';
+  document.getElementById(dispId + '-edit-' + id).style.display = 'none';
+}
+
+async function saveTeamField(id, field) {
+  const dispId = field === 'name' ? 'tname' : field === 'captain_name' ? 'tcap' : 'tmob';
+  const val = document.getElementById(dispId + '-input-' + id).value.trim();
+  if (!val) { cancelEditTeam(id, field); return; }
+  if (field === 'captain_mobile' && (val.length !== 10 || isNaN(val))) {
+    alert('Enter valid 10-digit mobile'); return;
+  }
+  await sb.from('teams').update({ [field]: val }).eq('id', id);
+  // Update display
+  const dispEl = document.getElementById(dispId + '-disp-' + id);
+  dispEl.textContent = val;
+  dispEl.style.color = 'var(--text)';
+  cancelEditTeam(id, field);
+}
+
+function copyTeamAccess(roomCode, mobile, teamName, captainName) {
+  const msg = `🏏 *AuctionXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidmaster/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by AuctionXI 🏆`;
+  navigator.clipboard.writeText(msg).then(() => alert('Access message copied!\nPaste on WhatsApp to the captain.'));
 }
 
 async function addTeam() {
@@ -518,22 +590,40 @@ function renderPlayers(players) {
   document.getElementById('playerCount').textContent = players.length;
   document.getElementById('launchPlayers').textContent = players.length;
   const el = document.getElementById('playersList');
-  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>'; return; }
-  el.innerHTML = '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base ₹ <span style="font-size:10px;color:var(--muted);font-weight:400;">(click to edit)</span></th><th></th></tr></thead><tbody>' +
+  if (!players.length) { el.innerHTML = '<p style="color:var(--muted);font-size:13px;">No players yet.</p>'; return; }
+  const roles = ['BAT','BOWL','ALL','WK'];
+  const roleColors = {BAT:'#93c5fd',BOWL:'#fca5a5',ALL:'#86efac',WK:'#fcd34d'};
+  el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0 6px;"><span style="border-bottom:1px dashed var(--muted);">Underlined values</span> — click to edit inline</div>' +
+    '<table class="data-table"><thead><tr><th>Photo</th><th>★</th><th>Player</th><th>Role</th><th>Base ₹</th><th></th></tr></thead><tbody>' +
     players.map(p =>
       '<tr>' +
-      '<td>' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:18px;color:var(--muted);">👤</span>') + '</td>' +
+      // Photo
+      '<td>' + (p.photo_url ? '<img src="' + p.photo_url + '" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">' : '<span style="font-size:16px;color:var(--muted);">👤</span>') + '</td>' +
+      // Star
       '<td><span class="' + (p.star ? 'star-lit' : 'star-dim') + '" style="cursor:pointer;font-size:15px;" onclick="toggleStar(\'' + p.id + '\',' + p.star + ')">★</span></td>' +
-      '<td><b>' + p.name + '</b></td>' +
-      '<td><span class="role-badge role-' + p.role + '">' + p.role + '</span></td>' +
+      // Name — inline edit
       '<td>' +
-        '<div style="display:flex;align-items:center;gap:4px;">' +
-          '<span id="baseDisp-' + p.id + '" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;font-family:\'Rajdhani\',sans-serif;border-bottom:1px dashed var(--accent);" onclick="startEditBase(\'' + p.id + '\',' + (p.base_price||0) + ')" title="Click to edit">₹' + Number(p.base_price||0).toLocaleString('en-IN') + '</span>' +
-          '<div id="baseEdit-' + p.id + '" style="display:none;display:none;align-items:center;gap:4px;">' +
-            '<input type="number" id="baseInput-' + p.id + '" value="' + (p.base_price||0) + '" style="width:70px;padding:3px 6px;font-size:13px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:5px;outline:none;" onkeydown="if(event.key===\'Enter\')saveBase(\'' + p.id + '\');if(event.key===\'Escape\')cancelEditBase(\'' + p.id + '\');">' +
-            '<button onclick="saveBase(\'' + p.id + '\')" style="padding:3px 7px;background:var(--green);color:#000;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;">✓</button>' +
-            '<button onclick="cancelEditBase(\'' + p.id + '\')" style="padding:3px 7px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;">✕</button>' +
-          '</div>' +
+        '<span id="pname-disp-' + p.id + '" style="font-weight:700;cursor:pointer;border-bottom:1px dashed var(--border);" onclick="startEditPlayer(\'' + p.id + '\',\'name\')">' + p.name + '</span>' +
+        '<div id="pname-edit-' + p.id + '" style="display:none;">' +
+          '<input id="pname-input-' + p.id + '" value="' + p.name.replace(/"/g,'&quot;') + '" style="width:88px;padding:3px 5px;font-size:12px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:4px;outline:none;" onkeydown="if(event.key===\'Enter\')savePlayerField(\'' + p.id + '\',\'name\');if(event.key===\'Escape\')cancelEditPlayer(\'' + p.id + '\',\'name\')">' +
+          '<button onclick="savePlayerField(\'' + p.id + '\',\'name\')" style="padding:2px 6px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;margin-left:2px;">✓</button>' +
+          '<button onclick="cancelEditPlayer(\'' + p.id + '\',\'name\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
+        '</div>' +
+      '</td>' +
+      // Role — inline tap selector
+      '<td>' +
+        '<span id="prole-disp-' + p.id + '" class="role-badge role-' + p.role + '" style="cursor:pointer;border-bottom:1px dashed ' + (roleColors[p.role]||'#fff') + ';" onclick="startEditPlayer(\'' + p.id + '\',\'role\')">' + p.role + '</span>' +
+        '<div id="prole-edit-' + p.id + '" style="display:none;flex-wrap:wrap;gap:2px;">' +
+          roles.map(r => '<span onclick="savePlayerRole(\'' + p.id + '\',\'' + r + '\')" class="role-badge role-' + r + '" style="cursor:pointer;margin:1px;opacity:' + (r === p.role ? '1' : '0.45') + ';">' + r + '</span>').join('') +
+        '</div>' +
+      '</td>' +
+      // Base price — inline edit
+      '<td>' +
+        '<span id="baseDisp-' + p.id + '" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;font-family:\'Rajdhani\',sans-serif;border-bottom:1px dashed var(--accent);" onclick="startEditBase(\'' + p.id + '\')">₹' + Number(p.base_price||0).toLocaleString('en-IN') + '</span>' +
+        '<div id="baseEdit-' + p.id + '" style="display:none;align-items:center;gap:3px;">' +
+          '<input type="number" id="baseInput-' + p.id + '" value="' + (p.base_price||0) + '" style="width:62px;padding:3px 5px;font-size:12px;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:4px;outline:none;" onkeydown="if(event.key===\'Enter\')saveBase(\'' + p.id + '\');if(event.key===\'Escape\')cancelEditBase(\'' + p.id + '\')">' +
+          '<button onclick="saveBase(\'' + p.id + '\')" style="padding:2px 6px;background:var(--green);color:#000;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">✓</button>' +
+          '<button onclick="cancelEditBase(\'' + p.id + '\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
         '</div>' +
       '</td>' +
       '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')">✕</button></td>' +
@@ -541,26 +631,58 @@ function renderPlayers(players) {
     ).join('') + '</tbody></table>';
 }
 
-function startEditBase(id, currentVal) {
-  document.getElementById('baseDisp-' + id).style.display = 'none';
-  const editDiv = document.getElementById('baseEdit-' + id);
-  editDiv.style.display = 'flex';
-  const input = document.getElementById('baseInput-' + id);
-  input.focus(); input.select();
+// ── PLAYER INLINE EDIT ────────────────────────────────────
+function startEditPlayer(id, field) {
+  if (field === 'name') {
+    document.getElementById('pname-disp-' + id).style.display = 'none';
+    document.getElementById('pname-edit-' + id).style.display = 'block';
+    setTimeout(() => { const i = document.getElementById('pname-input-' + id); if(i){i.focus();i.select();} }, 10);
+  } else {
+    document.getElementById('prole-disp-' + id).style.display = 'none';
+    document.getElementById('prole-edit-' + id).style.display = 'flex';
+  }
 }
-
+function cancelEditPlayer(id, field) {
+  if (field === 'name') {
+    document.getElementById('pname-disp-' + id).style.display = 'inline';
+    document.getElementById('pname-edit-' + id).style.display = 'none';
+  } else {
+    document.getElementById('prole-disp-' + id).style.display = 'inline';
+    document.getElementById('prole-edit-' + id).style.display = 'none';
+  }
+}
+async function savePlayerField(id, field) {
+  const val = document.getElementById('pname-input-' + id)?.value?.trim();
+  if (!val) { cancelEditPlayer(id, field); return; }
+  await sb.from('players').update({ name: val }).eq('id', id);
+  document.getElementById('pname-disp-' + id).textContent = val;
+  cancelEditPlayer(id, field);
+}
+async function savePlayerRole(id, newRole) {
+  await sb.from('players').update({ role: newRole }).eq('id', id);
+  const d = document.getElementById('prole-disp-' + id);
+  d.textContent = newRole; d.className = 'role-badge role-' + newRole;
+  document.getElementById('prole-edit-' + id).querySelectorAll('span').forEach(s => {
+    s.style.opacity = s.textContent.trim() === newRole ? '1' : '0.45';
+  });
+  cancelEditPlayer(id, 'role');
+}
+function startEditBase(id) {
+  document.getElementById('baseDisp-' + id).style.display = 'none';
+  const d = document.getElementById('baseEdit-' + id);
+  d.style.display = 'flex';
+  setTimeout(() => { const i = document.getElementById('baseInput-' + id); if(i){i.focus();i.select();} }, 10);
+}
 function cancelEditBase(id) {
   document.getElementById('baseDisp-' + id).style.display = 'inline';
   document.getElementById('baseEdit-' + id).style.display = 'none';
 }
-
 async function saveBase(id) {
   const val = parseInt(document.getElementById('baseInput-' + id).value);
   if (isNaN(val) || val < 0) { cancelEditBase(id); return; }
   await sb.from('players').update({ base_price: val }).eq('id', id);
-  cancelEditBase(id);
   document.getElementById('baseDisp-' + id).textContent = '₹' + val.toLocaleString('en-IN');
-  document.getElementById('baseDisp-' + id).style.display = 'inline';
+  cancelEditBase(id);
 }
 
 async function addPlayer() {

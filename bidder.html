@@ -116,25 +116,33 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </head>
 <body>
 
+<!-- SCREEN 1: Mobile only (auction from URL) OR room code fallback -->
 <div class="screen active" id="screen1">
   <div class="logo">🏏 AuctionXI</div>
-  <div class="tagline">Live Bidding Portal</div>
-  <span class="input-label">Enter Your Team Code</span>
-  <input class="big-input" type="text" id="teamCodeInput" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')submitTeamCode()">
+  <div class="tagline">Captain Bidding Portal</div>
+  <div class="screen-title" id="screen1Title" style="font-size:18px;margin-bottom:4px;">Join Your Auction</div>
+  <div class="screen-sub" id="screen1Sub" style="margin-bottom:20px;">Enter your registered WhatsApp number to get an OTP</div>
+
+  <!-- Room code — only shown when no auction= in URL -->
+  <div id="roomCodeSection" style="display:none;width:100%;">
+    <span class="input-label">Room Code (from organizer)</span>
+    <input class="big-input" type="text" id="roomCodeInput" maxlength="6" placeholder="ABC123"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+      onkeydown="if(event.key==='Enter')document.getElementById('mobileInput').focus()">
+    <div style="height:12px;"></div>
+  </div>
+
+  <span class="input-label">Your Mobile Number (WhatsApp)</span>
+  <input class="normal-input" type="tel" id="mobileInput" maxlength="10" placeholder="10-digit mobile"
+    oninput="this.value=this.value.replace(/\D/g,'')"
+    onkeydown="if(event.key==='Enter')submitRoomAndMobile()">
+
   <div class="err-msg" id="codeErr"></div>
-  <button class="primary-btn" onclick="submitTeamCode()" id="codeBtn">Continue →</button>
+  <button class="primary-btn" onclick="submitRoomAndMobile()" id="codeBtn">Send OTP →</button>
 </div>
 
-<div class="screen" id="screen2">
-  <div class="logo">🏏 AuctionXI</div>
-  <div class="screen-title" id="teamNameDisplay">Your Team</div>
-  <div class="screen-sub">Enter captain's registered mobile number</div>
-  <span class="input-label">Mobile Number</span>
-  <input class="normal-input" type="tel" id="mobileInput" maxlength="10" placeholder="10-digit mobile" onkeydown="if(event.key==='Enter')submitMobile()">
-  <div class="err-msg" id="mobileErr"></div>
-  <button class="primary-btn" onclick="submitMobile()" id="mobileBtn">Send OTP →</button>
-  <button class="ghost-btn" onclick="showScreen(1)">← Back</button>
-</div>
+<!-- SCREEN 2: unused placeholder -->
+<div class="screen" id="screen2" style="display:none;"></div>
 
 <div class="screen" id="screen3">
   <div class="logo">🏏 AuctionXI</div>
@@ -260,32 +268,50 @@ let currentBids=[],allSales=[],allTeams=[],allPlayers=[];
 let soundMuted=false,timerInterval=null,lastPlayerId=null;
 let mySessionToken=null;
 
+// ── URL PARAMS ────────────────────────────────────────────
+const _params = new URLSearchParams(window.location.search);
+const _urlAuctionId = _params.get('auction');   // direct link: bidder.html?auction=UUID
+const _urlRoomCode  = _params.get('room');      // fallback:    bidder.html?room=ABC123
+
 // ── SESSION KEY ───────────────────────────────────────────
 const SESSION_KEY='auctionxi_bidder_session';
 
-// ── INIT — Check saved session first ─────────────────────
+// ── INIT ─────────────────────────────────────────────────
 (async()=>{
+  // 1. Try restoring saved session
   const saved=localStorage.getItem(SESSION_KEY);
   if(saved){
     try{
       const s=JSON.parse(saved);
       const{data:sess,error}=await sb.from('bidder_sessions')
         .select('*,teams(*,auctions(*))')
-        .eq('id',s.sessionId)
-        .eq('session_token',s.token)
-        .single();
+        .eq('id',s.sessionId).eq('session_token',s.token).single();
       if(!error&&sess&&sess.teams?.auctions?.status!=='ended'){
-        myTeam=sess.teams;
-        myAuction=sess.teams.auctions;
-        mySessionToken=s.token;
+        myTeam=sess.teams; myAuction=sess.teams.auctions; mySessionToken=s.token;
         await sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',s.sessionId);
-        enterBiddingApp(s.sessionId);
-        return;
+        enterBiddingApp(s.sessionId); return;
       }
-    }catch(e){ console.log('Session check failed, showing login'); }
+    }catch(e){}
     localStorage.removeItem(SESSION_KEY);
   }
-  // No valid session — show screen 1 (already active by default)
+
+  // 2. If auction ID in URL — pre-load auction, hide room code field
+  if(_urlAuctionId){
+    const{data}=await sb.from('auctions').select('*').eq('id',_urlAuctionId).single();
+    if(data){ myAuction=data; }
+    document.getElementById('roomCodeSection').style.display='none';
+    document.getElementById('screen1Sub').textContent = myAuction
+      ? 'Joining: ' + (myAuction.name||'') + ' — enter your registered WhatsApp number'
+      : 'Enter your registered WhatsApp number to get an OTP';
+  } else if(_urlRoomCode){
+    // Pre-fill room code if passed as param
+    document.getElementById('roomCodeInput').value = _urlRoomCode.toUpperCase();
+    document.getElementById('roomCodeSection').style.display='block';
+  } else {
+    // Show room code field as fallback
+    document.getElementById('roomCodeSection').style.display='block';
+    document.getElementById('screen1Sub').textContent = 'Enter the room code from your organizer and your registered mobile number';
+  }
 })();
 
 function showScreen(n){
@@ -298,57 +324,82 @@ function showScreen(n){
   target.classList.add('active');
 }
 
-async function submitTeamCode(){
-  const code=document.getElementById('teamCodeInput').value.trim().toUpperCase();
-  const errEl=document.getElementById('codeErr');const btn=document.getElementById('codeBtn');
-  if(code.length!==6){errEl.textContent='Enter a 6-character team code';return;}
-  btn.textContent='Checking...';btn.disabled=true;errEl.textContent='';
-  const{data,error}=await sb.from('teams').select('*,auctions(*)').eq('team_code',code).single();
-  if(error||!data){errEl.textContent='Team code not found.';btn.textContent='Continue →';btn.disabled=false;return;}
-  if(data.auctions?.status==='ended'){errEl.textContent='This auction has ended.';btn.textContent='Continue →';btn.disabled=false;return;}
-  myTeam=data;myAuction=data.auctions;
-  document.getElementById('teamNameDisplay').textContent=data.name;
-  btn.textContent='Continue →';btn.disabled=false;showScreen(2);
-}
+async function submitRoomAndMobile() {
+  const mobile = document.getElementById('mobileInput').value.trim();
+  const errEl = document.getElementById('codeErr');
+  const btn = document.getElementById('codeBtn');
 
-async function submitMobile(){
-  const mobile=document.getElementById('mobileInput').value.trim();
-  const errEl=document.getElementById('mobileErr');const btn=document.getElementById('mobileBtn');
-  if(mobile.length!==10||isNaN(mobile)){errEl.textContent='Enter valid 10-digit mobile';return;}
-  if(myTeam.captain_mobile&&myTeam.captain_mobile!==mobile){errEl.textContent='Mobile not registered for this team.';return;}
-  btn.textContent='Sending...';btn.disabled=true;errEl.textContent='';
-  currentOtp=Math.floor(100000+Math.random()*900000).toString();
-  const expiresAt=new Date(Date.now()+10*60*1000).toISOString();
-  await sb.from('otp_verifications').insert({mobile,team_code:myTeam.team_code,otp:currentOtp,expires_at:expiresAt});
+  if (mobile.length !== 10 || isNaN(mobile)) { errEl.textContent = 'Enter valid 10-digit mobile number'; return; }
+  btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
 
-  // Show SMS sending status
-  const smsBox=document.getElementById('smsStatusBox');
-  const smsTxt=document.getElementById('smsStatusText');
-  showScreen(3);
-  smsBox.style.display='block';
-  smsTxt.textContent='📱 Sending OTP via SMS...';
-  smsTxt.style.color='var(--blue)';
-  document.getElementById('otpSentTo').textContent='OTP sent to +91 '+mobile;
-
-  // Send via Fast2SMS
-  try {
-    const smsMsg = encodeURIComponent('Your AuctionXI OTP is: '+currentOtp+'. Valid for 10 minutes. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message='+smsMsg+'&flash=0&numbers='+mobile);
-    const json = await res.json();
-    if(json.return===true){
-      smsTxt.textContent='✅ OTP sent to +91 '+mobile+' via SMS';
-      smsTxt.style.color='var(--green)';
-    } else {
-      smsTxt.textContent='⚠️ SMS failed — check with your organizer for OTP';
-      smsTxt.style.color='var(--yellow)';
+  // Resolve auction — either pre-loaded from URL or from room code input
+  if (!myAuction) {
+    const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if (roomCode.length !== 6) {
+      errEl.textContent = 'Enter a valid 6-character room code';
+      btn.textContent = 'Send OTP →'; btn.disabled = false; return;
     }
-  } catch(e) {
-    smsTxt.textContent='⚠️ SMS service unavailable — contact your organizer';
-    smsTxt.style.color='var(--yellow)';
+    const { data: auctionData, error: aErr } = await sb.from('auctions').select('*').eq('room_code', roomCode).single();
+    if (aErr || !auctionData) {
+      errEl.textContent = 'Room code not found. Check with your organizer.';
+      btn.textContent = 'Send OTP →'; btn.disabled = false; return;
+    }
+    if (auctionData.status === 'ended') {
+      errEl.textContent = 'This auction has ended.';
+      btn.textContent = 'Send OTP →'; btn.disabled = false; return;
+    }
+    myAuction = auctionData;
   }
-  btn.textContent='Send OTP →';btn.disabled=false;
+
+  // Find team by captain mobile in this auction
+  const { data: teamData, error: tErr } = await sb.from('teams')
+    .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
+  if (tErr || !teamData) {
+    errEl.textContent = 'Mobile not registered for this auction. Check with your organizer.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false;
+    myAuction = _urlAuctionId ? myAuction : null; // reset only if from room code
+    return;
+  }
+
+  myTeam = { ...teamData };
+  btn.textContent = 'Send OTP →'; btn.disabled = false;
+  await sendOtpToMobile(mobile, teamData.name);
 }
-async function resendOtp(){if(document.getElementById('mobileInput').value)await submitMobile();}
+
+async function sendOtpToMobile(mobile, teamName) {
+  const errEl = document.getElementById('codeErr');
+  currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  await sb.from('otp_verifications').insert({
+    mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: expiresAt
+  });
+
+  // Update OTP screen
+  document.getElementById('otpSentTo').textContent = `OTP for ${teamName} · +91 ${mobile}`;
+  const smsBox = document.getElementById('smsStatusBox');
+  const smsTxt = document.getElementById('smsStatusText');
+  smsBox.style.display = 'block';
+  smsTxt.textContent = '📱 Sending OTP via SMS...';
+  smsTxt.style.color = 'var(--blue)';
+  showScreen(3);
+
+  // Send SMS
+  try {
+    const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const json = await res.json();
+    smsTxt.textContent = json.return === true ? '✅ OTP sent to +91 ' + mobile : '⚠️ SMS failed — check with organizer for OTP';
+    smsTxt.style.color = json.return === true ? 'var(--green)' : 'var(--yellow)';
+  } catch(e) {
+    smsTxt.textContent = '⚠️ SMS unavailable — contact your organizer';
+    smsTxt.style.color = 'var(--yellow)';
+  }
+}
+
+// Keep legacy functions as no-ops for safety
+async function submitTeamCode() { await submitRoomAndMobile(); }
+async function submitMobile() { /* merged into submitRoomAndMobile */ }
+async function resendOtp() { if (myTeam && myAuction) await sendOtpToMobile(document.getElementById('mobileInput').value.trim(), myTeam.name); }
 
 async function verifyOtp(){
   const entered=document.getElementById('otpInput').value.trim();
@@ -447,12 +498,25 @@ function subscribeRealtime(sessionId){
     .on('postgres_changes',{event:'*',schema:'public',table:'bidder_sessions',filter:`auction_id=eq.${myAuction.id}`},()=>renderLobbyStatus())
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'bidder_sessions',filter:`team_id=eq.${myTeam.id}`},()=>{
       localStorage.removeItem(SESSION_KEY);
-      alert('Your session was ended. Another device logged in with your team code.');
+      alert('Your session was ended. Another device logged in.');
       location.reload();
     })
     .subscribe();
   if(sessionId){
-    setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId),30000);
+    // Heartbeat — keep last_seen fresh every 25s
+    const hb = setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId), 25000);
+
+    // Mark offline immediately when tab/browser closes or hides
+    const markOffline = () => {
+      const old = new Date(Date.now() - 200000).toISOString();
+      sb.from('bidder_sessions').update({last_seen: old}).eq('id', sessionId);
+    };
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) markOffline();
+      else sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId);
+    });
+    window.addEventListener('beforeunload', markOffline);
+    window.addEventListener('pagehide', markOffline);
   }
 }
 
