@@ -256,14 +256,29 @@ select option{background:var(--surface2);}
 
     <!-- T-SHIRT SIZE -->
     <div class="form-card">
-      <div class="form-card-title">👕 T-Shirt Size *</div>
-      <div class="size-grid">
-        <div class="size-btn" id="size-XS" onclick="selectSize('XS')">XS</div>
-        <div class="size-btn" id="size-S" onclick="selectSize('S')">S</div>
-        <div class="size-btn" id="size-M" onclick="selectSize('M')">M</div>
-        <div class="size-btn" id="size-L" onclick="selectSize('L')">L</div>
-        <div class="size-btn" id="size-XL" onclick="selectSize('XL')">XL</div>
-        <div class="size-btn" id="size-XXL" onclick="selectSize('XXL')">XXL</div>
+      <div class="form-card-title">👕 T-Shirt Details *</div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>T-Shirt Size</label>
+        <div class="size-grid">
+          <div class="size-btn" id="size-XS" onclick="selectSize('XS')">XS</div>
+          <div class="size-btn" id="size-S" onclick="selectSize('S')">S</div>
+          <div class="size-btn" id="size-M" onclick="selectSize('M')">M</div>
+          <div class="size-btn" id="size-L" onclick="selectSize('L')">L</div>
+          <div class="size-btn" id="size-XL" onclick="selectSize('XL')">XL</div>
+          <div class="size-btn" id="size-XXL" onclick="selectSize('XXL')">XXL</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group">
+          <label>Name on T-Shirt</label>
+          <input type="text" id="tshirtName" placeholder="e.g. ZAKWAN" maxlength="12" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+          <span style="font-size:10px;color:var(--muted);">Max 12 characters, printed on back</span>
+        </div>
+        <div class="form-group">
+          <label>Jersey Number</label>
+          <input type="number" id="tshirtNumber" placeholder="e.g. 7" min="1" max="99">
+          <span style="font-size:10px;color:var(--muted);">Number printed on back</span>
+        </div>
       </div>
     </div>
 
@@ -479,6 +494,8 @@ async function submitRegistration(){
 
   // Insert registration
   const fee=isCaptain?(auction?.captain_fee||DEFAULT_CAPTAIN_FEE):(auction?.player_fee||DEFAULT_PLAYER_FEE);
+  const tshirtName=document.getElementById('tshirtName').value.trim()||null;
+  const tshirtNumber=document.getElementById('tshirtNumber').value.trim()||null;
   const{data:reg,error:regErr}=await sb.from('player_registrations').insert({
     auction_id:auctionId,
     name,mobile,
@@ -488,6 +505,8 @@ async function submitRegistration(){
     is_captain:isCaptain,
     captain_team_name:isCaptain?teamName:null,
     tshirt_size:selectedSize,
+    tshirt_name:tshirtName,
+    tshirt_number:tshirtNumber,
     registration_fee:fee,
     payment_status:'pending',
     registered_at:new Date().toISOString()
