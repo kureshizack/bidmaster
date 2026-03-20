@@ -559,31 +559,39 @@ function subscribeRealtime(sessionId){
 
 // ── LOBBY COUNTDOWN OVERLAY ───────────────────────────────
 let _lobbyCountdownInterval = null;
+let _currentLobbyTimestamp = null; // track which timestamp is currently running
 
 function handleLobbyCountdown(lobby_countdown_at) {
   const overlay = document.getElementById('lobbyOverlay');
+
   if (!lobby_countdown_at) {
-    // Countdown cleared — hide overlay
     if (_lobbyCountdownInterval) { clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null; }
+    _currentLobbyTimestamp = null;
     overlay.style.display = 'none';
     return;
   }
-  // Show overlay and start countdown
+
+  // If SAME timestamp already running — don't restart, let it tick
+  if (lobby_countdown_at === _currentLobbyTimestamp && _lobbyCountdownInterval) return;
+  _currentLobbyTimestamp = lobby_countdown_at;
+
+  // Show overlay
   overlay.style.display = 'flex';
   document.getElementById('lobbyOverlayAuction').textContent = myAuction.name || '';
   document.getElementById('lobbyOverlayMsg').textContent = '🎉 All teams are online!';
 
-  // Show team list
   if (allTeams.length) {
     document.getElementById('lobbyOverlayTeams').innerHTML = allTeams.map(t =>
       '<span style="font-size:12px;padding:4px 10px;border-radius:12px;font-weight:700;border:1px solid var(--green);color:var(--green);">✅ ' + t.name + '</span>'
     ).join('');
   }
 
-  if (_lobbyCountdownInterval) clearInterval(_lobbyCountdownInterval);
+  if (_lobbyCountdownInterval) { clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null; }
+
   _lobbyCountdownInterval = setInterval(() => {
     const elapsed = (Date.now() - new Date(lobby_countdown_at).getTime()) / 1000;
-    const remaining = Math.max(0, Math.round(60 - elapsed));
+    // Cap at 60 — handles clock skew between devices
+    const remaining = Math.min(60, Math.max(0, Math.round(60 - elapsed)));
     const numEl = document.getElementById('lobbyOverlayNum');
     const readyEl = document.getElementById('lobbyOverlayReady');
     const subEl = document.getElementById('lobbyOverlaySubMsg');
@@ -592,9 +600,9 @@ function handleLobbyCountdown(lobby_countdown_at) {
       numEl.style.display = 'none';
       subEl.style.display = 'none';
       readyEl.style.display = 'block';
-      playSound('bid');
     } else if (remaining === 0) {
       clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null;
+      _currentLobbyTimestamp = null;
       overlay.style.display = 'none';
     } else {
       numEl.textContent = remaining;

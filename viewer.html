@@ -476,12 +476,19 @@ function subscribeRealtime() {
 
 // ── VIEWER LOBBY COUNTDOWN ────────────────────────────────
 let _vLobbyInterval = null;
+let _vLobbyTimestamp = null;
+
 function handleViewerLobbyCountdown(lobby_countdown_at) {
   const overlay = document.getElementById('lobbyOverlay');
   if (!lobby_countdown_at) {
     if (_vLobbyInterval) { clearInterval(_vLobbyInterval); _vLobbyInterval = null; }
+    _vLobbyTimestamp = null;
     overlay.style.display = 'none'; return;
   }
+  // Same timestamp already running — don't restart
+  if (lobby_countdown_at === _vLobbyTimestamp && _vLobbyInterval) return;
+  _vLobbyTimestamp = lobby_countdown_at;
+
   overlay.style.display = 'flex';
   document.getElementById('vlobbyAuction').textContent = auction.name || '';
   if (teams.length) {
@@ -489,17 +496,19 @@ function handleViewerLobbyCountdown(lobby_countdown_at) {
       '<span style="font-size:12px;padding:4px 10px;border-radius:12px;font-weight:700;border:1px solid var(--green);color:var(--green);">✅ ' + t.name + '</span>'
     ).join('');
   }
-  if (_vLobbyInterval) clearInterval(_vLobbyInterval);
+  if (_vLobbyInterval) { clearInterval(_vLobbyInterval); _vLobbyInterval = null; }
   _vLobbyInterval = setInterval(() => {
     const elapsed = (Date.now() - new Date(lobby_countdown_at).getTime()) / 1000;
-    const remaining = Math.max(0, Math.round(60 - elapsed));
+    // Cap at 60 — handles clock skew between devices
+    const remaining = Math.min(60, Math.max(0, Math.round(60 - elapsed)));
     const numEl = document.getElementById('vlobbyNum');
     const readyEl = document.getElementById('vlobbyReady');
     const subEl = document.getElementById('vlobbySubMsg');
     if (remaining <= 2 && remaining > 0) {
       numEl.style.display = 'none'; subEl.style.display = 'none'; readyEl.style.display = 'block';
     } else if (remaining === 0) {
-      clearInterval(_vLobbyInterval); _vLobbyInterval = null; overlay.style.display = 'none';
+      clearInterval(_vLobbyInterval); _vLobbyInterval = null;
+      _vLobbyTimestamp = null; overlay.style.display = 'none';
     } else {
       numEl.textContent = remaining; numEl.style.display = 'block';
       subEl.style.display = 'block'; readyEl.style.display = 'none';
