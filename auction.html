@@ -730,7 +730,9 @@ function setBid(v) { document.getElementById('saleAmount').value = v; renderBidC
 // ── SOUNDS ────────────────────────────────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+document.addEventListener('click', () => { if(audioCtx?.state==='suspended') audioCtx.resume(); }, {passive:true});
+document.addEventListener('touchstart', () => { if(!audioCtx){audioCtx=new AudioCtx();} if(audioCtx.state==='suspended') audioCtx.resume(); }, {passive:true});
+function getAudio() { if (!audioCtx) audioCtx = new AudioCtx(); if(audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
 function playSound(type) {
   try {
     const ctx = getAudio();
