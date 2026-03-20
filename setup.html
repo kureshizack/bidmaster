@@ -1064,6 +1064,10 @@ async function loadRegisteredPlayers(filter = 'player') {
     }).join('');
   } else {
     // Player view — table with photo, name, role, size, fee status, import
+    // Store photo URLs in a map — safe way to pass URLs without breaking onclick HTML
+    window._regPhotoMap = {};
+    data.forEach(p => { window._regPhotoMap[p.id] = p.photo_url || null; });
+
     listEl.innerHTML = '<div style="overflow-x:auto;">' +
       '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
       '<thead><tr style="border-bottom:1px solid var(--border);">' +
@@ -1083,7 +1087,8 @@ async function loadRegisteredPlayers(filter = 'player') {
         '<td style="padding:6px 4px;color:' + (p.payment_status === 'paid' ? 'var(--green)' : 'var(--yellow)') + ';font-size:11px;">' + (p.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending') + '</td>' +
         '<td style="padding:6px 4px;">' + (p.imported_to_auction
           ? '<span style="color:var(--green);font-size:11px;">✅ Added</span>'
-          : '<button onclick="importOnePlayer(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.role||'BAT') + '\',\'' + p.photo_url + '\')" style="padding:4px 8px;background:var(--blue);color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add</button>') + '</td>' +
+          // Pass regId only — photo URL is looked up from _regPhotoMap safely
+          : '<button onclick="importOnePlayer(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.role||'BAT') + '\')" style="padding:4px 8px;background:var(--blue);color:#000;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add</button>') + '</td>' +
         '</tr>'
       ).join('') +
       '</tbody></table></div>' +
@@ -1114,11 +1119,13 @@ async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
   await loadRegisteredPlayers('captain');
 }
 
-async function importOnePlayer(regId, name, role, photoUrl) {
+async function importOnePlayer(regId, name, role) {
   const base = auction.base_price || 1000;
+  // Get photo URL from map — safe, avoids URL-in-onclick breakage
+  const photoUrl = (window._regPhotoMap && window._regPhotoMap[regId]) || null;
   const { error } = await sb.from('players').insert({
     auction_id: auctionId, name, role, base_price: base,
-    photo_url: photoUrl || null, star: false
+    photo_url: photoUrl, star: false
   });
   if (error) { alert('Error: ' + error.message); return; }
   await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
