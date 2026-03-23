@@ -129,7 +129,7 @@ select option{background:var(--surface2);}
 
   <!-- HEADER -->
   <div class="header">
-    <div class="logo">AUCTION<span>XI</span></div>
+    <div class="logo">CAPTAIN<span>XI</span></div>
     <div class="auction-name" id="auctionNameHeader">Loading...</div>
     <div class="header-title">JOIN THE<br><span>TOURNAMENT</span></div>
     <div class="header-sub">Register yourself to participate in the auction. Fill all details carefully.</div>
@@ -222,7 +222,14 @@ select option{background:var(--surface2);}
         <label>Mobile Number * (WhatsApp)</label>
         <input type="tel" id="playerMobile" placeholder="10-digit mobile" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
       </div>
-      <!-- Captain-only field -->
+      <!-- Captain-only: team dropdown (if teams exist) -->
+      <div class="form-group" id="teamSelectField" style="display:none;">
+        <label>Your Team * (select the team you own)</label>
+        <select id="captainTeamSelect" style="width:100%;padding:12px;background:var(--surface);border:2px solid var(--border);color:var(--text);border-radius:10px;font-size:14px;outline:none;">
+          <option value="">— Select your team —</option>
+        </select>
+      </div>
+      <!-- Captain-only: free text fallback (if no teams set up yet) -->
       <div class="form-group" id="teamNameField" style="display:none;">
         <label>Team Name * (your preferred team name)</label>
         <input type="text" id="captainTeamName" placeholder="e.g. Azad Warriors XI" maxlength="40">
@@ -349,14 +356,50 @@ const DEFAULT_CAPTAIN_FEE=2500;
   document.getElementById('auctionNameHeader').textContent=data.name+(data.league_name?' · '+data.league_name:'');
   document.getElementById('playerFeeLabel').textContent='₹'+playerFee.toLocaleString('en-IN');
   document.getElementById('captainFeeLabel').textContent='₹'+captainFee.toLocaleString('en-IN');
-  // Load stats
+
+  // Load registration stats
   const{data:regs}=await sb.from('player_registrations').select('id,is_captain').eq('auction_id',auctionId);
-  const players=(regs||[]).filter(r=>!r.is_captain).length;
-  const captains=(regs||[]).filter(r=>r.is_captain).length;
-  document.getElementById('regStats').innerHTML=
-    '<div class="reg-stat"><div class="reg-stat-num">'+players+'</div><div class="reg-stat-lbl">Players</div></div>'+
-    '<div class="reg-stat"><div class="reg-stat-num">'+captains+'</div><div class="reg-stat-lbl">Captains</div></div>'+
-    '<div class="reg-stat"><div class="reg-stat-num" style="color:var(--green);">OPEN</div><div class="reg-stat-lbl">Status</div></div>';
+  const playerCount=(regs||[]).filter(r=>!r.is_captain).length;
+  const captainCount=(regs||[]).filter(r=>r.is_captain).length;
+  const maxPlayers=data.max_players||999;
+  const spotsLeft=Math.max(0,maxPlayers-playerCount);
+  const isFull=playerCount>=maxPlayers;
+
+  // Block registration if full
+  if(isFull){
+    showError('Registration is full. All '+maxPlayers+' player spots have been taken.');
+    return;
+  }
+
+  // Build stats display
+  let statsHtml='';
+  if(data.show_player_count){
+    statsHtml+=
+      '<div class="reg-stat"><div class="reg-stat-num">'+playerCount+'</div><div class="reg-stat-lbl">Registered</div></div>'+
+      '<div class="reg-stat"><div class="reg-stat-num">'+spotsLeft+'</div><div class="reg-stat-lbl">Spots Left</div></div>'+
+      '<div class="reg-stat"><div class="reg-stat-num" style="color:var(--green);">'+maxPlayers+'</div><div class="reg-stat-lbl">Total Spots</div></div>';
+  } else {
+    statsHtml+=
+      '<div class="reg-stat"><div class="reg-stat-num">'+playerCount+'</div><div class="reg-stat-lbl">Players</div></div>'+
+      '<div class="reg-stat"><div class="reg-stat-num">'+captainCount+'</div><div class="reg-stat-lbl">Captains</div></div>'+
+      '<div class="reg-stat"><div class="reg-stat-num" style="color:var(--green);">OPEN</div><div class="reg-stat-lbl">Status</div></div>';
+  }
+  document.getElementById('regStats').innerHTML=statsHtml;
+
+  // Load teams for captain dropdown
+  const{data:teams}=await sb.from('teams').select('id,name').eq('auction_id',auctionId).order('name');
+  const teamSelect=document.getElementById('captainTeamSelect');
+  if(teams&&teams.length>0){
+    teamSelect.innerHTML='<option value="">— Select your team —</option>'+
+      teams.map(t=>'<option value="'+t.name+'">'+t.name+'</option>').join('');
+    document.getElementById('teamSelectField').style.display='block';
+    document.getElementById('teamNameField').style.display='none'; // hide free-text if teams exist
+  } else {
+    // No teams set up yet — show free text input instead
+    document.getElementById('teamSelectField').style.display='none';
+    document.getElementById('teamNameField').style.display='none'; // shown on captain select
+  }
+
   updateFeeDisplay('player');
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('regForm').style.display='block';
@@ -386,11 +429,14 @@ function selectRole(type){
     optC.className='role-opt active-captain';
     optP.className='role-opt';
     document.getElementById('captainFields').style.display='block';
-    document.getElementById('teamNameField').style.display='block';
+    // Show dropdown if teams loaded, else free text
+    const hasDropdown = document.getElementById('captainTeamSelect').options.length > 1;
+    document.getElementById('teamSelectField').style.display = hasDropdown ? 'block' : 'none';
+    document.getElementById('teamNameField').style.display = hasDropdown ? 'none' : 'block';
     document.getElementById('cricketCard').style.display='none';
-    document.getElementById('submitBtn').className='submit-btn submit-btn-captain';
-    document.getElementById('submitBtn').textContent='👑 Register as Captain';
-    document.getElementById('submitNote').textContent="As a captain, the organizer will set up your team account after payment confirmation";
+    document.getElementById('payNowBtn').className='submit-btn submit-btn-captain';
+    document.getElementById('payNowBtn').textContent='👑 Pay & Register as Captain';
+    document.getElementById('submitNote').textContent="As a captain, the organizer will activate your team after payment confirmation";
   }
   updateFeeDisplay(type);
 }
@@ -467,18 +513,39 @@ async function submitRegistration(){
   const mobile=document.getElementById('playerMobile').value.trim();
   const matches=document.getElementById('playerMatches').value;
   const isCaptain=selectedRoleType==='captain';
-  const teamName=isCaptain?document.getElementById('captainTeamName').value.trim():'';
+
+  // Get team name from dropdown (if exists) or text input
+  let teamName='';
+  if(isCaptain){
+    const sel=document.getElementById('captainTeamSelect');
+    const txt=document.getElementById('captainTeamName');
+    teamName=(sel.value.trim()||txt.value.trim());
+  }
   hideFormMsg();
 
   // ── VALIDATION ──────────────────────────────────────────
   if(!name){showFormMsg('⚠️ Enter your full name','error');return;}
   if(!mobile||mobile.length!==10){showFormMsg('⚠️ Enter valid 10-digit mobile number','error');return;}
-  if(isCaptain&&!teamName){showFormMsg('⚠️ Enter your preferred team name','error');return;}
+  if(isCaptain&&!teamName){showFormMsg('⚠️ Select or enter your team name','error');return;}
   if(!isCaptain&&!selectedCricketRole){showFormMsg('⚠️ Select your cricket role (Bat / Bowl / All-rounder / WK)','error');return;}
   if(!selectedSize){showFormMsg('⚠️ Select your T-shirt size','error');return;}
 
   const btn=document.getElementById('payNowBtn');
   btn.textContent='Checking...'; btn.disabled=true;
+
+  // ── LIVE LIMIT CHECK (re-check at submit time to prevent race condition) ──
+  if(!isCaptain){
+    const maxPlayers=auction?.max_players||999;
+    if(maxPlayers<999){
+      const{data:currentRegs}=await sb.from('player_registrations')
+        .select('id',{count:'exact',head:true}).eq('auction_id',auctionId).eq('is_captain',false);
+      const currentCount=currentRegs||0;
+      if(currentCount>=maxPlayers){
+        showFormMsg('❌ Sorry! All '+maxPlayers+' spots just got filled. Registration is now closed.','error');
+        btn.textContent='💳 Pay & Register'; btn.disabled=false; return;
+      }
+    }
+  }
 
   // ── DUPLICATE CHECK ─────────────────────────────────────
   const{data:existing}=await sb.from('player_registrations').select('id,is_captain').eq('auction_id',auctionId).eq('mobile',mobile).single();

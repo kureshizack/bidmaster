@@ -169,7 +169,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
     </div>
 
     <!-- SECTION 3: Registration Fees -->
-    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">💰 Registration Fees</div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">💰 Registration Fees & Limits</div>
     <div class="form-row">
       <div class="form-group">
         <label>Player Fee ₹</label>
@@ -180,8 +180,21 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
         <input type="number" id="newCaptainFee" placeholder="2500" value="2500" min="0">
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Max Players (registration limit)</label>
+        <input type="number" id="newMaxPlayers" placeholder="e.g. 40" value="40" min="1" max="500">
+      </div>
+      <div class="form-group">
+        <label>Show count on registration page?</label>
+        <select id="newShowPlayerCount">
+          <option value="yes">✅ Yes — show "X of Y registered"</option>
+          <option value="no">🔒 No — keep count hidden</option>
+        </select>
+      </div>
+    </div>
     <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
-      💡 Players pay online via the registration link. Captains pay more because they own a team. You collect all fees digitally once Razorpay is connected.
+      💡 Registration closes automatically once max players is reached. Toggle visibility to create urgency or keep it private.
     </div>
 
     <!-- SECTION 3b: Release Rules -->
@@ -367,6 +380,8 @@ async function createAuction() {
   const regOpen = document.getElementById('newRegOpen').value === 'yes';
   const playerFee = parseFloat(document.getElementById('newPlayerFee').value) || 500;
   const captainFee = parseFloat(document.getElementById('newCaptainFee').value) || 2500;
+  const maxPlayers = parseInt(document.getElementById('newMaxPlayers').value) || 40;
+  const showPlayerCount = document.getElementById('newShowPlayerCount').value === 'yes';
   const releaseAllowed = document.getElementById('newReleaseAllowed').value === 'yes';
   const releasePct = parseInt(document.getElementById('newReleasePct').value) || 50;
   const orgMobile = document.getElementById('newOrgMobile').value.trim();
@@ -408,6 +423,8 @@ async function createAuction() {
     registration_open: regOpen,
     player_fee: playerFee,
     captain_fee: captainFee,
+    max_players: maxPlayers,
+    show_player_count: showPlayerCount,
     release_allowed: releaseAllowed,
     release_pct: releasePct,
     organizer_mobile: orgMobile,
