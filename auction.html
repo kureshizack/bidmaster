@@ -309,7 +309,11 @@ input:focus,select:focus{border-color:var(--accent);}
 
 <!-- STRATEGY -->
 <div class="tab-content" id="tab-strategy">
-  <div class="panel" style="border-color:var(--accent);">
+  <!-- Live Strategy Panel — rendered by renderStrategy() -->
+  <div id="strategyLive"></div>
+
+  <!-- Static Playbook -->
+  <div class="panel" style="border-color:var(--accent);margin-top:12px;">
     <div class="panel-title">📖 Auction Playbook</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
       <div>
@@ -350,7 +354,6 @@ input:focus,select:focus{border-color:var(--accent);}
       </div>
     </div>
   </div>
-  <div id="strategyLive"></div>
 </div>
 
 <script>
@@ -1299,28 +1302,94 @@ function renderPlayers() {
 function renderStrategy() {
   const el = document.getElementById('strategyLive');
   if (!teams.length) { el.innerHTML = ''; return; }
-  const totalSold = sales.length;
+
+  const totalPlayers = players.length;
+  const soldCount = sales.length;
+  const unsoldCount = players.filter(p => p.unsold).length;
+  const remaining = totalPlayers - soldCount - unsoldCount;
+  const avgSalePrice = soldCount > 0
+    ? Math.round(sales.reduce((s, x) => s + Number(x.amount), 0) / soldCount)
+    : 0;
+
+  // Auction pace panel
+  const paceHtml = `<div class="panel" style="margin-bottom:12px;">
+    <div class="panel-title">📊 Auction Pace</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--green);">${soldCount}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Sold</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--blue);">${remaining}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Remaining</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--red);">${unsoldCount}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Unsold</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:8px;">
+        <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);">₹${fmt(avgSalePrice)}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">Avg Sale</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Rival analysis
   const rivalAnalysis = teams.map(t => {
-    const p = pct(t); const col = fundCol(p);
+    const p = pct(t);
+    const col = fundCol(p);
     const teamSales = sales.filter(s => s.team_id === t.id);
-    const sl = t.min_squad - teamSales.length;
+    const sl = Math.max(0, (t.min_squad || 11) - teamSales.length);
     const av = sl > 0 ? Math.floor(t.credits / sl) : 0;
     const rc = {BAT:0,BOWL:0,ALL:0,WK:0};
     teamSales.forEach(s => { const r = s.players?.role; if (rc[r] !== undefined) rc[r]++; });
     const weak = Object.entries(rc).filter(([r,c]) => c === 0).map(([r]) => r);
     const tight = sl > 2 && t.credits < av * sl * 0.7;
-    return { name:t.name, p, col, credits:t.credits, sl, av, tight, weak };
-  });
-  el.innerHTML = `<div class="panel">
-    <div class="panel-title">🔍 Rival Budget — Live</div>
-    ${rivalAnalysis.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <div style="width:110px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.name}</div>
-      <div style="flex:1;"><div style="background:var(--border);border-radius:2px;height:8px;overflow:hidden;"><div style="width:${r.p}%;height:100%;background:${r.col};border-radius:2px;"></div></div></div>
-      <span style="color:${r.col};width:60px;font-size:12px;">₹${Number(r.credits).toLocaleString('en-IN')}</span>
-      <span style="color:var(--muted);font-size:12px;width:50px;">${r.sl} slots</span>
-      ${r.tight ? '<span style="color:var(--red);font-size:11px;font-weight:700;">⚠ SQUEEZE</span>' : '<span style="font-size:11px;color:var(--green);">OK</span>'}
+    const desperate = sl > 0 && t.credits < (auction?.base_price || 1000) * sl * 1.2;
+    return { id:t.id, name:t.name, p, col, credits:t.credits, sl, av, tight, weak, desperate, bought:teamSales.length };
+  }).sort((a,b) => b.credits - a.credits);
+
+  const rivalHtml = `<div class="panel" style="margin-bottom:12px;">
+    <div class="panel-title">🔍 Live Rival Tracker</div>
+    ${rivalAnalysis.map(r => `
+    <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="width:120px;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.name}</div>
+        <div style="flex:1;background:var(--border);border-radius:3px;height:10px;overflow:hidden;">
+          <div style="width:${r.p}%;height:100%;background:${r.col};border-radius:3px;transition:width .5s;"></div>
+        </div>
+        <span style="color:${r.col};font-size:12px;font-weight:700;width:70px;text-align:right;">₹${Number(r.credits).toLocaleString('en-IN')}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-left:2px;">
+        <span style="font-size:10px;color:var(--muted);">${r.bought} bought · ${r.sl} slots left</span>
+        <span style="font-size:10px;color:var(--muted);">· avg budget/slot: <b style="color:var(--text);">₹${fmt(r.av)}</b></span>
+        ${r.tight ? '<span style="font-size:10px;background:rgba(239,68,68,0.15);color:var(--red);padding:1px 6px;border-radius:4px;font-weight:700;">⚠ SQUEEZE</span>' : ''}
+        ${r.desperate ? '<span style="font-size:10px;background:rgba(239,68,68,0.25);color:var(--red);padding:1px 6px;border-radius:4px;font-weight:700;">🚨 DESPERATE</span>' : ''}
+        ${r.weak.length ? '<span style="font-size:10px;background:rgba(245,158,11,0.12);color:var(--accent);padding:1px 6px;border-radius:4px;">Needs: ' + r.weak.join(', ') + '</span>' : ''}
+      </div>
     </div>`).join('')}
   </div>`;
+
+  // Role availability in remaining pool
+  const soldIds = new Set(sales.map(s => s.player_id));
+  const unsoldIds = new Set(players.filter(p => p.unsold).map(p => p.id));
+  const pool = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id));
+  const poolRoles = {BAT:0,BOWL:0,ALL:0,WK:0};
+  pool.forEach(p => { if (poolRoles[p.role] !== undefined) poolRoles[p.role]++; });
+  const roleCol = {BAT:'var(--blue)',BOWL:'var(--red)',ALL:'var(--green)',WK:'var(--yellow)'};
+  const poolHtml = pool.length > 0 ? `<div class="panel">
+    <div class="panel-title">🏊 Remaining Player Pool (${pool.length})</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      ${Object.entries(poolRoles).map(([role,count]) =>
+        `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:${roleCol[role]};">${count}</div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;">${role}</div>
+        </div>`
+      ).join('')}
+    </div>
+  </div>` : '';
+
+  el.innerHTML = paceHtml + rivalHtml + poolHtml;
 }
 
 // ── UTILS ─────────────────────────────────────────────────
