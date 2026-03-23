@@ -692,12 +692,14 @@ function renderBidApp(){
   // Timers — ALWAYS restart from DB timestamp (removed !timerInterval guard so it resets on every bid)
   if(stage==='going_once'&&state.going_once_at){
     const e=(Date.now()-new Date(state.going_once_at).getTime())/1000;
-    const r=Math.max(0,Math.round(30-e));
+    const total=myAuction?.going_once_secs||20;
+    const r=Math.max(0,Math.round(total-e));
     if(r>0)startTimerDisplay(r,'GOING ONCE','var(--yellow)');
     else stopTimerDisplay();
   }else if(stage==='going_twice'&&state.going_twice_at){
     const e=(Date.now()-new Date(state.going_twice_at).getTime())/1000;
-    const r=Math.max(0,Math.round(10-e));
+    const total=myAuction?.going_twice_secs||10;
+    const r=Math.max(0,Math.round(total-e));
     if(r>0)startTimerDisplay(r,'GOING TWICE','var(--red)');
     else stopTimerDisplay();
   }else{stopTimerDisplay();}

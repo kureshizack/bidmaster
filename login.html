@@ -101,6 +101,12 @@ input:focus{border-color:var(--gold);}
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════
+// 🚧 MAINTENANCE MODE — must match index.html
+const MAINTENANCE_MODE = false;
+// ══════════════════════════════════════════════════════
+if (MAINTENANCE_MODE) { window.location.replace('/maintenance.html'); }
+
 // ══════════════════════════════════════════════════════════
 // 🔧 DEV MODE — flip to false before going live
 const DEV_MODE = true;

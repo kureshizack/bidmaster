@@ -235,8 +235,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
     <!-- EDIT MODE (hidden by default) -->
     <div id="settingsEdit" style="display:none;">
-      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#fca5a5;">
-        ⚠️ Changing Credits/Team will only affect <b>new teams</b> added after this change. Existing teams keep their current credits.
+      <div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#93c5fd;">
+        ℹ️ All changes apply immediately — to the auction, all existing teams, and the registration page.
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
         <div>
@@ -254,6 +254,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <div>
           <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Min Squad Size</label>
           <input type="number" id="editMinSquad" placeholder="11" min="1" max="25" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Once (seconds)</label>
+          <input type="number" id="editGoingOnceSecs" placeholder="20" min="5" max="60" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Twice (seconds)</label>
+          <input type="number" id="editGoingTwiceSecs" placeholder="10" min="5" max="30" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         </div>
       </div>
       <div style="display:flex;gap:8px;">
@@ -438,11 +446,12 @@ function updateSettingsView(data) {
 }
 
 function editAuctionSettings() {
-  // Pre-fill inputs with current values
   document.getElementById('editCredits').value = auction.default_credits || 100000;
   document.getElementById('editBidStep').value = auction.bid_step || 1000;
   document.getElementById('editBasePrice').value = auction.base_price || 1000;
   document.getElementById('editMinSquad').value = auction.min_squad || 11;
+  document.getElementById('editGoingOnceSecs').value = auction.going_once_secs || 20;
+  document.getElementById('editGoingTwiceSecs').value = auction.going_twice_secs || 10;
   document.getElementById('settingsView').style.display = 'none';
   document.getElementById('settingsEdit').style.display = 'block';
   document.getElementById('editSettingsBtn').style.display = 'none';
@@ -460,6 +469,8 @@ async function saveAuctionSettings() {
   const bidStep = parseInt(document.getElementById('editBidStep').value);
   const basePrice = parseInt(document.getElementById('editBasePrice').value);
   const minSquad = parseInt(document.getElementById('editMinSquad').value);
+  const goingOnceSecs = parseInt(document.getElementById('editGoingOnceSecs').value) || 20;
+  const goingTwiceSecs = parseInt(document.getElementById('editGoingTwiceSecs').value) || 10;
   const msgEl = document.getElementById('settingsSaveMsg');
 
   if (!credits || credits < 1000) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Credits must be at least ₹1,000'; return; }
@@ -468,25 +479,32 @@ async function saveAuctionSettings() {
   if (!minSquad || minSquad < 1 || minSquad > 25) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Min squad must be 1–25'; return; }
 
   msgEl.style.color = 'var(--accent)'; msgEl.textContent = '⏳ Saving...';
+
   const { error } = await sb.from('auctions').update({
     default_credits: credits,
     bid_step: bidStep,
     base_price: basePrice,
-    min_squad: minSquad
+    min_squad: minSquad,
+    going_once_secs: goingOnceSecs,
+    going_twice_secs: goingTwiceSecs
   }).eq('id', auctionId);
-
   if (error) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ ' + error.message; return; }
 
-  // Update local auction object
-  auction.default_credits = credits;
-  auction.bid_step = bidStep;
-  auction.base_price = basePrice;
-  auction.min_squad = minSquad;
+  // Apply to all existing teams
+  await sb.from('teams').update({
+    start_credits: credits, credits,
+    bid_increment: bidStep, min_squad: minSquad
+  }).eq('auction_id', auctionId);
 
+  // Apply base price to all players
+  await sb.from('players').update({ base_price: basePrice }).eq('auction_id', auctionId);
+
+  auction = { ...auction, default_credits: credits, bid_step: bidStep, base_price: basePrice, min_squad: minSquad, going_once_secs: goingOnceSecs, going_twice_secs: goingTwiceSecs };
   updateSettingsView(auction);
   document.getElementById('basePriceHint').textContent = Number(basePrice).toLocaleString('en-IN');
   cancelAuctionSettings();
-  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ Settings saved!';
+  await loadTeams(); await loadPlayers();
+  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ Settings saved and applied everywhere!';
   setTimeout(() => msgEl.textContent = '', 3000);
 }
 

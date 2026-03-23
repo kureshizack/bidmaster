@@ -429,12 +429,14 @@ async function loadAll() {
     if (!stageTimer) {
       if (cs.stage === 'going_once' && cs.going_once_at) {
         const elapsed = (Date.now() - new Date(cs.going_once_at).getTime()) / 1000;
-        const remaining = Math.max(1, Math.round(30 - elapsed));
+        const total = auction?.going_once_secs || 20;
+        const remaining = Math.max(1, Math.round(total - elapsed));
         if (remaining > 0) runTimer(remaining, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
         else startGoingTwice();
       } else if (cs.stage === 'going_twice' && cs.going_twice_at) {
         const elapsed = (Date.now() - new Date(cs.going_twice_at).getTime()) / 1000;
-        const remaining = Math.max(1, Math.round(10 - elapsed));
+        const total = auction?.going_twice_secs || 10;
+        const remaining = Math.max(1, Math.round(total - elapsed));
         if (remaining > 0) runTimer(remaining, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
         else autoMarkUnsold();
       }
@@ -814,13 +816,15 @@ async function setStage(stage) {
 }
 
 function startGoingOnce() {
+  const secs = auction?.going_once_secs || 20;
   setStage('going_once');
-  runTimer(30, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
+  runTimer(secs, 'var(--yellow)', 'GOING ONCE', () => startGoingTwice());
 }
 
 function startGoingTwice() {
+  const secs = auction?.going_twice_secs || 10;
   setStage('going_twice');
-  runTimer(10, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
+  runTimer(secs, 'var(--red)', 'GOING TWICE', () => autoMarkUnsold());
 }
 
 function runTimer(seconds, color, label, onComplete) {

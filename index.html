@@ -1379,6 +1379,12 @@ footer {
 </footer>
 
 <script>
+// ══════════════════════════════════════════════════════
+// 🚧 MAINTENANCE MODE — set true to show coming-soon page
+const MAINTENANCE_MODE = false;
+// ══════════════════════════════════════════════════════
+if (MAINTENANCE_MODE) { window.location.replace('/maintenance.html'); }
+
 // ── TIMER DEMO ──
 let t = 28;
 setInterval(() => {

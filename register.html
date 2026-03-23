@@ -260,11 +260,11 @@ select option{background:var(--surface2);}
       </div>
     </div>
 
-    <!-- T-SHIRT SIZE -->
-    <div class="form-card">
-      <div class="form-card-title">👕 T-Shirt Details *</div>
+    <!-- T-SHIRT SIZE — shown only if organiser enabled custom_tshirt -->
+    <div id="tshirtCard" class="form-card" style="display:none;">
+      <div class="form-card-title">👕 T-Shirt Customization</div>
       <div class="form-group" style="margin-bottom:12px;">
-        <label>T-Shirt Size</label>
+        <label>T-Shirt Size *</label>
         <div class="size-grid">
           <div class="size-btn" id="size-XS" onclick="selectSize('XS')">XS</div>
           <div class="size-btn" id="size-S" onclick="selectSize('S')">S</div>
@@ -276,9 +276,9 @@ select option{background:var(--surface2);}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="form-group">
-          <label>Name on T-Shirt</label>
+          <label>Name on Jersey</label>
           <input type="text" id="tshirtName" placeholder="e.g. ZAKWAN" maxlength="12" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
-          <span style="font-size:10px;color:var(--muted);">Max 12 characters, printed on back</span>
+          <span style="font-size:10px;color:var(--muted);">Max 12 chars, printed on back</span>
         </div>
         <div class="form-group">
           <label>Jersey Number</label>
@@ -398,6 +398,11 @@ const DEFAULT_CAPTAIN_FEE=2500;
     // No teams set up yet — show free text input instead
     document.getElementById('teamSelectField').style.display='none';
     document.getElementById('teamNameField').style.display='none'; // shown on captain select
+  }
+
+  // Show tshirt section only if organiser enabled it
+  if(data.custom_tshirt){
+    document.getElementById('tshirtCard').style.display='block';
   }
 
   updateFeeDisplay('player');
@@ -528,7 +533,8 @@ async function submitRegistration(){
   if(!mobile||mobile.length!==10){showFormMsg('⚠️ Enter valid 10-digit mobile number','error');return;}
   if(isCaptain&&!teamName){showFormMsg('⚠️ Select or enter your team name','error');return;}
   if(!isCaptain&&!selectedCricketRole){showFormMsg('⚠️ Select your cricket role (Bat / Bowl / All-rounder / WK)','error');return;}
-  if(!selectedSize){showFormMsg('⚠️ Select your T-shirt size','error');return;}
+  const tshirtVisible = document.getElementById('tshirtCard').style.display !== 'none';
+  if(tshirtVisible && !selectedSize){showFormMsg('⚠️ Select your T-shirt size','error');return;}
 
   const btn=document.getElementById('payNowBtn');
   btn.textContent='Checking...'; btn.disabled=true;

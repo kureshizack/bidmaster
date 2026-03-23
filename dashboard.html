@@ -197,6 +197,21 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
       💡 Registration closes automatically once max players is reached. Toggle visibility to create urgency or keep it private.
     </div>
 
+    <!-- T-Shirt Customization -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">👕 T-Shirt Customization</div>
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>Custom T-Shirt for players?</label>
+        <select id="newCustomTshirt">
+          <option value="yes">✅ Yes — ask players for name, size & number</option>
+          <option value="no">🚫 No — skip t-shirt fields in registration</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
+      💡 If enabled, players will see Name on Jersey, Jersey Number, and T-Shirt Size fields during registration.
+    </div>
+
     <!-- SECTION 3b: Release Rules -->
     <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);">↩ Player Release Rules</div>
     <div class="form-row">
@@ -382,6 +397,7 @@ async function createAuction() {
   const captainFee = parseFloat(document.getElementById('newCaptainFee').value) || 2500;
   const maxPlayers = parseInt(document.getElementById('newMaxPlayers').value) || 40;
   const showPlayerCount = document.getElementById('newShowPlayerCount').value === 'yes';
+  const customTshirt = document.getElementById('newCustomTshirt').value === 'yes';
   const releaseAllowed = document.getElementById('newReleaseAllowed').value === 'yes';
   const releasePct = parseInt(document.getElementById('newReleasePct').value) || 50;
   const orgMobile = document.getElementById('newOrgMobile').value.trim();
@@ -425,6 +441,7 @@ async function createAuction() {
     captain_fee: captainFee,
     max_players: maxPlayers,
     show_player_count: showPlayerCount,
+    custom_tshirt: customTshirt,
     release_allowed: releaseAllowed,
     release_pct: releasePct,
     organizer_mobile: orgMobile,
