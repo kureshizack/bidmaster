@@ -1196,7 +1196,7 @@ function renderSales() {
   if (!sales.length) { tb.innerHTML = '<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:12px;">No sales yet</td></tr>'; return; }
   tb.innerHTML = sales.map((s, i) => {
     const over = s.players?.base_price && s.amount > s.players.base_price;
-    const certUrl = window.location.origin + '/bidmaster/certificate.html?sale=' + s.id;
+    const certUrl = window.location.origin + '/certificate.html?sale=' + s.id;
     return '<tr>' +
       '<td style="color:var(--muted);">' + (sales.length - i) + '</td>' +
       '<td><b>' + (s.players?.name || '-') + '</b></td>' +
@@ -1212,7 +1212,7 @@ function renderSales() {
 }
 
 function shareCertificate(saleId, playerName) {
-  const certUrl = window.location.origin + '/bidmaster/certificate.html?sale=' + saleId;
+  const certUrl = window.location.origin + '/certificate.html?sale=' + saleId;
   const msg = '🏏 *' + playerName + '* — View your auction certificate!\n\n' + certUrl + '\n\nPowered by CaptainXI 🏆';
   navigator.clipboard.writeText(msg).then(() => {
     showMsg('saleMsg', '🏅 Certificate link copied for ' + playerName + '! Paste on WhatsApp.', 'success');
@@ -1329,12 +1329,12 @@ function showMsg(id, txt, type) {
   if (type === 'success') setTimeout(() => el.innerHTML = '', 3000);
 }
 function copyViewerLink() {
-  const url = `${window.location.origin}/bidmaster/viewer.html?room=${auction?.room_code}`;
+  const url = `${window.location.origin}/viewer.html?room=${auction?.room_code}`;
   navigator.clipboard.writeText(url).then(() => alert(`Viewer link copied!\n\n${url}\n\nShare on WhatsApp with anyone who wants to watch live.`));
 }
 function copyBidderLinks() {
   if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
-  const base = `${window.location.origin}/bidmaster/bidder.html?auction=${auctionId}`;
+  const base = `${window.location.origin}/bidder.html?auction=${auctionId}`;
   let msg = `🏏 CaptainXI — Live Bidding\nAuction: ${auction.name}\n\n`;
   msg += `📱 Bidding Link (tap to open):\n${base}\n\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n`;

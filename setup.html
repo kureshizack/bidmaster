@@ -591,7 +591,7 @@ async function saveTeamField(id, field) {
 }
 
 function copyTeamAccess(roomCode, mobile, teamName, captainName) {
-  const msg = `🏏 *CaptainXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidmaster/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by CaptainXI 🏆`;
+  const msg = `🏏 *CaptainXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by CaptainXI 🏆`;
   navigator.clipboard.writeText(msg).then(() => alert('Access message copied!\nPaste on WhatsApp to the captain.'));
 }
 
@@ -1278,7 +1278,7 @@ async function launchAuction() {
 }
 
 function copyViewerLink() {
-  const url = `${window.location.origin}/bidmaster/viewer.html?room=${auction.room_code}`;
+  const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
   navigator.clipboard.writeText(url).then(() => {
     document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied! Share on WhatsApp.</span>';
     setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
@@ -1294,7 +1294,7 @@ const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';          // DLT Template ID
 
 async function initRegPortal() {
   if (!auctionId) return;
-  const regUrl = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
+  const regUrl = `${window.location.origin}/register.html?auction=${auctionId}`;
   document.getElementById('regLinkDisplay').textContent = regUrl;
   await loadRegPortalPreview();
 }
@@ -1316,7 +1316,7 @@ async function loadRegPortalPreview() {
 }
 
 function copyRegLink() {
-  const url = `${window.location.origin}/bidmaster/register.html?auction=${auctionId}`;
+  const url = `${window.location.origin}/register.html?auction=${auctionId}`;
   navigator.clipboard.writeText(url).then(() => {
     document.getElementById('smsMsg').style.color = 'var(--green)';
     document.getElementById('smsMsg').textContent = '✅ Registration link copied! Share with players on WhatsApp.';
@@ -1325,7 +1325,7 @@ function copyRegLink() {
 }
 
 function shareRegWhatsApp() {
-  const url = window.location.origin + '/bidmaster/register.html?auction=' + auctionId;
+  const url = window.location.origin + '/register.html?auction=' + auctionId;
   const playerFee = auction?.player_fee || 500;
   const captainFee = auction?.captain_fee || 2500;
   const msg = '🏏 *' + auction.name + '* — Player Registration Open!\n\n' +
@@ -1449,7 +1449,7 @@ async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
   // Mark as imported
   await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
   // Copy team code to clipboard
-  const msg = '🏏 *' + auction.name + '* — Captain Access\n\nTeam: *' + teamName + '*\nCaptain: ' + captainName + '\n\n🔑 Your Team Code: *' + teamCode + '*\n\n📱 Open bidder app: ' + window.location.origin + '/bidmaster/bidder.html\nEnter team code + your mobile to start bidding live!';
+  const msg = '🏏 *' + auction.name + '* — Captain Access\n\nTeam: *' + teamName + '*\nCaptain: ' + captainName + '\n\n🔑 Your Team Code: *' + teamCode + '*\n\n📱 Open bidder app: ' + window.location.origin + '/bidder.html\nEnter team code + your mobile to start bidding live!';
   await navigator.clipboard.writeText(msg);
   alert('✅ Team "' + teamName + '" created!\n\nTeam code + instructions copied to clipboard.\nPaste this on WhatsApp to the captain.');
   await loadTeams();
@@ -1527,7 +1527,7 @@ async function sendSMSToAll() {
     btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
     return;
   }
-  const viewerUrl = `${window.location.origin}/bidmaster/viewer.html?room=${auction.room_code}`;
+  const viewerUrl = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
 
   if (DEV_MODE) {
     // DEV MODE — just copy link, don't send SMS

@@ -422,7 +422,7 @@ async function createAuction() {
   // Save for success modal
   newlyCreatedAuctionId = data.id;
   newlyCreatedAuctionData = data;
-  newlyCreatedRegLink = `${window.location.origin}/bidmaster/register.html?auction=${data.id}`;
+  newlyCreatedRegLink = `${window.location.origin}/register.html?auction=${data.id}`;
 
   closeCreateModal();
   showSuccessModal(data, playerFee, captainFee);
@@ -487,7 +487,7 @@ function openAuction(id, status) {
 
 // ── SHARE ─────────────────────────────────────────────────
 function copyRoomLink(code) {
-  const url = `${window.location.origin}/bidmaster/viewer.html?room=${code}`;
+  const url = `${window.location.origin}/viewer.html?room=${code}`;
   navigator.clipboard.writeText(url).then(() => alert(`Link copied!\n\n${url}\n\nShare this with your team managers.`));
 }
 
