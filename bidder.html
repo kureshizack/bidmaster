@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AuctionXI — Live Bidding</title>
+<title>CaptainXI — Live Bidding</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -120,7 +120,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 <!-- SCREEN 1: Mobile only (auction from URL) OR room code fallback -->
 <div class="screen active" id="screen1">
-  <div class="logo">🏏 AuctionXI</div>
+  <div class="logo">🏏 CaptainXI</div>
   <div class="tagline">Captain Bidding Portal</div>
   <div class="screen-title" id="screen1Title" style="font-size:18px;margin-bottom:4px;">Join Your Auction</div>
   <div class="screen-sub" id="screen1Sub" style="margin-bottom:20px;">Enter your registered WhatsApp number to get an OTP</div>
@@ -147,7 +147,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 <div class="screen" id="screen2" style="display:none;"></div>
 
 <div class="screen" id="screen3">
-  <div class="logo">🏏 AuctionXI</div>
+  <div class="logo">🏏 CaptainXI</div>
   <div class="screen-title">Verify OTP</div>
   <div class="screen-sub" id="otpSentTo">OTP sent to your number</div>
   <!-- SMS status box — shown while sending -->
@@ -182,7 +182,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div style="position:sticky;top:0;z-index:100;">
     <div class="bid-header">
       <div>
-        <div class="bid-logo">🏏 AuctionXI</div>
+        <div class="bid-logo">🏏 CaptainXI</div>
         <div style="font-size:11px;color:var(--muted);" id="auctionNameHeader"></div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
@@ -286,6 +286,13 @@ const DEV_MODE = true;
 // When true:  OTP shows on screen, no SMS sent, unlimited auctions
 // When false: real SMS via Fast2SMS, plan limits enforced
 // ══════════════════════════════════════════════════════════
+
+// ── FAST2SMS CONFIG ──────────────────────────────────────
+// Get these from your Fast2SMS dashboard → DLT section
+const FAST2SMS_API_KEY  = 'YOUR_FAST2SMS_API_KEY';   // Your API key
+const FAST2SMS_SENDER   = 'AUCTNX';                   // Your 6-char DLT Sender ID
+const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';          // DLT Template ID for OTP
+// ════════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
@@ -300,7 +307,7 @@ const _urlAuctionId = _params.get('auction');   // direct link: bidder.html?auct
 const _urlRoomCode  = _params.get('room');      // fallback:    bidder.html?room=ABC123
 
 // ── SESSION KEY ───────────────────────────────────────────
-const SESSION_KEY='auctionxi_bidder_session';
+const SESSION_KEY='captainxi_bidder_session';
 
 // ── INIT ─────────────────────────────────────────────────
 (async()=>{
@@ -414,12 +421,13 @@ async function sendOtpToMobile(mobile, teamName) {
     return;
   }
 
-  // PRODUCTION — send real SMS
+  // PRODUCTION — send real SMS via DLT route
   smsTxt.textContent = '📱 Sending OTP via SMS...';
   smsTxt.style.color = 'var(--blue)';
   try {
-    const smsMsg = encodeURIComponent('Your AuctionXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const smsMsg = encodeURIComponent('Your CaptainXI OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
+    const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${smsMsg}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${mobile}`;
+    const res = await fetch(url);
     const json = await res.json();
     if (json.return === true) {
       smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;

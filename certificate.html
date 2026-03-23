@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player Certificate — AuctionXI</title>
+<title>Player Certificate — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -132,7 +132,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
         </div>
       </div>
       <div class="cert-rank" id="certRank" style="display:none;"></div>
-      <div class="cert-footer">auctionxi.in</div>
+      <div class="cert-footer">captainxi.in</div>
     </div>
 
     <button class="download-btn" onclick="downloadCard()">📥 Download Card</button>
@@ -230,7 +230,7 @@ function shareWhatsApp(){
   if(!saleData)return;
   const p=saleData.players;const t=saleData.teams;const a=saleData.auctions;
   const url=window.location.href;
-  const msg='🏏 *'+p?.name+' — Sold for ₹'+Number(saleData.amount).toLocaleString('en-IN')+'!*\n\nBought by *'+t?.name+'* in '+a?.name+'\n\n🔗 View Certificate: '+url+'\n\nPowered by AuctionXI 🏆';
+  const msg='🏏 *'+p?.name+' — Sold for ₹'+Number(saleData.amount).toLocaleString('en-IN')+'!*\n\nBought by *'+t?.name+'* in '+a?.name+'\n\n🔗 View Certificate: '+url+'\n\nPowered by CaptainXI 🏆';
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 </script>

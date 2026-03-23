@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — AuctionXI</title>
+<title>Dashboard — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -75,7 +75,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <body>
 
 <nav>
-  <div class="logo">🏏 AuctionXI</div>
+  <div class="logo">🏏 CaptainXI</div>
   <div class="nav-right">
     <span class="user-name" id="userName"></span>
     <div class="plan-badge free" id="planBadge">FREE</div>
@@ -431,7 +431,7 @@ async function createAuction() {
   // Send registration link to organizer via SMS (best effort)
   try {
     const smsMsg = encodeURIComponent(
-      '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by AuctionXI'
+      '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by CaptainXI'
     );
     await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + orgMobile);
   } catch(e) { /* silent fail */ }
@@ -466,7 +466,7 @@ function shareSuccessWhatsApp() {
     '\n👑 Register as *Captain* — ₹' + captainFee.toLocaleString('en-IN') +
     '\n\n🔗 Register here:\n' + newlyCreatedRegLink +
     '\n\nFor queries contact: ' + (d.organizer_mobile || '') +
-    '\n\nPowered by AuctionXI 🏏';
+    '\n\nPowered by CaptainXI 🏏';
   navigator.clipboard.writeText(msg).then(() => {
     const btn = event.target;
     btn.textContent = '✅ Copied!';

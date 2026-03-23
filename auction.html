@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Auction — AuctionXI</title>
+<title>Live Auction — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -117,7 +117,7 @@ input:focus,select:focus{border-color:var(--accent);}
 <body>
 
 <nav>
-  <div class="logo">🏏 AuctionXI</div>
+  <div class="logo">🏏 CaptainXI</div>
   <div class="live-badge">🔴 LIVE</div>
   <div class="room-pill" id="navRoomCode">------</div>
   <div class="nav-right">
@@ -1031,7 +1031,7 @@ function copyWhatsAppSummary() {
     unsoldList.forEach(p => master += `• ${p.name} (${p.role})\n`);
     master += `\n`;
   }
-  master += `━━━━━━━━━━━━━━━\nPowered by 🏏 AuctionXI`;
+  master += `━━━━━━━━━━━━━━━\nPowered by 🏏 CaptainXI`;
 
   // Also build individual team cards for each captain
   const teamCards = teams.map(t => {
@@ -1055,7 +1055,7 @@ function copyWhatsAppSummary() {
         }
       });
     } else { card += `No players bought\n`; }
-    card += `\nPowered by 🏏 AuctionXI`;
+    card += `\nPowered by 🏏 CaptainXI`;
     return { team: t.name, captain: t.captain_name, card };
   });
 
@@ -1213,7 +1213,7 @@ function renderSales() {
 
 function shareCertificate(saleId, playerName) {
   const certUrl = window.location.origin + '/bidmaster/certificate.html?sale=' + saleId;
-  const msg = '🏏 *' + playerName + '* — View your auction certificate!\n\n' + certUrl + '\n\nPowered by AuctionXI 🏆';
+  const msg = '🏏 *' + playerName + '* — View your auction certificate!\n\n' + certUrl + '\n\nPowered by CaptainXI 🏆';
   navigator.clipboard.writeText(msg).then(() => {
     showMsg('saleMsg', '🏅 Certificate link copied for ' + playerName + '! Paste on WhatsApp.', 'success');
   });
@@ -1335,7 +1335,7 @@ function copyViewerLink() {
 function copyBidderLinks() {
   if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
   const base = `${window.location.origin}/bidmaster/bidder.html?auction=${auctionId}`;
-  let msg = `🏏 AuctionXI — Live Bidding\nAuction: ${auction.name}\n\n`;
+  let msg = `🏏 CaptainXI — Live Bidding\nAuction: ${auction.name}\n\n`;
   msg += `📱 Bidding Link (tap to open):\n${base}\n\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n`;
   teams.forEach(t => {

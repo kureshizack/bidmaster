@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Tournament Registration — AuctionXI</title>
+<title>Tournament Registration — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -503,7 +503,7 @@ async function submitRegistration(){
       key: RAZORPAY_KEY,
       amount: fee * 100,           // Razorpay takes paise
       currency: 'INR',
-      name: auction.name || 'AuctionXI',
+      name: auction.name || 'CaptainXI',
       description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
       image: 'https://kureshizack.github.io/bidmaster/favicon.ico',
       prefill: {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auction Setup — AuctionXI</title>
+<title>Auction Setup — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -69,7 +69,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 <body>
 
 <nav>
-  <div class="logo">🏏 AuctionXI</div>
+  <div class="logo">🏏 CaptainXI</div>
   <div class="nav-sep">/</div>
   <div class="auction-title" id="navAuctionName">Loading...</div>
   <div class="nav-right">
@@ -399,8 +399,8 @@ async function testSMS() {
   }
   resultEl.style.color = 'var(--accent)'; resultEl.textContent = '⏳ Sending test SMS...';
   try {
-    const msg = encodeURIComponent('AuctionXI test SMS. If you got this, Fast2SMS is working! ✅');
-    const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=${msg}&flash=0&numbers=${mobile}`);
+    const msg = encodeURIComponent('CaptainXI test SMS. If you got this, Fast2SMS is working! ✅');
+    const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${msg}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${mobile}`);
     const json = await res.json();
     if (json.return === true) {
       resultEl.style.color = 'var(--green)';
@@ -591,7 +591,7 @@ async function saveTeamField(id, field) {
 }
 
 function copyTeamAccess(roomCode, mobile, teamName, captainName) {
-  const msg = `🏏 *AuctionXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidmaster/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by AuctionXI 🏆`;
+  const msg = `🏏 *CaptainXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidmaster/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by CaptainXI 🏆`;
   navigator.clipboard.writeText(msg).then(() => alert('Access message copied!\nPaste on WhatsApp to the captain.'));
 }
 
@@ -1286,7 +1286,11 @@ function copyViewerLink() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-const FAST2SMS_KEY = '7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73';
+// ── FAST2SMS CONFIG — fill these in before going live ─────
+const FAST2SMS_KEY      = 'YOUR_FAST2SMS_API_KEY';   // API key from fast2sms.com
+const FAST2SMS_SENDER   = 'AUCTNX';                   // 6-char DLT Sender ID
+const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';          // DLT Template ID
+// ──────────────────────────────────────────────────────────
 
 async function initRegPortal() {
   if (!auctionId) return;
@@ -1539,7 +1543,7 @@ async function sendSMSToAll() {
   let sent = 0, failed = 0;
   for (const player of players) {
     try {
-      const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=q&message=${encodeURIComponent(smsText)}&flash=0&numbers=${player.mobile}`);
+      const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${encodeURIComponent(smsText)}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${player.mobile}`);
       const json = await res.json();
       if (json.return === true) {
         await sb.from('player_registrations').update({ sms_sent: true, sms_sent_at: new Date().toISOString() }).eq('id', player.id);

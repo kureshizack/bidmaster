@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AuctionXI — Live Viewer</title>
+<title>CaptainXI — Live Viewer</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -121,7 +121,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 <!-- JOIN SCREEN -->
 <div id="joinScreen">
-  <div class="join-logo">🏏 AuctionXI</div>
+  <div class="join-logo">🏏 CaptainXI</div>
   <div class="join-tagline">Live Cricket Auction Viewer</div>
   <div class="join-label">Enter Room Code</div>
   <input class="room-input" type="text" id="roomInput" maxlength="6" placeholder="ABC123"
@@ -181,7 +181,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   </div>
   <!-- Header -->
   <div class="app-header">
-    <div class="app-logo">🏏 AuctionXI</div>
+    <div class="app-logo">🏏 CaptainXI</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="live-dot" id="liveStatus">LIVE</div>
       <div class="room-badge" id="appRoomCode"></div>
@@ -249,6 +249,12 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 // 🔧 DEV MODE — flip to false before going live
 const DEV_MODE = true;
 // ══════════════════════════════════════════════════════════
+
+// ── FAST2SMS CONFIG ──────────────────────────────────────
+const FAST2SMS_API_KEY  = 'YOUR_FAST2SMS_API_KEY';
+const FAST2SMS_SENDER   = 'AUCTNX';
+const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';
+// ════════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -356,8 +362,8 @@ async function sendViewerOtp() {
   // PRODUCTION — send real SMS
   statusTxt.textContent = '📱 Sending OTP...';
   try {
-    const smsMsg = encodeURIComponent('Your AuctionXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=7qKcFOCefdMUTVSDJr0Y9I3ulyoj5ivN4Axa8hLmzsGW26bQBkYEWXBs45dCPevVyA8rjNTSRbUowk73&route=q&message=' + smsMsg + '&flash=0&numbers=' + mobile);
+    const smsMsg = encodeURIComponent('Your CaptainXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
+    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=' + FAST2SMS_API_KEY + '&route=dlt&sender_id=' + FAST2SMS_SENDER + '&message=' + smsMsg + '&template_id=' + FAST2SMS_TMPL_ID + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
       statusTxt.textContent = '✅ OTP sent to +91 ' + mobile;
