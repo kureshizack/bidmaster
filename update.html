@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Update Registration — CaptainXI</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--border:#2a3a55;--gold:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(245,158,11,0.07) 0%,transparent 60%);}
+.page{max-width:480px;margin:0 auto;padding:24px 20px 80px;}
+.header{text-align:center;padding:28px 0 20px;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:4px;color:var(--gold);}
+.logo span{color:var(--text);}
+.auction-name{font-size:13px;color:var(--muted);margin-top:4px;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:2px;color:var(--text);line-height:1;margin-top:16px;}
+.header-title span{color:var(--gold);}
+.header-sub{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.6;}
+
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px;}
+.form-card-title{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;}
+.form-group{margin-bottom:14px;}
+.form-group:last-child{margin-bottom:0;}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px;}
+input,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-size:15px;outline:none;font-family:'Noto Sans',sans-serif;transition:border-color 0.2s;}
+input:focus,select:focus{border-color:var(--gold);}
+select option{background:var(--surface2);}
+
+/* PHOTO */
+.photo-area{text-align:center;margin-bottom:16px;}
+.photo-current{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);margin:0 auto 10px;display:block;}
+.photo-placeholder{width:100px;height:100px;border-radius:50%;border:3px dashed var(--border);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--surface2);}
+.photo-change-btn{display:inline-block;padding:8px 20px;background:rgba(245,158,11,0.12);border:1px solid var(--gold);color:var(--gold);border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden;}
+.photo-change-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* SIZE GRID */
+.size-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.size-btn{padding:10px 4px;border-radius:8px;border:1px solid var(--border);text-align:center;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:var(--muted);transition:all 0.2s;background:var(--surface2);}
+.size-btn:hover{border-color:var(--gold);}
+.size-btn.selected{background:rgba(245,158,11,0.15);border-color:var(--gold);color:var(--gold);}
+
+/* ROLE PILLS */
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.role-pill{padding:12px;border-radius:10px;border:2px solid var(--border);text-align:center;cursor:pointer;transition:all 0.2s;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;}
+.role-pill.selected-BAT{background:#1e3a5f;border-color:#93c5fd;color:#93c5fd;}
+.role-pill.selected-BOWL{background:#3f1515;border-color:#fca5a5;color:#fca5a5;}
+.role-pill.selected-ALL{background:#14391f;border-color:#86efac;color:#86efac;}
+.role-pill.selected-WK{background:#3d2608;border-color:#fcd34d;color:#fcd34d;}
+
+/* INFO BANNER */
+.info-banner{border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.info-banner-blue{background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.3);}
+.info-banner-gold{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);}
+.info-banner-green{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);}
+
+/* BUTTONS */
+.submit-btn{width:100%;padding:16px;border-radius:14px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:0.5px;transition:all 0.2s;background:var(--gold);color:#000;}
+.submit-btn:hover{background:#fbbf24;transform:translateY(-1px);}
+.submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+.lookup-btn{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;background:var(--blue);color:#000;transition:all .2s;}
+.lookup-btn:hover{filter:brightness(1.1);}
+
+.msg{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;margin-top:12px;}
+.msg-error{background:rgba(239,68,68,0.12);border:1px solid var(--red);color:#fca5a5;}
+.msg-success{background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;}
+
+.loading{text-align:center;padding:40px;color:var(--muted);}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{text-align:center;padding:20px;font-size:11px;color:var(--muted);margin-top:20px;}
+footer a{color:var(--gold);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">CAPTAIN<span>XI</span></div>
+    <div class="auction-name" id="auctionName">Loading...</div>
+    <div class="header-title">Update Your <span>Registration</span></div>
+    <div class="header-sub">Correct your details, re-upload photo, fix jersey info. Your spot is safe.</div>
+  </div>
+
+  <!-- STEP 1: MOBILE LOOKUP -->
+  <div id="lookupSection">
+    <div class="form-card">
+      <div class="form-card-title">🔍 Find Your Registration</div>
+      <div class="form-group">
+        <label>Your Mobile Number (used during registration)</label>
+        <input type="tel" id="lookupMobile" placeholder="Enter your 10-digit mobile" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')" autofocus>
+      </div>
+      <button class="lookup-btn" onclick="lookupRegistration()">🔍 Find My Registration</button>
+      <div id="lookupMsg"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: EDIT FORM (hidden until lookup succeeds) -->
+  <div id="editSection" style="display:none;">
+
+    <!-- Current status -->
+    <div class="info-banner info-banner-green" id="statusBanner">
+      <div style="font-size:28px;">✅</div>
+      <div>
+        <div style="font-weight:700;color:var(--green);" id="statusName">Player Name</div>
+        <div style="font-size:12px;color:var(--muted);" id="statusDetail">Registered as Player · Paid</div>
+      </div>
+    </div>
+
+    <!-- PHOTO -->
+    <div class="form-card">
+      <div class="form-card-title">📸 Your Photo</div>
+      <div class="photo-area">
+        <div id="photoDisplay"></div>
+        <div class="photo-change-btn" id="photoChangeBtn">
+          📷 Upload New Photo
+          <input type="file" accept="image/*" onchange="handleNewPhoto(event)">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">JPG or PNG · Max 2MB</div>
+        <div id="photoMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
+      </div>
+    </div>
+
+    <!-- PERSONAL INFO -->
+    <div class="form-card">
+      <div class="form-card-title">👤 Personal Details</div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="editName" placeholder="Your full name" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>Mobile Number</label>
+        <input type="tel" id="editMobile" disabled style="opacity:0.6;cursor:not-allowed;">
+        <span style="font-size:10px;color:var(--muted);">Mobile cannot be changed. Contact organizer if needed.</span>
+      </div>
+      <!-- Captain team name -->
+      <div class="form-group" id="editTeamField" style="display:none;">
+        <label>Team Name</label>
+        <input type="text" id="editTeamName" placeholder="Your team name" maxlength="40">
+      </div>
+    </div>
+
+    <!-- CRICKET DETAILS (for players only) -->
+    <div class="form-card" id="cricketEditCard">
+      <div class="form-card-title">🏏 Cricket Details</div>
+      <div class="form-group">
+        <label>Your Role *</label>
+        <div class="role-grid">
+          <div class="role-pill" id="erole-BAT" onclick="selectEditRole('BAT')">🏏 Batsman</div>
+          <div class="role-pill" id="erole-BOWL" onclick="selectEditRole('BOWL')">🎳 Bowler</div>
+          <div class="role-pill" id="erole-ALL" onclick="selectEditRole('ALL')">⚡ All-rounder</div>
+          <div class="role-pill" id="erole-WK" onclick="selectEditRole('WK')">🧤 Wicketkeeper</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T-SHIRT -->
+    <div class="form-card" id="tshirtEditCard" style="display:none;">
+      <div class="form-card-title">👕 T-Shirt Details</div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>T-Shirt Size</label>
+        <div class="size-grid">
+          <div class="size-btn" id="esize-XS" onclick="selectEditSize('XS')">XS</div>
+          <div class="size-btn" id="esize-S" onclick="selectEditSize('S')">S</div>
+          <div class="size-btn" id="esize-M" onclick="selectEditSize('M')">M</div>
+          <div class="size-btn" id="esize-L" onclick="selectEditSize('L')">L</div>
+          <div class="size-btn" id="esize-XL" onclick="selectEditSize('XL')">XL</div>
+          <div class="size-btn" id="esize-XXL" onclick="selectEditSize('XXL')">XXL</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group">
+          <label>Name on Jersey</label>
+          <input type="text" id="editJerseyName" placeholder="e.g. ZAKWAN" maxlength="12" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="form-group">
+          <label>Jersey Number</label>
+          <input type="number" id="editJerseyNumber" placeholder="e.g. 7" min="1" max="99">
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <button class="submit-btn" id="saveBtn" onclick="saveChanges()">💾 Save Changes</button>
+    <div id="saveMsg"></div>
+
+    <!-- SUCCESS -->
+    <div id="successScreen" style="display:none;text-align:center;padding:20px 0;">
+      <div style="font-size:64px;margin-bottom:12px;">🎉</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--green);letter-spacing:2px;">Updated!</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:8px;margin-bottom:20px;">Your registration has been updated successfully.</div>
+      <div class="info-banner info-banner-green" style="text-align:left;">
+        <div style="font-size:24px;">✅</div>
+        <div>
+          <div style="font-weight:700;color:var(--text);" id="successName"></div>
+          <div style="font-size:12px;color:var(--muted);" id="successDetail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Powered by <a href="https://captainxi.com">CaptainXI</a> 🏏
+  </footer>
+</div>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const params=new URLSearchParams(window.location.search);
+const auctionId=params.get('auction');
+
+let auctionData=null;
+let regData=null;
+let selectedRole=null;
+let selectedSize=null;
+let newPhotoFile=null;
+
+// ── INIT ─────────────────────────────────────────────────
+(async()=>{
+  if(!auctionId){
+    document.getElementById('lookupSection').innerHTML='<div class="form-card"><div style="text-align:center;color:var(--red);padding:20px;">❌ Invalid link. No auction ID found.</div></div>';
+    return;
+  }
+  const{data:auction}=await sb.from('auctions').select('id,name,league_name,custom_tshirt').eq('id',auctionId).single();
+  if(!auction){
+    document.getElementById('lookupSection').innerHTML='<div class="form-card"><div style="text-align:center;color:var(--red);padding:20px;">❌ Auction not found.</div></div>';
+    return;
+  }
+  auctionData=auction;
+  document.getElementById('auctionName').textContent=auction.name+(auction.league_name?' · '+auction.league_name:'');
+
+  // Auto-fill mobile if passed in URL
+  const mob=params.get('mobile');
+  if(mob){
+    document.getElementById('lookupMobile').value=mob;
+    lookupRegistration();
+  }
+})();
+
+// ── LOOKUP ───────────────────────────────────────────────
+async function lookupRegistration(){
+  const mobile=document.getElementById('lookupMobile').value.trim();
+  const msgEl=document.getElementById('lookupMsg');
+  if(!mobile||mobile.length!==10){
+    msgEl.innerHTML='<div class="msg msg-error">Enter your 10-digit mobile number</div>';return;
+  }
+  msgEl.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);">🔍 Searching...</div>';
+
+  const{data,error}=await sb.from('player_registrations')
+    .select('*').eq('auction_id',auctionId).eq('mobile',mobile).single();
+
+  if(error||!data){
+    msgEl.innerHTML='<div class="msg msg-error">No registration found with this mobile number for this tournament. Please check and try again.</div>';
+    return;
+  }
+
+  regData=data;
+  msgEl.innerHTML='';
+  showEditForm(data);
+}
+
+// ── SHOW EDIT FORM ───────────────────────────────────────
+function showEditForm(reg){
+  document.getElementById('lookupSection').style.display='none';
+  document.getElementById('editSection').style.display='block';
+
+  // Status banner
+  const isPaid=reg.payment_status==='paid';
+  const isCaptain=reg.is_captain;
+  document.getElementById('statusName').textContent=reg.name;
+  document.getElementById('statusDetail').textContent=
+    'Registered as '+(isCaptain?'Captain / Owner':'Player')+' · '+(isPaid?'✅ Paid':'⏳ Payment Pending');
+
+  // Photo
+  renderPhoto(reg.photo_url);
+
+  // Fields
+  document.getElementById('editName').value=reg.name||'';
+  document.getElementById('editMobile').value=reg.mobile||'';
+
+  // Captain fields
+  if(isCaptain){
+    document.getElementById('editTeamField').style.display='block';
+    document.getElementById('editTeamName').value=reg.captain_team_name||'';
+    document.getElementById('cricketEditCard').style.display='none';
+  }
+
+  // Role
+  if(reg.role){
+    selectEditRole(reg.role);
+  }
+
+  // T-shirt
+  if(auctionData?.custom_tshirt){
+    document.getElementById('tshirtEditCard').style.display='block';
+    if(reg.tshirt_size) selectEditSize(reg.tshirt_size);
+    document.getElementById('editJerseyName').value=reg.tshirt_name||'';
+    document.getElementById('editJerseyNumber').value=reg.tshirt_number||'';
+  }
+}
+
+function renderPhoto(url){
+  const el=document.getElementById('photoDisplay');
+  if(url){
+    el.innerHTML='<img src="'+freshPhotoUrl(url)+'" class="photo-current" onerror="this.outerHTML=\'<div class=photo-placeholder>📷</div>\'">';
+  } else {
+    el.innerHTML='<div class="photo-placeholder">📷</div>';
+  }
+}
+
+function freshPhotoUrl(storedUrl){
+  if(!storedUrl)return null;
+  try{
+    const marker='/object/public/player-photos/';
+    const idx=storedUrl.indexOf(marker);
+    if(idx===-1)return storedUrl;
+    const path=storedUrl.substring(idx+marker.length);
+    const{data}=sb.storage.from('player-photos').getPublicUrl(decodeURIComponent(path));
+    return data?.publicUrl||storedUrl;
+  }catch(e){return storedUrl;}
+}
+
+// ── PHOTO HANDLING ───────────────────────────────────────
+function handleNewPhoto(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(file.size>2*1024*1024){
+    document.getElementById('photoMsg').innerHTML='<span style="color:var(--red);">Photo must be under 2MB</span>';
+    return;
+  }
+  newPhotoFile=file;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    document.getElementById('photoDisplay').innerHTML=
+      '<img src="'+ev.target.result+'" class="photo-current">';
+    document.getElementById('photoMsg').innerHTML='<span style="color:var(--green);">✅ New photo selected — will be saved when you click Save</span>';
+    document.getElementById('photoChangeBtn').innerHTML='📷 Change Photo<input type="file" accept="image/*" onchange="handleNewPhoto(event)">';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── ROLE SELECTION ───────────────────────────────────────
+function selectEditRole(role){
+  selectedRole=role;
+  ['BAT','BOWL','ALL','WK'].forEach(r=>{
+    const el=document.getElementById('erole-'+r);
+    el.className='role-pill'+(r===role?' selected-'+r:'');
+  });
+}
+
+// ── SIZE SELECTION ───────────────────────────────────────
+function selectEditSize(size){
+  selectedSize=size;
+  ['XS','S','M','L','XL','XXL'].forEach(s=>{
+    const el=document.getElementById('esize-'+s);
+    el.className='size-btn'+(s===size?' selected':'');
+  });
+}
+
+// ── SAVE ─────────────────────────────────────────────────
+async function saveChanges(){
+  const btn=document.getElementById('saveBtn');
+  const msgEl=document.getElementById('saveMsg');
+  const name=document.getElementById('editName').value.trim();
+
+  if(!name){msgEl.innerHTML='<div class="msg msg-error">Name is required</div>';return;}
+
+  btn.disabled=true;btn.textContent='⏳ Saving...';
+  msgEl.innerHTML='';
+
+  // Upload new photo if selected
+  let photoUrl=regData.photo_url;
+  if(newPhotoFile){
+    const ext=newPhotoFile.name.split('.').pop().toLowerCase();
+    const path=auctionId+'/'+regData.mobile+'.'+ext;
+    const{error:upErr}=await sb.storage.from('player-photos').upload(path,newPhotoFile,{upsert:true});
+    if(!upErr){
+      const{data:urlData}=sb.storage.from('player-photos').getPublicUrl(path);
+      photoUrl=urlData.publicUrl;
+    } else {
+      msgEl.innerHTML='<div class="msg msg-error">Photo upload failed: '+upErr.message+'. Other changes will still be saved.</div>';
+    }
+  }
+
+  // Build update object
+  const updates={
+    name:name,
+    photo_url:photoUrl,
+    role:selectedRole||regData.role,
+    tshirt_size:selectedSize||regData.tshirt_size,
+    tshirt_name:document.getElementById('editJerseyName').value.trim()||null,
+    tshirt_number:document.getElementById('editJerseyNumber').value.trim()||null,
+  };
+
+  // Captain team name
+  if(regData.is_captain){
+    updates.captain_team_name=document.getElementById('editTeamName').value.trim()||null;
+  }
+
+  const{error}=await sb.from('player_registrations').update(updates).eq('id',regData.id);
+  if(error){
+    msgEl.innerHTML='<div class="msg msg-error">Save failed: '+error.message+'</div>';
+    btn.disabled=false;btn.textContent='💾 Save Changes';return;
+  }
+
+  // Also update the players table if this player was already imported
+  const{data:importedPlayer}=await sb.from('players')
+    .select('id').eq('auction_id',auctionId).eq('mobile',regData.mobile).single();
+  if(importedPlayer){
+    const playerUpdates={name:name, photo_url:photoUrl};
+    if(selectedRole&&!regData.is_captain) playerUpdates.role=selectedRole;
+    await sb.from('players').update(playerUpdates).eq('id',importedPlayer.id);
+  }
+
+  // Show success
+  btn.style.display='none';
+  msgEl.innerHTML='';
+  document.querySelectorAll('.form-card').forEach(c=>c.style.display='none');
+  document.getElementById('statusBanner').style.display='none';
+  const successEl=document.getElementById('successScreen');
+  successEl.style.display='block';
+  document.getElementById('successName').textContent=name;
+  document.getElementById('successDetail').textContent=
+    (regData.is_captain?'Captain':'Player')+' · '+(selectedRole||regData.role)+
+    (selectedSize?' · Size: '+selectedSize:'')+
+    (photoUrl?' · Photo ✅':' · No photo');
+}
+</script>
+</body>
+</html>

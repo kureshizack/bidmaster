@@ -83,7 +83,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 <div class="container">
 
   <div class="two-col">
-    <!-- LEFT: TEAMS -->
+    <!-- LEFT: TEAMS + SETTINGS -->
     <div>
       <div class="panel">
         <div class="panel-title">👥 Add Team</div>
@@ -112,6 +112,72 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         <div class="panel-title">👥 Teams (<span id="teamCount">0</span>)</div>
         <div id="teamsList"><p style="color:var(--muted);font-size:13px;">No teams yet.</p></div>
       </div>
+
+      <!-- AUCTION SETTINGS (moved inside left column) -->
+      <div class="panel" style="border-color:var(--accent);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="panel-title" style="margin-bottom:0;">⚙️ Auction Settings</div>
+          <div id="settingsBtns" style="display:flex;gap:6px;">
+            <button onclick="editAuctionSettings()" id="editSettingsBtn" style="padding:4px 12px;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);border-radius:5px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✏️ Edit</button>
+          </div>
+        </div>
+        <!-- VIEW MODE -->
+        <div id="settingsView" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBidStep">—</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Bid Step ₹</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBasePrice">—</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Base Price ₹</div>
+          </div>
+          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoMinSquad">—</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
+          </div>
+        </div>
+        <!-- EDIT MODE (hidden by default) -->
+        <div id="settingsEdit" style="display:none;">
+          <div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#93c5fd;">
+            ℹ️ All changes apply immediately — to the auction, all existing teams, and the registration page.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Credits / Team ₹</label>
+              <input type="number" id="editCredits" placeholder="100000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Bid Step ₹</label>
+              <input type="number" id="editBidStep" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Base Price ₹</label>
+              <input type="number" id="editBasePrice" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Min Squad Size</label>
+              <input type="number" id="editMinSquad" placeholder="11" min="1" max="25" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Once (seconds)</label>
+              <input type="number" id="editGoingOnceSecs" placeholder="20" min="5" max="60" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Twice (seconds)</label>
+              <input type="number" id="editGoingTwiceSecs" placeholder="10" min="5" max="30" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="saveAuctionSettings()" style="flex:1;padding:9px;background:var(--accent);color:#000;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">💾 Save Settings</button>
+            <button onclick="cancelAuctionSettings()" style="padding:9px 16px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Cancel</button>
+          </div>
+          <div id="settingsSaveMsg" style="margin-top:8px;min-height:18px;"></div>
+        </div>
+      </div>
     </div>
 
     <!-- RIGHT: PLAYERS -->
@@ -126,12 +192,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
           </div>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-sm" style="background:var(--blue);color:#000;font-weight:700;" onclick="importFromRegistrations()">⬇ Import All</button>
-            <button class="btn btn-sm" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid var(--green);font-weight:700;" onclick="syncPhotosFromRegistrations()" title="Fix missing photos for already-imported players">🖼 Sync Photos</button>
           </div>
         </div>
         <div id="regPortalPreview" style="font-size:12px;color:var(--muted);">Loading registered players...</div>
-        <div id="syncPhotoMsg" style="font-size:12px;margin-top:6px;min-height:14px;"></div>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px;">Base price is auto-set from auction settings. Photos are imported automatically.</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">Base price is auto-set from auction settings. Photos sync automatically.</p>
       </div>
 
       <!-- Add Player Manually -->
@@ -206,74 +270,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
   </div>
 
-  <!-- AUCTION SETTINGS (editable) -->
-  <div class="panel" style="border-color:var(--accent);margin-bottom:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div class="panel-title" style="margin-bottom:0;">⚙️ Auction Settings</div>
-      <div id="settingsBtns" style="display:flex;gap:6px;">
-        <button onclick="editAuctionSettings()" id="editSettingsBtn" style="padding:4px 12px;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);border-radius:5px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✏️ Edit</button>
-      </div>
-    </div>
-
-    <!-- VIEW MODE -->
-    <div id="settingsView" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
-      </div>
-      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBidStep">—</div>
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Bid Step ₹</div>
-      </div>
-      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBasePrice">—</div>
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Base Price ₹</div>
-      </div>
-      <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-        <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoMinSquad">—</div>
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
-      </div>
-    </div>
-
-    <!-- EDIT MODE (hidden by default) -->
-    <div id="settingsEdit" style="display:none;">
-      <div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#93c5fd;">
-        ℹ️ All changes apply immediately — to the auction, all existing teams, and the registration page.
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Credits / Team ₹</label>
-          <input type="number" id="editCredits" placeholder="100000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Bid Step ₹</label>
-          <input type="number" id="editBidStep" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Base Price ₹</label>
-          <input type="number" id="editBasePrice" placeholder="1000" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Min Squad Size</label>
-          <input type="number" id="editMinSquad" placeholder="11" min="1" max="25" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Once (seconds)</label>
-          <input type="number" id="editGoingOnceSecs" placeholder="20" min="5" max="60" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Twice (seconds)</label>
-          <input type="number" id="editGoingTwiceSecs" placeholder="10" min="5" max="30" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="saveAuctionSettings()" style="flex:1;padding:9px;background:var(--accent);color:#000;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">💾 Save Settings</button>
-        <button onclick="cancelAuctionSettings()" style="padding:9px 16px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Cancel</button>
-      </div>
-      <div id="settingsSaveMsg" style="margin-top:8px;min-height:18px;"></div>
-    </div>
-  </div>
-
   <!-- DEV: QUICK TEST FILL — hidden in production -->
   <div class="panel" id="devQuickFillPanel" style="display:none;border-color:#6b21a8;margin-bottom:16px;background:rgba(107,33,168,0.05);">
     <div class="panel-title" style="color:#c084fc;">🧪 Quick Test Fill — Dev Only</div>
@@ -305,9 +301,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
     <!-- Link -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:var(--accent);word-break:break-all;margin-bottom:10px;" id="regLinkDisplay">Loading...</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-      <button class="btn btn-ghost btn-sm" onclick="copyRegLink()">📋 Copy Link</button>
-      <button class="btn btn-ghost btn-sm" onclick="shareRegWhatsApp()">📱 Share on WhatsApp</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <button class="btn btn-sm" onclick="copyRegLink()">📋 Copy Link</button>
+      <button class="btn btn-sm" onclick="shareRegWhatsApp()">📱 Share on WhatsApp</button>
+      <button class="btn btn-sm" onclick="copyUpdateLink()" style="background:rgba(34,197,94,0.12);color:var(--green);border:1px solid var(--green);">🔄 Copy Update Link</button>
+      <button class="btn btn-sm" onclick="shareUpdateWhatsApp()" style="background:rgba(34,197,94,0.12);color:var(--green);border:1px solid var(--green);">📱 Send Update Link</button>
     </div>
 
     <!-- Stats bar -->
@@ -826,6 +824,37 @@ async function syncPhotosFromRegistrations() {
 async function loadPlayers() {
   const { data } = await sb.from('players').select('*').eq('auction_id', auctionId).order('name');
   renderPlayers(data || []);
+  // Auto-sync photos from registrations (silent background task)
+  autoSyncPhotos(data || []);
+}
+
+// Silently sync missing photos from registrations — runs every loadPlayers
+async function autoSyncPhotos(players) {
+  const noPhoto = players.filter(p => !p.photo_url);
+  if (!noPhoto.length) return;
+  const { data: regs } = await sb.from('player_registrations')
+    .select('name, mobile, photo_url').eq('auction_id', auctionId);
+  if (!regs?.length) return;
+  const byMobile = {}, byName = {};
+  regs.forEach(r => {
+    if (r.photo_url) {
+      if (r.mobile) byMobile[r.mobile] = freshPhotoUrl(r.photo_url);
+      byName[r.name.toLowerCase().trim()] = freshPhotoUrl(r.photo_url);
+    }
+  });
+  let updated = 0;
+  for (const player of noPhoto) {
+    const photoUrl = (player.mobile && byMobile[player.mobile]) || byName[player.name.toLowerCase().trim()];
+    if (photoUrl) {
+      await sb.from('players').update({ photo_url: photoUrl }).eq('id', player.id);
+      updated++;
+    }
+  }
+  if (updated > 0) {
+    // Re-render with synced photos
+    const { data: fresh } = await sb.from('players').select('*').eq('auction_id', auctionId).order('name');
+    renderPlayers(fresh || []);
+  }
 }
 
 function normalizeRole(r) {
@@ -1376,6 +1405,30 @@ function shareRegWhatsApp() {
     btn.textContent = '✅ Copied! Paste on WhatsApp';
     btn.style.color = 'var(--green)';
     setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 3000);
+  });
+}
+
+function copyUpdateLink() {
+  const url = window.location.origin + '/update.html?auction=' + auctionId;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.querySelector('[onclick="copyUpdateLink()"]');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '🔄 Copy Update Link', 2000);
+  });
+}
+
+function shareUpdateWhatsApp() {
+  const url = window.location.origin + '/update.html?auction=' + auctionId;
+  const msg = '🔄 *' + auction.name + '* — Update Your Registration\n\n' +
+    'If you need to correct your name, photo, role, or jersey details, use this link:\n\n' +
+    '🔗 ' + url + '\n\n' +
+    'Enter your mobile number to find and update your registration.\n\n' +
+    '📸 *Please re-upload your photo if it was missing during registration!*\n\n' +
+    'Powered by CaptainXI 🏏';
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.querySelector('[onclick="shareUpdateWhatsApp()"]');
+    btn.textContent = '✅ Copied! Paste on WhatsApp';
+    setTimeout(() => btn.textContent = '📱 Send Update Link', 2000);
   });
 }
 
