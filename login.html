@@ -186,10 +186,18 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let _loginEmail = ''; // stores resolved email for OTP step
 let _resendInterval = null;
 
+// Redirect support — if ?redirect=upgrade, go there after login
+function getRedirectUrl(){
+  const p=new URLSearchParams(window.location.search);
+  const r=p.get('redirect');
+  if(r==='upgrade')return 'upgrade.html'+(p.get('plan')?'?plan='+p.get('plan'):'');
+  return 'dashboard.html';
+}
+
 // Auto-redirect if already logged in
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
-  if(session) window.location.href='dashboard.html';
+  if(session) window.location.href=getRedirectUrl();
 })();
 
 // ── TAB SWITCH ────────────────────────────────────────
@@ -319,7 +327,7 @@ async function verifyLoginOtp(){
     btn.textContent = 'Verify & Login →'; btn.disabled = false; return;
   }
   clearResendTimer();
-  window.location.href = 'dashboard.html';
+  window.location.href = getRedirectUrl();
 }
 
 // ── SIGNUP ────────────────────────────────────────────
@@ -393,7 +401,7 @@ async function verifySignupOtp(){
     sessionStorage.removeItem('pending_signup');
   }
   clearResendTimer();
-  window.location.href = 'dashboard.html';
+  window.location.href = getRedirectUrl();
 }
 </script>
 </body>

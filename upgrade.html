@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upgrade Plan — CaptainXI</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+:root{
+  --bg:#080c14;--surface:#111827;--surface2:#1a2235;--surface3:#232f45;
+  --border:#2a3a55;--accent:#f59e0b;--accent2:#fbbf24;
+  --text:#f0f4ff;--muted:#7a8faa;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(245,158,11,0.06) 0%,transparent 60%);}
+
+/* NAV */
+nav{padding:16px 28px;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(8,12,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);text-decoration:none;letter-spacing:2px;}
+.logo span{color:var(--text);}
+.nav-back{color:var(--muted);text-decoration:none;font-size:13px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;transition:color .2s;}
+.nav-back:hover{color:var(--accent);}
+
+/* CONTAINER */
+.container{max-width:1100px;margin:0 auto;padding:40px 20px 80px;}
+
+/* CURRENT PLAN BANNER */
+.current-plan-banner{
+  background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);
+  border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:36px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.cp-left{display:flex;align-items:center;gap:14px;}
+.cp-icon{width:48px;height:48px;background:var(--surface3);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.cp-icon.paid-icon{border-color:var(--accent);background:rgba(245,158,11,0.08);}
+.cp-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+.cp-name{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px;}
+.cp-name.is-free{color:var(--muted);}
+.cp-name.is-paid{color:var(--accent);}
+.cp-limits{font-size:12px;color:var(--muted);}
+.cp-right{display:flex;gap:10px;align-items:center;}
+.cp-usage{text-align:right;font-size:12px;color:var(--muted);}
+.cp-usage strong{color:var(--text);font-size:14px;}
+
+/* HEADING */
+.page-heading{text-align:center;margin-bottom:8px;}
+.page-heading h1{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:3px;color:var(--text);}
+.page-heading p{color:var(--muted);font-size:15px;max-width:500px;margin:8px auto 0;}
+.page-tag{display:inline-block;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--accent);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:20px;margin-bottom:12px;}
+
+/* TOGGLE */
+.billing-toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin:28px 0 32px;font-size:14px;font-weight:600;}
+.toggle-switch{width:52px;height:28px;background:var(--surface3);border:1px solid var(--border);border-radius:14px;cursor:pointer;position:relative;transition:all .2s;}
+.toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:var(--muted);border-radius:50%;transition:all .2s;}
+.toggle-switch.active{background:rgba(245,158,11,0.2);border-color:var(--accent);}
+.toggle-switch.active::after{left:27px;background:var(--accent);}
+.toggle-label{cursor:pointer;user-select:none;}
+.toggle-label.active{color:var(--accent);}
+.save-badge{font-size:11px;background:rgba(34,197,94,0.15);color:var(--green);padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:0.5px;}
+
+/* PLANS GRID */
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;}
+@media(max-width:1000px){.plans-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.plans-grid{grid-template-columns:1fr;}}
+
+/* PLAN CARD */
+.plan-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:24px 20px;position:relative;transition:all .25s;display:flex;flex-direction:column;}
+.plan-card:hover{border-color:rgba(245,158,11,0.3);transform:translateY(-3px);}
+.plan-card.featured{border-color:var(--accent);background:linear-gradient(180deg,rgba(245,158,11,0.06) 0%,var(--surface) 40%);transform:scale(1.02);}
+.plan-card.featured:hover{transform:scale(1.04) translateY(-3px);}
+.plan-card.current-plan{border-color:var(--green);box-shadow:0 0 0 1px var(--green);}
+.plan-card.current-plan::before{content:'CURRENT';position:absolute;top:-10px;right:16px;background:var(--green);color:#000;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:2px 10px;border-radius:4px;font-family:'Rajdhani',sans-serif;}
+.popular-badge{position:absolute;top:-10px;left:16px;background:var(--accent);color:#000;font-size:10px;font-weight:800;letter-spacing:1.5px;padding:2px 10px;border-radius:4px;font-family:'Rajdhani',sans-serif;}
+.plan-icon{font-size:28px;margin-bottom:10px;}
+.plan-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:var(--text);line-height:1;}
+.plan-tagline{font-size:12px;color:var(--muted);margin:4px 0 16px;}
+.plan-price{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--accent);line-height:1;letter-spacing:1px;}
+.plan-price.free-price{color:var(--muted);}
+.plan-price-sub{font-size:12px;color:var(--muted);margin:4px 0 16px;min-height:18px;}
+.plan-divider{border:none;border-top:1px solid var(--border);margin:12px 0 14px;}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:8px;flex:1;margin-bottom:20px;}
+.plan-features li{font-size:13px;color:#c0cfe0;display:flex;gap:8px;line-height:1.4;}
+.plan-features li .icon{flex-shrink:0;font-size:14px;}
+.plan-features li.disabled{color:var(--border);}
+
+/* PLAN BUTTONS */
+.plan-btn{
+  width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;
+  transition:all .2s;text-align:center;display:block;text-decoration:none;}
+.plan-btn-gold{background:var(--accent);color:#000;}
+.plan-btn-gold:hover{background:var(--accent2);transform:translateY(-1px);}
+.plan-btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.plan-btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.plan-btn-current{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid var(--green);cursor:default;}
+.plan-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* FEATURE COMPARISON TABLE */
+.compare-section{margin-top:40px;}
+.compare-section h2{font-family:'Rajdhani',sans-serif;font-size:22px;text-align:center;margin-bottom:20px;color:var(--text);}
+.compare-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;font-size:13px;}
+.compare-table th{background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:12px 10px;border-bottom:1px solid var(--border);text-align:center;}
+.compare-table th:first-child{text-align:left;padding-left:16px;}
+.compare-table th.highlight-col{color:var(--accent);}
+.compare-table td{padding:10px;text-align:center;border-bottom:1px solid rgba(42,58,85,0.5);}
+.compare-table td:first-child{text-align:left;padding-left:16px;color:#c0cfe0;font-weight:500;}
+.compare-table tr:last-child td{border-bottom:none;}
+.compare-table .check-yes{color:var(--green);font-weight:700;}
+.compare-table .check-no{color:var(--border);}
+@media(max-width:600px){.compare-table{font-size:11px;}.compare-table th,.compare-table td{padding:8px 6px;}}
+
+/* PAYMENT PROCESSING OVERLAY */
+.payment-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;align-items:center;justify-content:center;}
+.payment-overlay.open{display:flex;}
+.payment-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center;max-width:400px;width:90%;margin:16px;}
+.payment-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.payment-success{display:none;}
+.payment-success .success-icon{font-size:56px;margin-bottom:12px;}
+.payment-success h3{font-family:'Rajdhani',sans-serif;font-size:24px;color:var(--green);margin-bottom:8px;}
+
+/* FAQ */
+.faq-section{margin-top:48px;}
+.faq-section h2{font-family:'Rajdhani',sans-serif;font-size:22px;text-align:center;margin-bottom:20px;}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;}
+.faq-item:hover{border-color:rgba(245,158,11,0.3);}
+.faq-q{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+.faq-a{font-size:13px;color:var(--muted);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .3s ease,margin .3s;}
+.faq-item.open .faq-a{max-height:200px;margin-top:10px;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);}
+.faq-arrow{transition:transform .2s;color:var(--muted);}
+
+footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);margin-top:60px;}
+footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">CAPTAIN<span>XI</span></a>
+  <a href="dashboard.html" class="nav-back">← Back to Dashboard</a>
+</nav>
+
+<div class="container">
+
+  <!-- CURRENT PLAN BANNER -->
+  <div class="current-plan-banner" id="currentPlanBanner" style="display:none;">
+    <div class="cp-left">
+      <div class="cp-icon" id="cpIcon">🏏</div>
+      <div>
+        <div class="cp-label">Your Current Plan</div>
+        <div class="cp-name is-free" id="cpName">Gully (Free)</div>
+        <div class="cp-limits" id="cpLimits">3 teams · 18 players · 3 auctions</div>
+      </div>
+    </div>
+    <div class="cp-right">
+      <div class="cp-usage" id="cpUsage"></div>
+    </div>
+  </div>
+
+  <!-- HEADING -->
+  <div class="page-heading">
+    <div class="page-tag">Choose Your Plan</div>
+    <h1>Scale Your Tournament</h1>
+    <p>Pick a plan that matches your ambition. Upgrade or downgrade anytime.</p>
+  </div>
+
+  <!-- BILLING TOGGLE -->
+  <div class="billing-toggle">
+    <span class="toggle-label active" id="lblPerAuction" onclick="setBilling('per_auction')">Per Auction</span>
+    <div class="toggle-switch" id="billingToggle" onclick="toggleBilling()"></div>
+    <span class="toggle-label" id="lblAnnual" onclick="setBilling('annual')">Annual</span>
+    <span class="save-badge" id="saveBadge" style="display:none;">SAVE UP TO 40%</span>
+  </div>
+
+  <!-- PLANS -->
+  <div class="plans-grid" id="plansGrid">
+    <!-- Rendered by JS -->
+  </div>
+
+  <!-- FEATURE COMPARISON -->
+  <div class="compare-section">
+    <h2>📊 Full Feature Comparison</h2>
+    <div style="overflow-x:auto;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Gully</th>
+          <th class="highlight-col">Club</th>
+          <th>District</th>
+          <th>National</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Max Teams</td><td>3</td><td>8</td><td>14</td><td>32</td></tr>
+        <tr><td>Max Players</td><td>18</td><td>60</td><td>120</td><td>500</td></tr>
+        <tr><td>Auctions</td><td>3 total</td><td>Per plan</td><td>Per plan</td><td>Unlimited</td></tr>
+        <tr><td>Live Auction Arena</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Bidder Panel (Mobile)</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Viewer Screen</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Player Registration Portal</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Razorpay Fee Collection</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Player Photo Upload</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Player Certificates</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>SMS Viewer Link</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Remove Watermark</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Custom Branding</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>PDF Auction Report</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Priority Support</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Dedicated Support</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
+        <tr><td>Match Management</td><td colspan="4" style="color:var(--muted);font-style:italic;">Coming Soon — All Plans</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-section">
+    <h2>❓ Frequently Asked Questions</h2>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Can I upgrade mid-tournament?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a">Yes! Your upgrade takes effect immediately. Any extra team/player limits unlock right away for your current and future auctions.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What happens when my plan expires?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a">Your existing auctions and data remain accessible. You just can't create new auctions beyond free plan limits until you renew.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is the payment secure?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a">All payments are processed by Razorpay — India's most trusted payment gateway. We support UPI, cards, net banking, and wallets. We never store your card details.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Can I get a refund?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a">Per-auction plans are non-refundable once activated. Annual plans can be refunded within 7 days if no auction has been created on the plan. Contact support@captainxi.com.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Do players or captains need to pay for CaptainXI?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a">No. CaptainXI is a tool for organisers. Players pay registration fees set by you (the organiser), not to CaptainXI. Our plans are only for the organiser running the auction.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PAYMENT PROCESSING OVERLAY -->
+<div class="payment-overlay" id="paymentOverlay">
+  <div class="payment-box">
+    <div id="paymentProcessing">
+      <div class="payment-spinner"></div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px;">Processing Payment...</div>
+      <div style="font-size:13px;color:var(--muted);">Please do not close this page.</div>
+    </div>
+    <div class="payment-success" id="paymentSuccess">
+      <div class="success-icon">🎉</div>
+      <h3>Plan Upgraded!</h3>
+      <div style="font-size:15px;color:var(--text);margin-bottom:4px;" id="successPlanName">Club Plan</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;" id="successPlanDetail">8 teams · 60 players · Per auction</div>
+      <button onclick="window.location.href='dashboard.html'" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;cursor:pointer;">🚀 Go to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © 2026 CaptainXI · Built for Indian Cricket
+  <br><br>
+  <a href="privacy.html">Privacy</a>
+  <a href="terms.html">Terms</a>
+  <a href="index.html">Home</a>
+</footer>
+
+<script>
+// ── SUPABASE ─────────────────────────────────────────────
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// ── RAZORPAY ─────────────────────────────────────────────
+// ⚠️ REPLACE WITH YOUR LIVE KEY: rzp_live_XXXXXXXXXX
+const RAZORPAY_KEY='rzp_test_STUcgypHogaB2s';
+
+let currentUser=null;
+let userProfile=null;
+let billingMode='per_auction'; // or 'annual'
+
+// ── PLAN DEFINITIONS ─────────────────────────────────────
+const PLANS={
+  gully:{
+    id:'gully',name:'Gully',icon:'🏏',tagline:'Perfect to get started',
+    price_per:0,price_annual:0,
+    teams:3,players:18,auctions:'3 total',
+    features:['Live Auction Arena','Bidder Panel (Mobile)','Viewer Screen','Player Registration Portal','3 teams · 18 players'],
+    locked:['Razorpay Fees','Player Photos','Certificates','SMS Links','Custom Branding'],
+    badge:'"Powered by CaptainXI" watermark',
+    btnText:'Current — Free',btnClass:'plan-btn-current',isFree:true
+  },
+  club:{
+    id:'club',name:'Club',icon:'🏆',tagline:'For your mohalla tournament',
+    price_per:499,price_annual:2499,
+    teams:8,players:60,auctions:'Per plan',
+    annual_auctions:'6 auctions/year',
+    features:['Everything in Gully','8 teams · 60 players','Razorpay Fee Collection','Player Photo Upload','Player Certificates','SMS Viewer Link','No Watermark'],
+    locked:['Custom Branding','PDF Report'],
+    popular:true,
+    per_unit:'per auction · ₹62/team',
+    annual_unit:'per year · ₹416/auction',
+    annual_save:'Save ₹495 vs per-auction'
+  },
+  district:{
+    id:'district',name:'District',icon:'🏟️',tagline:'Serious leagues & clubs',
+    price_per:999,price_annual:4999,
+    teams:14,players:120,auctions:'Per plan',
+    annual_auctions:'12 auctions/year',
+    features:['Everything in Club','14 teams · 120 players','Custom Branding','PDF Auction Report','Priority Support'],
+    locked:[],
+    per_unit:'per auction · ₹71/team',
+    annual_unit:'per year · ₹416/auction',
+    annual_save:'Save ₹6,989 vs per-auction'
+  },
+  national:{
+    id:'national',name:'National',icon:'🇮🇳',tagline:'City-level & corporate',
+    price_per:1999,price_annual:9999,
+    teams:32,players:500,auctions:'Per plan',
+    annual_auctions:'Unlimited',
+    features:['Everything in District','32 teams · 500 players','Unlimited Auctions','Dedicated Support','Early Access to New Features'],
+    locked:[],
+    per_unit:'per auction',
+    annual_unit:'per year · unlimited',
+    annual_save:'Best value for serious organisers'
+  }
+};
+
+const PLAN_TIERS=['gully','club','district','national'];
+
+// ── INIT ─────────────────────────────────────────────────
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){
+    const urlPlan=new URLSearchParams(window.location.search).get('plan');
+    window.location.href='login.html?redirect=upgrade'+(urlPlan?'&plan='+urlPlan:'');
+    return;
+  }
+  currentUser=session.user;
+  const{data:profile}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  userProfile=profile;
+
+  // Check URL param for preselected plan
+  const urlPlan=new URLSearchParams(window.location.search).get('plan');
+  const urlBilling=new URLSearchParams(window.location.search).get('billing');
+  if(urlBilling==='annual'){setBilling('annual');}
+
+  await loadUsage();
+  renderCurrentPlan();
+  renderPlans();
+
+  // If plan was passed in URL and it's a paid plan, auto-scroll to it
+  if(urlPlan&&urlPlan!=='gully'){
+    setTimeout(()=>{
+      const el=document.getElementById('card-'+urlPlan);
+      if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.animation='pulse 0.6s ease';}
+    },300);
+  }
+})();
+
+let auctionCount=0;
+async function loadUsage(){
+  const{count}=await sb.from('auctions').select('*',{count:'exact',head:true}).eq('owner_id',currentUser.id);
+  auctionCount=count||0;
+}
+
+function getCurrentPlanTier(){
+  const plan=userProfile?.plan;
+  if(!plan||plan==='free'||plan==='gully')return 'gully';
+  if(plan==='paid'||plan==='club')return 'club';
+  if(plan==='district')return 'district';
+  if(plan==='national')return 'national';
+  return 'gully';
+}
+
+function renderCurrentPlan(){
+  const tier=getCurrentPlanTier();
+  const p=PLANS[tier];
+  const banner=document.getElementById('currentPlanBanner');
+  const cpIcon=document.getElementById('cpIcon');
+  const cpName=document.getElementById('cpName');
+  const cpLimits=document.getElementById('cpLimits');
+  const cpUsage=document.getElementById('cpUsage');
+
+  cpIcon.textContent=p.icon;
+  cpName.textContent=p.name+(p.isFree?' (Free)':'');
+  cpName.className='cp-name '+(p.isFree?'is-free':'is-paid');
+  if(!p.isFree){cpIcon.classList.add('paid-icon');}
+  cpLimits.textContent=p.teams+' teams · '+p.players+' players';
+  cpUsage.innerHTML='<strong>'+auctionCount+'</strong> auctions created';
+  banner.style.display='flex';
+}
+
+function renderPlans(){
+  const grid=document.getElementById('plansGrid');
+  const currentTier=getCurrentPlanTier();
+  const currentIdx=PLAN_TIERS.indexOf(currentTier);
+
+  grid.innerHTML=PLAN_TIERS.map((key,idx)=>{
+    const p=PLANS[key];
+    const isCurrent=key===currentTier;
+    const isDowngrade=idx<currentIdx;
+    const isUpgrade=idx>currentIdx;
+
+    let priceText,subText;
+    if(p.isFree){
+      priceText='FREE';subText='Forever';
+    } else if(billingMode==='annual'){
+      priceText='₹'+p.price_annual.toLocaleString('en-IN');
+      subText=p.annual_unit;
+    } else {
+      priceText='₹'+p.price_per.toLocaleString('en-IN');
+      subText=p.per_unit;
+    }
+
+    let btnHtml;
+    if(isCurrent){
+      btnHtml=`<div class="plan-btn plan-btn-current">✓ Current Plan</div>`;
+    } else if(isDowngrade){
+      btnHtml=`<div class="plan-btn plan-btn-outline" style="opacity:0.5;cursor:not-allowed;">Downgrade</div>`;
+    } else if(p.isFree){
+      btnHtml=`<a href="login.html" class="plan-btn plan-btn-outline">Start Free →</a>`;
+    } else {
+      btnHtml=`<button class="plan-btn plan-btn-gold" onclick="startPayment('${key}')">Upgrade to ${p.name} →</button>`;
+    }
+
+    return `
+      <div class="plan-card ${p.popular?'featured':''} ${isCurrent?'current-plan':''}" id="card-${key}">
+        ${p.popular?'<div class="popular-badge">MOST POPULAR</div>':''}
+        <div class="plan-icon">${p.icon}</div>
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-tagline">${p.tagline}</div>
+        <div class="plan-price ${p.isFree?'free-price':''}">${priceText}</div>
+        <div class="plan-price-sub">${subText}${(!p.isFree&&billingMode==='annual')?'<br><span style="color:var(--green);font-weight:700;font-size:11px;">'+p.annual_save+'</span>':''}</div>
+        <hr class="plan-divider">
+        <ul class="plan-features">
+          ${(p.features||[]).map(f=>'<li><span class="icon">✅</span> '+f+'</li>').join('')}
+          ${(p.locked||[]).map(f=>'<li class="disabled"><span class="icon">🔒</span> '+f+'</li>').join('')}
+        </ul>
+        ${btnHtml}
+        ${p.badge?'<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">'+p.badge+'</div>':''}
+      </div>`;
+  }).join('');
+}
+
+// ── BILLING TOGGLE ───────────────────────────────────────
+function toggleBilling(){
+  setBilling(billingMode==='per_auction'?'annual':'per_auction');
+}
+function setBilling(mode){
+  billingMode=mode;
+  const tog=document.getElementById('billingToggle');
+  const lblP=document.getElementById('lblPerAuction');
+  const lblA=document.getElementById('lblAnnual');
+  const badge=document.getElementById('saveBadge');
+  if(mode==='annual'){
+    tog.classList.add('active');
+    lblP.classList.remove('active');lblA.classList.add('active');
+    badge.style.display='inline';
+  } else {
+    tog.classList.remove('active');
+    lblP.classList.add('active');lblA.classList.remove('active');
+    badge.style.display='none';
+  }
+  renderPlans();
+}
+
+// ── RAZORPAY PAYMENT ─────────────────────────────────────
+function startPayment(planKey){
+  const plan=PLANS[planKey];
+  if(!plan||plan.isFree)return;
+
+  const amount=billingMode==='annual'?plan.price_annual:plan.price_per;
+  const desc=plan.name+' Plan'+(billingMode==='annual'?' (Annual)':' (Per Auction)');
+
+  const options={
+    key:RAZORPAY_KEY,
+    amount:amount*100, // Razorpay expects paise
+    currency:'INR',
+    name:'CaptainXI',
+    description:desc,
+    image:'/favicon.svg',
+    prefill:{
+      email:currentUser.email||'',
+      contact:userProfile?.mobile||''
+    },
+    theme:{color:'#f59e0b'},
+    handler:function(response){
+      // Payment successful
+      onPaymentSuccess(planKey,amount,billingMode,response.razorpay_payment_id);
+    },
+    modal:{
+      ondismiss:function(){
+        // User closed Razorpay modal — do nothing
+      }
+    },
+    notes:{
+      plan:planKey,
+      billing:billingMode,
+      user_id:currentUser.id
+    }
+  };
+
+  const rzp=new Razorpay(options);
+  rzp.on('payment.failed',function(resp){
+    alert('Payment failed: '+(resp.error?.description||'Please try again.'));
+  });
+  rzp.open();
+}
+
+async function onPaymentSuccess(planKey,amount,billing,paymentId){
+  const overlay=document.getElementById('paymentOverlay');
+  overlay.classList.add('open');
+
+  try{
+    // Save payment record
+    await sb.from('payments').insert({
+      user_id:currentUser.id,
+      plan:planKey,
+      billing:billing,
+      amount:amount,
+      razorpay_payment_id:paymentId,
+      status:'paid',
+      created_at:new Date().toISOString()
+    });
+
+    // Update profile with new plan
+    const expiresAt=billing==='annual'
+      ?new Date(Date.now()+365*24*60*60*1000).toISOString()
+      :null;
+
+    await sb.from('profiles').update({
+      plan:planKey,
+      plan_billing:billing,
+      plan_activated_at:new Date().toISOString(),
+      plan_expires_at:expiresAt,
+      plan_payment_id:paymentId
+    }).eq('id',currentUser.id);
+
+    // Show success
+    document.getElementById('paymentProcessing').style.display='none';
+    const successEl=document.getElementById('paymentSuccess');
+    successEl.style.display='block';
+    const plan=PLANS[planKey];
+    document.getElementById('successPlanName').textContent=plan.name+' Plan Activated!';
+    document.getElementById('successPlanDetail').textContent=plan.teams+' teams · '+plan.players+' players · '+(billing==='annual'?'Annual':'Per auction');
+
+  }catch(err){
+    console.error('Error saving payment:',err);
+    // Even if DB save fails, payment went through — show success with note
+    document.getElementById('paymentProcessing').style.display='none';
+    const successEl=document.getElementById('paymentSuccess');
+    successEl.style.display='block';
+    document.getElementById('successPlanName').textContent='Payment Received!';
+    document.getElementById('successPlanDetail').textContent='Your plan will be activated shortly. Payment ID: '+paymentId;
+  }
+}
+
+// ── FAQ TOGGLE ───────────────────────────────────────────
+function toggleFaq(el){el.classList.toggle('open');}
+</script>
+</body>
+</html>

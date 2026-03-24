@@ -29,9 +29,12 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .page-header h1{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;}
 
 /* Plan badge */
-.plan-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.plan-badge:hover{border-color:var(--accent);color:var(--accent);}
 .plan-badge.free{color:var(--muted);}
 .plan-badge.paid{color:var(--accent);border-color:var(--accent);}
+.upgrade-link{font-size:12px;color:var(--accent);text-decoration:none;font-weight:700;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:6px;transition:all .2s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;}
+.upgrade-link:hover{background:rgba(245,158,11,0.1);border-color:var(--accent);}
 
 /* Auction cards */
 .auctions-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
@@ -80,7 +83,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <div class="nav-right">
     <a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">🏠 Home</a>
     <span class="user-name" id="userName"></span>
-    <div class="plan-badge free" id="planBadge">FREE</div>
+    <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
+    <a href="upgrade.html" class="upgrade-link" id="upgradeLink">⚡ Upgrade</a>
     <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -310,8 +314,19 @@ let userProfile = null;
   userProfile = profile;
   document.getElementById('userName').textContent = profile?.name || currentUser.email;
   const planBadge = document.getElementById('planBadge');
-  if (profile?.plan === 'paid') {
-    planBadge.textContent = '⭐ PRO'; planBadge.className = 'plan-badge paid';
+  const upgradeLink = document.getElementById('upgradeLink');
+  const plan = profile?.plan || 'gully';
+  const tierMap = {
+    'free':'FREE','gully':'FREE',
+    'paid':'⭐ CLUB','club':'⭐ CLUB',
+    'district':'🏟️ DISTRICT','national':'🇮🇳 NATIONAL'
+  };
+  planBadge.textContent = tierMap[plan] || 'FREE';
+  if(plan && plan !== 'free' && plan !== 'gully'){
+    planBadge.className = 'plan-badge paid';
+    upgradeLink.textContent = '⚙ Manage Plan';
+  } else {
+    planBadge.className = 'plan-badge free';
   }
   loadAuctions();
 })();
@@ -409,17 +424,26 @@ async function createAuction() {
   if (!orgMobile || orgMobile.length !== 10) { msgEl.innerHTML = '<div class="msg msg-error">Enter your 10-digit mobile number</div>'; return; }
 
   // Plan limit check
-  if (!DEV_MODE && (userProfile?.plan === 'free' || !userProfile)) {
+  const planLimits = {
+    'gully':{auctions:3,teams:3,players:18},
+    'free':{auctions:3,teams:3,players:18},
+    'club':{auctions:100,teams:8,players:60},
+    'paid':{auctions:100,teams:8,players:60},
+    'district':{auctions:100,teams:14,players:120},
+    'national':{auctions:999,teams:32,players:500}
+  };
+  const userPlan = userProfile?.plan || 'gully';
+  const limits = planLimits[userPlan] || planLimits['gully'];
+  if (!DEV_MODE) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
-    if (count >= 3) {
-      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Club for more.</div>'; return;
+    if (count >= limits.auctions) {
+      msgEl.innerHTML = '<div class="msg msg-error">You\'ve reached your '+limits.auctions+' auction limit. <a href="upgrade.html" style="color:var(--accent);font-weight:700;">Upgrade your plan →</a></div>'; return;
     }
-    // Enforce free plan team + player limits
-    if (maxTeams > 3) {
-      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows max 3 teams. Upgrade to Club for more teams.</div>'; return;
+    if (maxTeams > limits.teams) {
+      msgEl.innerHTML = '<div class="msg msg-error">Your plan allows max '+limits.teams+' teams. <a href="upgrade.html" style="color:var(--accent);font-weight:700;">Upgrade for more →</a></div>'; return;
     }
-    if (maxPlayers > 18) {
-      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows max 18 players. Upgrade to Club for more.</div>'; return;
+    if (maxPlayers > limits.players) {
+      msgEl.innerHTML = '<div class="msg msg-error">Your plan allows max '+limits.players+' players. <a href="upgrade.html" style="color:var(--accent);font-weight:700;">Upgrade for more →</a></div>'; return;
     }
   }
 

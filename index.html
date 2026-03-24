@@ -1195,6 +1195,7 @@ footer {
         </ul>
         <a href="login.html" class="plan-btn plan-btn-ghost">Start Free →</a>
         <div class="plan-limit">"Powered by CaptainXI" watermark</div>
+
       </div>
 
       <!-- CLUB -->
@@ -1218,7 +1219,7 @@ footer {
           <li class="featured-item"><span class="check">✓</span> Last 3 auctions saved</li>
           <li><span class="cross">✗</span> Player photos</li>
         </ul>
-        <a href="login.html" class="plan-btn plan-btn-primary" id="clubBtn">Get Club →</a>
+        <a href="upgrade.html?plan=club" class="plan-btn plan-btn-primary" id="clubBtn">Get Club →</a>
         <div class="plan-limit" id="clubLimit">Annual: 6 auction cap · Extra teams ₹199</div>
       </div>
 
@@ -1242,7 +1243,7 @@ footer {
           <li class="featured-item"><span class="check">✓</span> Unlimited history</li>
           <li class="featured-item"><span class="check">✓</span> Priority support</li>
         </ul>
-        <a href="login.html" class="plan-btn plan-btn-ghost" id="distBtn">Get District →</a>
+        <a href="upgrade.html?plan=district" class="plan-btn plan-btn-ghost" id="distBtn">Get District →</a>
         <div class="plan-limit" id="distLimit">Annual: 12 auction cap · Extra teams ₹199</div>
       </div>
 
@@ -1266,7 +1267,7 @@ footer {
           <li class="featured-item"><span class="check">✓</span> Dedicated support</li>
           <li class="featured-item"><span class="check">✓</span> Early feature access</li>
         </ul>
-        <a href="login.html" class="plan-btn plan-btn-ghost">Get National →</a>
+        <a href="upgrade.html?plan=national" class="plan-btn plan-btn-ghost">Get National →</a>
         <div class="plan-limit">Annual: unlimited auctions</div>
       </div>
     </div>
@@ -1493,12 +1494,14 @@ function toggleBilling() {
     document.getElementById('clubAnnual').textContent = 'Save ₹495 vs per-auction';
     document.getElementById('clubLimit').textContent = '6 auctions included · Extra ₹499/auction';
     document.getElementById('clubBtn').textContent = 'Get Club Annual →';
+    document.getElementById('clubBtn').href = 'upgrade.html?plan=club&billing=annual';
 
     document.getElementById('distPrice').textContent = '₹4,999';
     document.getElementById('distUnit').textContent = 'per year · ₹416/auction';
     document.getElementById('distAnnual').textContent = 'Save ₹2,989 vs per-auction';
     document.getElementById('distLimit').textContent = '12 auctions included · Extra ₹999/auction';
     document.getElementById('distBtn').textContent = 'Get District Annual →';
+    document.getElementById('distBtn').href = 'upgrade.html?plan=district&billing=annual';
 
     document.getElementById('natPrice').textContent = '₹9,999';
     document.getElementById('natUnit').textContent = 'per year · unlimited auctions';
@@ -1509,12 +1512,14 @@ function toggleBilling() {
     document.getElementById('clubAnnual').textContent = 'or ₹2,499/year (6 auctions)';
     document.getElementById('clubLimit').textContent = 'Annual: 6 auction cap · Extra teams ₹199';
     document.getElementById('clubBtn').textContent = 'Get Club →';
+    document.getElementById('clubBtn').href = 'upgrade.html?plan=club';
 
     document.getElementById('distPrice').textContent = '₹999';
     document.getElementById('distUnit').textContent = 'per auction · ₹71/team';
     document.getElementById('distAnnual').textContent = 'or ₹4,999/year (12 auctions)';
     document.getElementById('distLimit').textContent = 'Annual: 12 auction cap · Extra teams ₹199';
     document.getElementById('distBtn').textContent = 'Get District →';
+    document.getElementById('distBtn').href = 'upgrade.html?plan=district';
 
     document.getElementById('natPrice').textContent = '₹1,999';
     document.getElementById('natUnit').textContent = 'per auction';
