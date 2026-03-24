@@ -76,8 +76,9 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <body>
 
 <nav>
-  <div class="logo">🏏 CaptainXI</div>
+  <a href="index.html" class="logo" style="text-decoration:none;">🏏 CaptainXI</a>
   <div class="nav-right">
+    <a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">🏠 Home</a>
     <span class="user-name" id="userName"></span>
     <div class="plan-badge free" id="planBadge">FREE</div>
     <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
@@ -407,11 +408,18 @@ async function createAuction() {
   if (!name) { msgEl.innerHTML = '<div class="msg msg-error">Enter an auction name</div>'; return; }
   if (!orgMobile || orgMobile.length !== 10) { msgEl.innerHTML = '<div class="msg msg-error">Enter your 10-digit mobile number</div>'; return; }
 
-  // Plan limit check — skipped in DEV_MODE
+  // Plan limit check
   if (!DEV_MODE && (userProfile?.plan === 'free' || !userProfile)) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
     if (count >= 3) {
       msgEl.innerHTML = '<div class="msg msg-error">Free plan allows up to 3 auctions. Upgrade to Club for more.</div>'; return;
+    }
+    // Enforce free plan team + player limits
+    if (maxTeams > 3) {
+      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows max 3 teams. Upgrade to Club for more teams.</div>'; return;
+    }
+    if (maxPlayers > 18) {
+      msgEl.innerHTML = '<div class="msg msg-error">Free plan allows max 18 players. Upgrade to Club for more.</div>'; return;
     }
   }
 
