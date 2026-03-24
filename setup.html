@@ -272,8 +272,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     </div>
   </div>
 
-  <!-- DEV: QUICK TEST FILL -->
-  <div class="panel" style="border-color:#6b21a8;margin-bottom:16px;background:rgba(107,33,168,0.05);">
+  <!-- DEV: QUICK TEST FILL — hidden in production -->
+  <div class="panel" id="devQuickFillPanel" style="display:none;border-color:#6b21a8;margin-bottom:16px;background:rgba(107,33,168,0.05);">
     <div class="panel-title" style="color:#c084fc;">🧪 Quick Test Fill — Dev Only</div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Instantly populate this auction with dummy teams and players for testing. Clears existing data first.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -371,7 +371,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 <script>
 // ══════════════════════════════════════════════════════════
 // 🔧 DEV MODE — flip to false before going live
-const DEV_MODE = true;
+const DEV_MODE = false;
 // ══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -387,7 +387,15 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
-  if (DEV_MODE) document.getElementById('smsTestPanel').style.display = 'block';
+  if (DEV_MODE) document.getElementById('devQuickFillPanel').style.display = 'block';
+
+  // Secret dev shortcut — Ctrl+Shift+D (only for organiser use)
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+      const panel = document.getElementById('devQuickFillPanel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+  });
   await loadAuction();
   await loadTeams();
   await loadPlayers();
