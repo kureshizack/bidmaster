@@ -11,42 +11,59 @@
 :root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--border:#2a3a55;--gold:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
-  background-image:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.06) 0%, transparent 60%),
-  linear-gradient(180deg,var(--bg) 0%,#0d1420 100%);}
+  background-image:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(245,158,11,0.06) 0%,transparent 60%),linear-gradient(180deg,var(--bg) 0%,#0d1420 100%);}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 40px 80px rgba(0,0,0,0.5);}
-.logo{text-align:center;margin-bottom:32px;}
+.logo{text-align:center;margin-bottom:28px;}
 .logo-text{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:var(--gold);}
 .logo-text span{color:var(--text);}
 .logo-sub{font-size:13px;color:var(--muted);margin-top:4px;}
-.tabs{display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:28px;}
+.tabs{display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px;}
 .tab{flex:1;padding:10px;text-align:center;cursor:pointer;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;color:var(--muted);transition:all 0.2s;}
 .tab.active{background:var(--gold);color:#000;}
 .form-group{margin-bottom:16px;}
 label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
 input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:13px 16px;border-radius:10px;font-size:15px;outline:none;font-family:'Noto Sans',sans-serif;transition:border-color 0.2s;}
 input:focus{border-color:var(--gold);}
-.btn{width:100%;padding:15px;background:var(--gold);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+input::placeholder{color:var(--muted);}
+.mobile-wrap{position:relative;}
+.mobile-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none;}
+.mobile-input{padding-left:44px!important;}
+.btn{width:100%;padding:15px;background:var(--gold);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;margin-top:4px;}
 .btn:hover{background:#fbbf24;transform:translateY(-1px);}
 .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
-.msg{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--surface);border-color:var(--gold);}
+.msg{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none;line-height:1.6;}
 .msg.error{background:rgba(239,68,68,0.1);border:1px solid var(--red);color:#fca5a5;}
 .msg.success{background:rgba(34,197,94,0.1);border:1px solid var(--green);color:#86efac;}
-.divider{text-align:center;color:var(--muted);font-size:12px;margin:20px 0;position:relative;}
-.divider::before,.divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
-.divider::before{left:0;} .divider::after{right:0;}
+.msg.info{background:rgba(96,165,250,0.1);border:1px solid #60a5fa;color:#93c5fd;}
+.otp-sent-box{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center;}
+.otp-sent-icon{font-size:32px;margin-bottom:8px;}
+.otp-sent-title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);margin-bottom:4px;}
+.otp-sent-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+.otp-input{font-size:24px!important;letter-spacing:8px;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;}
+.alt-link{text-align:center;margin-top:16px;}
+.alt-link a{color:var(--muted);font-size:13px;text-decoration:none;border-bottom:1px dashed var(--border);cursor:pointer;transition:color 0.2s;}
+.alt-link a:hover{color:var(--gold);}
 .back-link{display:block;text-align:center;margin-top:20px;color:var(--muted);font-size:13px;text-decoration:none;transition:color 0.2s;}
 .back-link:hover{color:var(--gold);}
-.free-badge{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;text-align:center;margin-bottom:24px;font-size:13px;color:var(--gold);}
+.free-badge{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 14px;text-align:center;margin-bottom:20px;font-size:13px;color:var(--gold);}
+.step-indicator{display:flex;align-items:center;gap:6px;margin-bottom:20px;}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background 0.3s;}
+.step-dot.active{background:var(--gold);}
+.step-dot.done{background:var(--green);}
+.resend-timer{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;}
+.resend-timer a{color:var(--gold);cursor:pointer;text-decoration:none;}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">
-    <div class="logo-text">AUCTION<span>XI</span></div>
-    <div class="logo-sub">India's Premier Cricket Auction Platform</div>
+    <div class="logo-text">CAPTAIN<span>XI</span></div>
+    <div class="logo-sub">India's Complete Cricket Tournament Platform</div>
   </div>
 
-  <div class="free-badge">🏏 Start free — no credit card required</div>
+  <div class="free-badge">🏏 First tournament free — no credit card needed</div>
 
   <div class="tabs">
     <div class="tab active" id="loginTab" onclick="switchTab('login')">Login</div>
@@ -55,97 +72,132 @@ input:focus{border-color:var(--gold);}
 
   <div id="msgBox" class="msg"></div>
 
-  <!-- LOGIN FORM -->
+  <!-- ══ LOGIN ══ -->
   <div id="loginForm">
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- Step 1: Mobile -->
+    <div id="loginStep1">
+      <div class="form-group">
+        <label>📱 Your Mobile Number</label>
+        <div class="mobile-wrap">
+          <span class="mobile-prefix">+91</span>
+          <input type="tel" id="loginMobile" class="mobile-input" placeholder="98xxxxxxxx" maxlength="10"
+            oninput="this.value=this.value.replace(/\D/g,'')"
+            onkeydown="if(event.key==='Enter')sendLoginOtp()">
+        </div>
+      </div>
+      <button class="btn" onclick="sendLoginOtp()" id="loginOtpBtn">Get OTP →</button>
+      <div class="alt-link" style="margin-top:14px;">
+        <a onclick="showEmailLogin()">Login with email instead</a>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="loginPassword" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- Step 1b: Email fallback -->
+    <div id="loginEmailFallback" style="display:none;">
+      <div class="form-group">
+        <label>📧 Email Address</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com"
+          onkeydown="if(event.key==='Enter')sendEmailOtp()">
+      </div>
+      <button class="btn" onclick="sendEmailOtp()" id="emailOtpBtn">Send OTP to Email →</button>
+      <div class="alt-link" style="margin-top:14px;">
+        <a onclick="showMobileLogin()">← Back to mobile login</a>
+      </div>
     </div>
-    <button class="btn" onclick="doLogin()" id="loginBtn">Login →</button>
-    <div class="divider">or</div>
-    <button class="btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="switchTab('signup')">Create New Account</button>
+
+    <!-- Step 2: OTP entry -->
+    <div id="loginStep2" style="display:none;">
+      <div class="otp-sent-box">
+        <div class="otp-sent-icon">📧</div>
+        <div class="otp-sent-title">OTP Sent!</div>
+        <div class="otp-sent-desc" id="otpSentDesc">Check your email for the 6-digit code</div>
+      </div>
+      <div class="form-group">
+        <label>Enter 6-digit OTP</label>
+        <input type="text" id="loginOtp" class="otp-input" placeholder="000000" maxlength="6"
+          oninput="this.value=this.value.replace(/\D/g,'')"
+          onkeydown="if(event.key==='Enter')verifyLoginOtp()">
+      </div>
+      <button class="btn" onclick="verifyLoginOtp()" id="verifyBtn">Verify & Login →</button>
+      <div class="resend-timer" id="resendTimer"></div>
+      <div class="alt-link" style="margin-top:8px;">
+        <a onclick="backToStep1()">← Change mobile/email</a>
+      </div>
+    </div>
+
   </div>
 
-  <!-- SIGNUP FORM -->
+  <!-- ══ SIGNUP ══ -->
   <div id="signupForm" style="display:none;">
-    <div class="form-group">
-      <label>Full Name</label>
-      <input type="text" id="signupName" placeholder="Your name" onkeydown="if(event.key==='Enter')doSignup()">
+
+    <!-- Step 1: Details -->
+    <div id="signupStep1">
+      <div class="form-group">
+        <label>Your Name *</label>
+        <input type="text" id="signupName" placeholder="Full name" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <div class="form-group">
+        <label>📱 Mobile Number * <span style="color:var(--muted);font-size:10px;font-weight:400;">(for OTP login)</span></label>
+        <div class="mobile-wrap">
+          <span class="mobile-prefix">+91</span>
+          <input type="tel" id="signupMobile" class="mobile-input" placeholder="98xxxxxxxx" maxlength="10"
+            oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>📧 Email * <span style="color:var(--muted);font-size:10px;font-weight:400;">(OTP delivered here)</span></label>
+        <input type="email" id="signupEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <button class="btn" onclick="doSignup()" id="signupBtn">Create Account →</button>
     </div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" id="signupEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doSignup()">
+
+    <!-- Step 2: OTP verify after signup -->
+    <div id="signupStep2" style="display:none;">
+      <div class="otp-sent-box">
+        <div class="otp-sent-icon">🎉</div>
+        <div class="otp-sent-title">Account Created!</div>
+        <div class="otp-sent-desc" id="signupOtpDesc">Enter the OTP sent to your email to activate your account</div>
+      </div>
+      <div class="form-group">
+        <label>Enter 6-digit OTP</label>
+        <input type="text" id="signupOtp" class="otp-input" placeholder="000000" maxlength="6"
+          oninput="this.value=this.value.replace(/\D/g,'')"
+          onkeydown="if(event.key==='Enter')verifySignupOtp()">
+      </div>
+      <button class="btn" onclick="verifySignupOtp()" id="signupVerifyBtn">Verify & Enter →</button>
+      <div class="resend-timer" id="signupResendTimer"></div>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="signupPassword" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()">
-    </div>
-    <button class="btn" onclick="doSignup()" id="signupBtn">Create Account →</button>
-    <div class="divider">or</div>
-    <button class="btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="switchTab('login')">Already have an account</button>
+
   </div>
 
   <a href="index.html" class="back-link">← Back to home</a>
-
-  <!-- DEV MODE BANNER — hidden in production -->
-  <div id="devBanner" style="display:none;margin-top:16px;background:rgba(107,33,168,0.15);border:1px solid #a78bfa;border-radius:10px;padding:12px 16px;text-align:center;">
-    <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔧 Dev Mode</div>
-    <button onclick="devAutoLogin()" style="width:100%;padding:10px;background:#6b21a8;color:#fff;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">
-      ⚡ Quick Test Login
-    </button>
-  </div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════
-// 🚧 MAINTENANCE MODE — must match index.html
 const MAINTENANCE_MODE = false;
-// ══════════════════════════════════════════════════════
 if (MAINTENANCE_MODE) { window.location.replace('/maintenance.html'); }
-
-// ══════════════════════════════════════════════════════════
-// 🔧 DEV MODE — flip to false before going live
 const DEV_MODE = false;
-const DEV_EMAIL = 'test@captainxi.dev';
-const DEV_PASSWORD = 'test123456';
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let _loginEmail = ''; // stores resolved email for OTP step
+let _resendInterval = null;
 
 // Auto-redirect if already logged in
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session) window.location.href='dashboard.html';
-  // Show dev banner if DEV_MODE
-  if(DEV_MODE) document.getElementById('devBanner').style.display='block';
 })();
 
-async function devAutoLogin(){
-  const btn = event.target;
-  btn.textContent='Logging in...'; btn.disabled=true;
-  // Try login first
-  let {error} = await sb.auth.signInWithPassword({email:DEV_EMAIL, password:DEV_PASSWORD});
-  if(error){
-    // Account doesn't exist — create it
-    const{data,error:signupErr}=await sb.auth.signUp({email:DEV_EMAIL,password:DEV_PASSWORD});
-    if(signupErr){ btn.textContent='⚡ Auto Login as Test Organizer'; btn.disabled=false; showMsg(signupErr.message,'error'); return; }
-    if(data.user) await sb.from('profiles').upsert({id:data.user.id,name:'Test Organizer',plan:'free'});
-    // Now login
-    await sb.auth.signInWithPassword({email:DEV_EMAIL, password:DEV_PASSWORD});
-  }
-  window.location.href='dashboard.html';
-}
-
+// ── TAB SWITCH ────────────────────────────────────────
 function switchTab(tab){
   document.getElementById('loginTab').classList.toggle('active', tab==='login');
   document.getElementById('signupTab').classList.toggle('active', tab==='signup');
-  document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
-  document.getElementById('signupForm').style.display = tab==='signup'?'block':'none';
+  document.getElementById('loginForm').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = tab==='signup' ? 'block' : 'none';
   hideMsg();
 }
 
@@ -155,39 +207,193 @@ function showMsg(txt, type){
 }
 function hideMsg(){ document.getElementById('msgBox').style.display='none'; }
 
-async function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const password=document.getElementById('loginPassword').value;
-  if(!email||!password){showMsg('Please enter email and password','error');return;}
-  const btn=document.getElementById('loginBtn');
-  btn.textContent='Logging in...';btn.disabled=true;hideMsg();
-  const{error}=await sb.auth.signInWithPassword({email,password});
-  if(error){showMsg(error.message,'error');btn.textContent='Login →';btn.disabled=false;return;}
-  window.location.href='dashboard.html';
+// ── EMAIL FALLBACK TOGGLE ─────────────────────────────
+function showEmailLogin(){
+  document.getElementById('loginStep1').style.display='none';
+  document.getElementById('loginEmailFallback').style.display='block';
+  hideMsg();
+}
+function showMobileLogin(){
+  document.getElementById('loginEmailFallback').style.display='none';
+  document.getElementById('loginStep1').style.display='block';
+  hideMsg();
+}
+function backToStep1(){
+  document.getElementById('loginStep2').style.display='none';
+  document.getElementById('loginStep1').style.display='block';
+  document.getElementById('loginEmailFallback').style.display='none';
+  clearResendTimer();
+  hideMsg();
 }
 
-async function doSignup(){
-  const name=document.getElementById('signupName').value.trim();
-  const email=document.getElementById('signupEmail').value.trim();
-  const password=document.getElementById('signupPassword').value;
-  if(!name){showMsg('Enter your name','error');return;}
-  if(!email){showMsg('Enter your email','error');return;}
-  if(password.length<6){showMsg('Password must be at least 6 characters','error');return;}
-  const btn=document.getElementById('signupBtn');
-  btn.textContent='Creating account...';btn.disabled=true;hideMsg();
-  const{data,error}=await sb.auth.signUp({email,password});
-  if(error){showMsg(error.message,'error');btn.textContent='Create Account →';btn.disabled=false;return;}
-  // Create profile
-  if(data.user){
-    await sb.from('profiles').upsert({id:data.user.id,name,plan:'free'});
+// ── RESEND TIMER ──────────────────────────────────────
+function startResendTimer(timerId, onResend){
+  clearResendTimer();
+  let secs = 30;
+  const el = document.getElementById(timerId);
+  const tick = () => {
+    el.innerHTML = secs > 0
+      ? `Resend OTP in ${secs}s`
+      : `Didn't receive? <a onclick="(${onResend})()">Resend OTP</a>`;
+    if(secs > 0) secs--;
+  };
+  tick();
+  _resendInterval = setInterval(tick, 1000);
+}
+function clearResendTimer(){
+  if(_resendInterval){ clearInterval(_resendInterval); _resendInterval=null; }
+}
+
+// ── LOGIN: SEND OTP (mobile lookup) ──────────────────
+async function sendLoginOtp(){
+  const mobile = document.getElementById('loginMobile').value.trim();
+  if(!mobile || mobile.length !== 10){
+    showMsg('Enter a valid 10-digit mobile number', 'error'); return;
   }
-  showMsg('✅ Account created! Logging you in...','success');
-  // Auto login
-  setTimeout(async()=>{
-    const{error:loginErr}=await sb.auth.signInWithPassword({email,password});
-    if(!loginErr) window.location.href='dashboard.html';
-    else{showMsg('Account created! Please login.','success');switchTab('login');}
-  },1000);
+  const btn = document.getElementById('loginOtpBtn');
+  btn.textContent = 'Looking up...'; btn.disabled = true; hideMsg();
+
+  // Look up email linked to this mobile
+  const { data: profile } = await sb.from('profiles')
+    .select('email').eq('mobile', mobile).single();
+
+  if(!profile?.email){
+    showMsg('No account found with this mobile. Please sign up first or use email login.', 'error');
+    btn.textContent = 'Get OTP →'; btn.disabled = false; return;
+  }
+  _loginEmail = profile.email;
+  await sendOtpToEmail(_loginEmail, btn, 'Get OTP →');
+}
+
+// ── LOGIN: SEND OTP (email fallback) ─────────────────
+async function sendEmailOtp(){
+  const email = document.getElementById('loginEmail').value.trim();
+  if(!email){ showMsg('Enter your email address', 'error'); return; }
+  const btn = document.getElementById('emailOtpBtn');
+  btn.textContent = 'Sending...'; btn.disabled = true; hideMsg();
+  _loginEmail = email;
+  await sendOtpToEmail(email, btn, 'Send OTP to Email →');
+}
+
+// ── CORE: SEND SUPABASE OTP ───────────────────────────
+async function sendOtpToEmail(email, btn, btnLabel){
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false }
+  });
+  if(error){
+    // If user doesn't exist, signInWithOtp with shouldCreateUser:false returns error
+    // Try without that restriction for existing users
+    const { error: err2 } = await sb.auth.signInWithOtp({ email });
+    if(err2){
+      showMsg(err2.message, 'error');
+      btn.textContent = btnLabel; btn.disabled = false; return;
+    }
+  }
+  // OTP sent — show step 2
+  const masked = email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+  document.getElementById('otpSentDesc').textContent =
+    'OTP sent to ' + masked + '. Check your inbox (also spam folder).';
+  document.getElementById('loginStep1').style.display = 'none';
+  document.getElementById('loginEmailFallback').style.display = 'none';
+  document.getElementById('loginStep2').style.display = 'block';
+  document.getElementById('loginOtp').focus();
+  startResendTimer('resendTimer', sendLoginOtp);
+  btn.textContent = btnLabel; btn.disabled = false;
+}
+
+// ── LOGIN: VERIFY OTP ─────────────────────────────────
+async function verifyLoginOtp(){
+  const token = document.getElementById('loginOtp').value.trim();
+  if(token.length !== 6){ showMsg('Enter the 6-digit OTP from your email', 'error'); return; }
+  const btn = document.getElementById('verifyBtn');
+  btn.textContent = 'Verifying...'; btn.disabled = true; hideMsg();
+
+  const { data, error } = await sb.auth.verifyOtp({
+    email: _loginEmail,
+    token,
+    type: 'email'
+  });
+  if(error){
+    showMsg('Invalid or expired OTP. Please try again.', 'error');
+    btn.textContent = 'Verify & Login →'; btn.disabled = false; return;
+  }
+  clearResendTimer();
+  window.location.href = 'dashboard.html';
+}
+
+// ── SIGNUP ────────────────────────────────────────────
+async function doSignup(){
+  const name = document.getElementById('signupName').value.trim();
+  const mobile = document.getElementById('signupMobile').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+
+  if(!name){ showMsg('Enter your name', 'error'); return; }
+  if(!mobile || mobile.length !== 10){ showMsg('Enter a valid 10-digit mobile number', 'error'); return; }
+  if(!email){ showMsg('Enter your email address', 'error'); return; }
+
+  const btn = document.getElementById('signupBtn');
+  btn.textContent = 'Creating account...'; btn.disabled = true; hideMsg();
+
+  // Check if mobile already registered
+  const { data: existing } = await sb.from('profiles').select('id').eq('mobile', mobile).single();
+  if(existing){
+    showMsg('This mobile number is already registered. Please login instead.', 'error');
+    btn.textContent = 'Create Account →'; btn.disabled = false; return;
+  }
+
+  // Send OTP to email — Supabase creates user if not exists
+  const { error } = await sb.auth.signInWithOtp({ email });
+  if(error){
+    showMsg(error.message, 'error');
+    btn.textContent = 'Create Account →'; btn.disabled = false; return;
+  }
+
+  // Store name + mobile temporarily in sessionStorage for after OTP verify
+  sessionStorage.setItem('pending_signup', JSON.stringify({ name, mobile, email }));
+  _loginEmail = email;
+
+  const masked = email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+  document.getElementById('signupOtpDesc').textContent =
+    'OTP sent to ' + masked + '. Enter it below to activate your account.';
+  document.getElementById('signupStep1').style.display = 'none';
+  document.getElementById('signupStep2').style.display = 'block';
+  document.getElementById('signupOtp').focus();
+  startResendTimer('signupResendTimer', doSignup);
+  btn.textContent = 'Create Account →'; btn.disabled = false;
+}
+
+// ── SIGNUP: VERIFY OTP ────────────────────────────────
+async function verifySignupOtp(){
+  const token = document.getElementById('signupOtp').value.trim();
+  if(token.length !== 6){ showMsg('Enter the 6-digit OTP', 'error'); return; }
+  const btn = document.getElementById('signupVerifyBtn');
+  btn.textContent = 'Verifying...'; btn.disabled = true; hideMsg();
+
+  const { data, error } = await sb.auth.verifyOtp({
+    email: _loginEmail,
+    token,
+    type: 'email'
+  });
+  if(error){
+    showMsg('Invalid or expired OTP. Please try again.', 'error');
+    btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
+  }
+
+  // Save profile with name + mobile
+  const pending = JSON.parse(sessionStorage.getItem('pending_signup') || '{}');
+  if(data.user && pending.name){
+    await sb.from('profiles').upsert({
+      id: data.user.id,
+      name: pending.name,
+      mobile: pending.mobile,
+      email: pending.email,
+      plan: 'free'
+    });
+    sessionStorage.removeItem('pending_signup');
+  }
+  clearResendTimer();
+  window.location.href = 'dashboard.html';
 }
 </script>
 </body>
