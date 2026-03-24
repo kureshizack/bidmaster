@@ -7,6 +7,7 @@
 <title>Auction Setup — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#111827;--surface:#1f2937;--surface2:#27364b;--border:#3d5068;
@@ -28,11 +29,12 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .btn-sm{padding:5px 10px;font-size:12px;}
 
 .container{max-width:1000px;margin:0 auto;padding:24px 20px;}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
 @media(max-width:700px){.two-col{grid-template-columns:1fr;}}
 
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:16px;}
-.panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;}
+.panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.panel-title-text{display:flex;align-items:center;gap:4px;}
 .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
 .form-group label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;}
 input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:6px;font-size:14px;outline:none;width:100%;font-family:'Noto Sans',sans-serif;}
@@ -328,6 +330,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button class="btn btn-sm" id="viewPlayersBtn" style="flex:1;background:var(--blue);color:#000;font-weight:700;" onclick="loadRegisteredPlayers('player')">🏏 Players (<span id="regCount">0</span>)</button>
       <button class="btn btn-sm" id="viewCaptainsBtn" style="flex:1;background:rgba(245,158,11,0.15);color:var(--accent);border:1px solid var(--accent);font-weight:700;" onclick="loadRegisteredPlayers('captain')">👑 Captains (<span id="regCaptainBadge">0</span>)</button>
+    </div>
+
+    <!-- EXPORT BUTTONS -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button class="btn btn-sm" onclick="exportPlayersExcel()" style="background:rgba(34,197,94,0.12);color:var(--green);border:1px solid var(--green);font-weight:700;">📊 Download Excel</button>
+      <button class="btn btn-sm" onclick="exportPlayersPDF()" style="background:rgba(96,165,250,0.12);color:var(--blue);border:1px solid var(--blue);font-weight:700;">📄 Download PDF</button>
+      <button class="btn btn-sm" onclick="exportPlayersWhatsApp()" style="background:rgba(245,158,11,0.12);color:var(--accent);border:1px solid var(--accent);font-weight:700;">📱 Copy for WhatsApp</button>
     </div>
 
     <div id="registeredPlayersList" style="display:none;margin-top:4px;"></div>
@@ -1592,6 +1601,188 @@ async function sendSMSToAll() {
   msgEl.style.color = sent > 0 ? 'var(--green)' : 'var(--red)';
   msgEl.textContent = `✅ Sent to ${sent}${failed > 0 ? ` · ${failed} failed` : ''}.`;
   btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
+}
+
+// ── EXPORT FUNCTIONS ─────────────────────────────────────
+async function getExportData() {
+  const { data: players } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).eq('is_captain', false)
+    .order('registered_at', { ascending: true });
+  const { data: captains } = await sb.from('player_registrations')
+    .select('*').eq('auction_id', auctionId).eq('is_captain', true)
+    .order('registered_at', { ascending: true });
+  return { players: players || [], captains: captains || [] };
+}
+
+async function exportPlayersExcel() {
+  const { players, captains } = await getExportData();
+  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // Players sheet
+  if (players.length) {
+    const pData = players.map((p, i) => ({
+      'Sr': i + 1,
+      'Name': p.name,
+      'Mobile': p.mobile,
+      'Role': p.role || '—',
+      'T-Shirt Size': p.tshirt_size || '—',
+      'Jersey Name': p.jersey_name || '—',
+      'Jersey No': p.jersey_number || '—',
+      'Fee ₹': p.registration_fee || 500,
+      'Payment': p.payment_status === 'paid' ? 'Paid' : 'Pending',
+      'Imported': p.imported_to_auction ? 'Yes' : 'No',
+      'Registered': new Date(p.registered_at).toLocaleDateString('en-IN')
+    }));
+    const ws = XLSX.utils.json_to_sheet(pData);
+    ws['!cols'] = [{ wch: 4 }, { wch: 20 }, { wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 14 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Players');
+  }
+
+  // Captains sheet
+  if (captains.length) {
+    const cData = captains.map((c, i) => ({
+      'Sr': i + 1,
+      'Name': c.name,
+      'Mobile': c.mobile,
+      'Team Name': c.captain_team_name || '—',
+      'T-Shirt Size': c.tshirt_size || '—',
+      'Fee ₹': c.registration_fee || 2500,
+      'Payment': c.payment_status === 'paid' ? 'Paid' : 'Pending',
+      'Registered': new Date(c.registered_at).toLocaleDateString('en-IN')
+    }));
+    const ws2 = XLSX.utils.json_to_sheet(cData);
+    ws2['!cols'] = [{ wch: 4 }, { wch: 20 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Captains');
+  }
+
+  // Summary sheet
+  const totalPlayerFees = players.filter(p => p.payment_status === 'paid').reduce((s, p) => s + (p.registration_fee || 500), 0);
+  const totalCaptainFees = captains.filter(c => c.payment_status === 'paid').reduce((s, c) => s + (c.registration_fee || 2500), 0);
+  const summary = [
+    { 'Item': 'Total Players', 'Value': players.length },
+    { 'Item': 'Total Captains', 'Value': captains.length },
+    { 'Item': 'Players Paid', 'Value': players.filter(p => p.payment_status === 'paid').length },
+    { 'Item': 'Captains Paid', 'Value': captains.filter(c => c.payment_status === 'paid').length },
+    { 'Item': 'Player Fee Collected ₹', 'Value': totalPlayerFees },
+    { 'Item': 'Captain Fee Collected ₹', 'Value': totalCaptainFees },
+    { 'Item': 'Total Collected ₹', 'Value': totalPlayerFees + totalCaptainFees },
+    { 'Item': 'Auction', 'Value': auction?.name || '' },
+    { 'Item': 'Exported On', 'Value': new Date().toLocaleString('en-IN') }
+  ];
+  const ws3 = XLSX.utils.json_to_sheet(summary);
+  ws3['!cols'] = [{ wch: 22 }, { wch: 15 }];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Summary');
+
+  const fileName = (auction?.name || 'Auction').replace(/[^a-zA-Z0-9]/g, '_') + '_Registrations.xlsx';
+  XLSX.writeFile(wb, fileName);
+}
+
+async function exportPlayersPDF() {
+  const { players, captains } = await getExportData();
+  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+
+  const aName = auction?.name || 'Auction';
+  const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  const totalPaid = players.filter(p => p.payment_status === 'paid').length;
+  const totalCPaid = captains.filter(c => c.payment_status === 'paid').length;
+
+  let html = `<html><head><title>${aName} — Player List</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:12px;}
+    .header{text-align:center;margin-bottom:20px;border-bottom:2px solid #f59e0b;padding-bottom:12px;}
+    .header h1{font-size:22px;color:#111;margin-bottom:4px;}
+    .header p{font-size:12px;color:#666;}
+    .summary{display:flex;gap:16px;justify-content:center;margin-bottom:20px;}
+    .summary-item{text-align:center;padding:8px 16px;background:#f8f8f8;border-radius:6px;}
+    .summary-item strong{font-size:18px;display:block;color:#f59e0b;}
+    .section-title{font-size:16px;font-weight:700;color:#f59e0b;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #eee;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+    th{background:#f59e0b;color:#000;text-align:left;padding:6px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+    td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
+    tr:nth-child(even) td{background:#fafafa;}
+    .paid{color:#16a34a;font-weight:700;} .pending{color:#d97706;font-weight:700;}
+    .footer{text-align:center;margin-top:24px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:10px;}
+    @media print{body{padding:12px;}@page{size:A4;margin:10mm;}}
+  </style></head><body>
+  <div class="header">
+    <h1>🏏 ${aName}</h1>
+    <p>Player & Captain Registration List · Generated on ${date}</p>
+    <p style="margin-top:4px;">CaptainXI — captainxi.com</p>
+  </div>
+  <div class="summary">
+    <div class="summary-item"><strong>${players.length}</strong>Players</div>
+    <div class="summary-item"><strong>${captains.length}</strong>Captains</div>
+    <div class="summary-item"><strong>${totalPaid + totalCPaid} / ${players.length + captains.length}</strong>Paid</div>
+  </div>`;
+
+  if (players.length) {
+    html += `<div class="section-title">🏏 Players (${players.length})</div>
+    <table><thead><tr><th>#</th><th>Name</th><th>Mobile</th><th>Role</th><th>T-Shirt</th><th>Jersey</th><th>Fee ₹</th><th>Status</th></tr></thead><tbody>`;
+    players.forEach((p, i) => {
+      const isPaid = p.payment_status === 'paid';
+      html += `<tr><td>${i + 1}</td><td><b>${p.name}</b></td><td>${p.mobile}</td><td>${p.role || '—'}</td><td>${p.tshirt_size || '—'}</td><td>${p.jersey_name || '—'} #${p.jersey_number || '—'}</td><td>₹${(p.registration_fee || 500).toLocaleString('en-IN')}</td><td class="${isPaid ? 'paid' : 'pending'}">${isPaid ? '✅ Paid' : '⏳ Pending'}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  if (captains.length) {
+    html += `<div class="section-title">👑 Captains / Team Owners (${captains.length})</div>
+    <table><thead><tr><th>#</th><th>Name</th><th>Mobile</th><th>Team</th><th>Fee ₹</th><th>Status</th></tr></thead><tbody>`;
+    captains.forEach((c, i) => {
+      const isPaid = c.payment_status === 'paid';
+      html += `<tr><td>${i + 1}</td><td><b>${c.name}</b></td><td>${c.mobile}</td><td>${c.captain_team_name || '—'}</td><td>₹${(c.registration_fee || 2500).toLocaleString('en-IN')}</td><td class="${isPaid ? 'paid' : 'pending'}">${isPaid ? '✅ Paid' : '⏳ Pending'}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  html += `<div class="footer">Generated by CaptainXI · captainxi.com · ${date}</div></body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
+}
+
+async function exportPlayersWhatsApp() {
+  const { players, captains } = await getExportData();
+  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+
+  const aName = auction?.name || 'Auction';
+  let msg = '🏏 *' + aName + '* — Registration List\n\n';
+
+  if (players.length) {
+    msg += '📋 *Players (' + players.length + '):*\n';
+    players.forEach((p, i) => {
+      const paid = p.payment_status === 'paid' ? '✅' : '⏳';
+      msg += (i + 1) + '. ' + p.name + ' (' + (p.role || '—') + ') ' + paid + '\n';
+    });
+    msg += '\n';
+  }
+
+  if (captains.length) {
+    msg += '👑 *Captains (' + captains.length + '):*\n';
+    captains.forEach((c, i) => {
+      const paid = c.payment_status === 'paid' ? '✅' : '⏳';
+      msg += (i + 1) + '. ' + c.name + ' — ' + (c.captain_team_name || '—') + ' ' + paid + '\n';
+    });
+    msg += '\n';
+  }
+
+  const totalPaid = [...players, ...captains].filter(r => r.payment_status === 'paid').length;
+  const totalRegs = players.length + captains.length;
+  msg += '📊 *Summary:* ' + totalPaid + '/' + totalRegs + ' paid\n';
+  msg += '\nPowered by CaptainXI 🏏';
+
+  try {
+    await navigator.clipboard.writeText(msg);
+    alert('✅ Player list copied! Paste it in any WhatsApp chat.');
+  } catch(e) {
+    // Fallback — open WhatsApp with message
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  }
 }
 
 // ── UTILS ─────────────────────────────────────────────────
