@@ -159,6 +159,12 @@ select option{background:var(--surface2);}
     <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px;" id="successSub">Registration complete.</div>
     <div class="success-card" id="successCard"></div>
     <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px;font-size:13px;color:var(--gold);line-height:1.6;" id="successNotice"></div>
+    <!-- CaptainXI branding -->
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--gold);margin-bottom:4px;">CAPTAIN<span style="color:var(--text);">XI</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">India's Complete Cricket Tournament Platform</div>
+      <a href="https://captainxi.com" target="_blank" style="display:inline-block;padding:8px 20px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--gold);border-radius:8px;font-size:12px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;text-decoration:none;">🏏 captainxi.com</a>
+    </div>
   </div>
 
   <!-- FORM -->
@@ -363,13 +369,14 @@ const DEFAULT_CAPTAIN_FEE=2500;
   document.getElementById('playerFeeLabel').textContent='₹'+playerFee.toLocaleString('en-IN');
   document.getElementById('captainFeeLabel').textContent='₹'+captainFee.toLocaleString('en-IN');
 
-  // Load registration stats
-  const{data:regs}=await sb.from('player_registrations').select('id,is_captain').eq('auction_id',auctionId);
-  const playerCount=(regs||[]).filter(r=>!r.is_captain).length;
-  const captainCount=(regs||[]).filter(r=>r.is_captain).length;
+  // Load registration stats — separate players and captains explicitly
+  const{data:playerRegs}=await sb.from('player_registrations').select('id',{count:'exact'}).eq('auction_id',auctionId).eq('is_captain',false);
+  const{data:captainRegs}=await sb.from('player_registrations').select('id',{count:'exact'}).eq('auction_id',auctionId).eq('is_captain',true);
+  const playerCount=(playerRegs||[]).length;
+  const captainCount=(captainRegs||[]).length;
   const maxPlayers=data.max_players||999;
   const spotsLeft=Math.max(0,maxPlayers-playerCount);
-  const isFull=playerCount>=maxPlayers;
+  const isFull=maxPlayers<999 && playerCount>=maxPlayers;
 
   // Block registration if full
   if(isFull){
@@ -377,9 +384,9 @@ const DEFAULT_CAPTAIN_FEE=2500;
     return;
   }
 
-  // Build stats display
+  // Build stats display — always show when show_player_count is on
   let statsHtml='';
-  if(data.show_player_count){
+  if(data.show_player_count && maxPlayers<999){
     statsHtml+=
       '<div class="reg-stat"><div class="reg-stat-num">'+playerCount+'</div><div class="reg-stat-lbl">Registered</div></div>'+
       '<div class="reg-stat"><div class="reg-stat-num">'+spotsLeft+'</div><div class="reg-stat-lbl">Spots Left</div></div>'+
@@ -679,7 +686,7 @@ async function submitRegistration(){
       (isCaptain
         ? '<div class="success-card-row"><span style="color:var(--muted);">Team Name</span><span style="font-weight:700;">'+teamName+'</span></div>'
         : '<div class="success-card-row"><span style="color:var(--muted);">Role</span><span style="font-weight:700;">'+selectedCricketRole+'</span></div>')+
-      '<div class="success-card-row"><span style="color:var(--muted);">T-Shirt</span><span style="font-weight:700;">'+selectedSize+'</span></div>'+
+      (selectedSize ? '<div class="success-card-row"><span style="color:var(--muted);">T-Shirt</span><span style="font-weight:700;">'+selectedSize+'</span></div>' : '')+
       '<div class="success-card-row"><span style="color:var(--muted);">Fee Paid</span><span style="font-weight:700;color:var(--green);">₹'+fee.toLocaleString('en-IN')+' ✅</span></div>'+
       '<div class="success-card-row"><span style="color:var(--muted);">Payment ID</span><span style="font-weight:700;font-size:11px;font-family:monospace;">'+paymentId+'</span></div>'+
       '<div class="success-card-row"><span style="color:var(--muted);">Tournament</span><span style="font-weight:700;">'+auction.name+'</span></div>';
