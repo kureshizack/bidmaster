@@ -609,13 +609,14 @@ async function _renderLobbyInner() {
 // ── SUMMARY BAR ───────────────────────────────────────────
 function renderSummaryBar() {
   const soldIds = new Set(sales.map(s => s.player_id));
+  const unsoldIds = new Set(players.filter(p => p.unsold).map(p => p.id));
   const sold = soldIds.size;
-  const remaining = players.length - sold;
+  const remaining = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id)).length;
   const totalSpent = sales.reduce((s, x) => s + Number(x.amount), 0);
   const totalLeft = teams.reduce((s, t) => s + Number(t.credits), 0);
   document.getElementById('summaryBar').innerHTML = `
     <div class="stat-card"><div class="stat-card-lbl">Sold</div><div class="stat-card-val" style="color:var(--green);">${sold}<span style="font-size:14px;color:var(--muted);"> / ${players.length}</span></div></div>
-    <div class="stat-card"><div class="stat-card-lbl">Available</div><div class="stat-card-val" style="color:var(--blue);">${remaining}</div></div>
+    <div class="stat-card"><div class="stat-card-lbl">Players Left</div><div class="stat-card-val" style="color:var(--blue);">${remaining}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Total Spent</div><div class="stat-card-val" style="color:var(--accent);">₹${totalSpent.toLocaleString('en-IN')}</div></div>
     <div class="stat-card"><div class="stat-card-lbl">Budget Left</div><div class="stat-card-val" style="color:var(--yellow);">₹${totalLeft.toLocaleString('en-IN')}</div></div>`;
 }
