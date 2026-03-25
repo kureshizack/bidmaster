@@ -300,6 +300,22 @@ select option{background:var(--surface2);}
       <div class="payment-amount-big fee-amount-player" id="paymentAmountBig">₹500</div>
       <div class="payment-desc" id="paymentDesc">Player registration fee for this tournament. Pay online to confirm your spot.</div>
 
+      <!-- Fee breakdown -->
+      <div id="feeBreakdown" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:10px 0;font-size:13px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--muted);">Registration Fee</span>
+          <span style="color:var(--text);font-weight:600;" id="breakdownRegFee">₹500</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--muted);">Platform Fee</span>
+          <span style="color:var(--text);font-weight:600;">₹<span id="breakdownPlatformFee">15</span></span>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:6px;display:flex;justify-content:space-between;">
+          <span style="color:var(--text);font-weight:700;">Total Payable</span>
+          <span style="color:var(--gold);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;" id="breakdownTotal">₹515</span>
+        </div>
+      </div>
+
       <!-- Razorpay pay button -->
       <div id="payNowSection" style="margin:12px 0;">
         <button id="payNowBtn" onclick="submitRegistration()"
@@ -343,6 +359,10 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 // ── RAZORPAY CONFIG ───────────────────────────────────────
 const RAZORPAY_KEY = 'rzp_live_SV1EehZnBUYxh7';
+// ─────────────────────────────────────────────────────────
+
+// ── PLATFORM CONVENIENCE FEE ─────────────────────────────
+const PLATFORM_FEE = 15; // ₹15 per registration — captainXI.com revenue
 // ─────────────────────────────────────────────────────────
 
 const params=new URLSearchParams(window.location.search);
@@ -493,6 +513,11 @@ function updateFeeDisplay(type){
   }
   amtDisp.textContent=feeStr;
   payAmt.textContent=feeStr;
+  // Update breakdown
+  const totalPayable = fee + PLATFORM_FEE;
+  document.getElementById('breakdownRegFee').textContent = feeStr;
+  document.getElementById('breakdownPlatformFee').textContent = PLATFORM_FEE;
+  document.getElementById('breakdownTotal').textContent = '₹' + totalPayable.toLocaleString('en-IN');
 }
 
 // ── CRICKET ROLE ──────────────────────────────────────────
@@ -583,15 +608,16 @@ async function submitRegistration(){
 
   // ── RAZORPAY PAYMENT ────────────────────────────────────
   const fee = isCaptain ? (auction?.captain_fee||DEFAULT_CAPTAIN_FEE) : (auction?.player_fee||DEFAULT_PLAYER_FEE);
+  const totalPayable = fee + PLATFORM_FEE;
 
   await new Promise((resolve, reject) => {
     const options = {
       key: RAZORPAY_KEY,
-      amount: fee * 100,           // Razorpay takes paise
+      amount: totalPayable * 100,   // Razorpay takes paise (fee + platform fee)
       currency: 'INR',
-      name: auction.name || 'CaptainXI',
+      name: auction.name || 'captainXI.com',
       description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
-      image: 'https://kureshizack.github.io/bidmaster/favicon.ico',
+      image: '/favicon.svg',
       prefill: {
         name: name,
         contact: '+91' + mobile,
@@ -659,6 +685,8 @@ async function submitRegistration(){
       tshirt_name: tshirtName,
       tshirt_number: tshirtNumber,
       registration_fee: fee,
+      platform_fee: PLATFORM_FEE,
+      total_paid: fee + PLATFORM_FEE,
       payment_status: 'paid',
       payment_id: paymentId,
       registered_at: new Date().toISOString()

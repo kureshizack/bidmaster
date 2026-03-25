@@ -1174,29 +1174,29 @@ footer {
       <span class="save-badge">Save up to 40%</span>
     </div>
 
-    <div class="pricing-grid">
+    <div class="pricing-grid" style="grid-template-columns:repeat(3,1fr);">
       <!-- GULLY -->
       <div class="pricing-card reveal reveal-delay-1">
         <div class="plan-name">Gully</div>
-        <div class="plan-tagline">Perfect to get started</div>
+        <div class="plan-tagline">Try it out — free forever</div>
         <div class="plan-price-box">
           <div class="plan-price">FREE</div>
           <div class="plan-price-unit">Forever</div>
         </div>
         <hr class="plan-divider">
         <ul class="plan-features">
-          <li class="featured-item"><span class="check">✓</span> 3 teams per auction</li>
-          <li class="featured-item"><span class="check">✓</span> 18 players</li>
-          <li class="featured-item"><span class="check">✓</span> Live bidding app</li>
+          <li class="featured-item"><span class="check">✓</span> 3 teams · 20 players</li>
+          <li class="featured-item"><span class="check">✓</span> 1 auction</li>
+          <li class="featured-item"><span class="check">✓</span> Live auction arena</li>
+          <li class="featured-item"><span class="check">✓</span> Bidder panel (mobile)</li>
           <li class="featured-item"><span class="check">✓</span> Viewer screen</li>
-          <li class="featured-item"><span class="check">✓</span> Going Once/Twice timers</li>
-          <li><span class="cross">✗</span> WhatsApp team cards</li>
-          <li><span class="cross">✗</span> PDF report</li>
-          <li><span class="cross">✗</span> Auction history</li>
+          <li class="featured-item"><span class="check">✓</span> Registration portal</li>
+          <li><span class="cross">✗</span> Razorpay fee collection</li>
+          <li><span class="cross">✗</span> Player photos & certificates</li>
+          <li><span class="cross">✗</span> Excel/PDF export</li>
         </ul>
-        <a href="login.html" class="plan-btn plan-btn-ghost">Start Free →</a>
+        <a href="login.html#signup" class="plan-btn plan-btn-ghost">Start Free →</a>
         <div class="plan-limit">"Powered by captainXI.com" watermark</div>
-
       </div>
 
       <!-- CLUB -->
@@ -1205,71 +1205,48 @@ footer {
         <div class="plan-name">Club</div>
         <div class="plan-tagline">For your mohalla tournament</div>
         <div class="plan-price-box">
-          <div class="plan-price" id="clubPrice">₹499</div>
-          <div class="plan-price-unit" id="clubUnit">per auction · ₹62/team</div>
-          <div class="plan-annual" id="clubAnnual">or ₹2,499/year (6 auctions)</div>
+          <div class="plan-price" id="clubPrice">₹799</div>
+          <div class="plan-price-unit" id="clubUnit">per auction · ₹133/team</div>
+          <div class="plan-annual" id="clubAnnual">or ₹2,999/year (5 auctions)</div>
         </div>
         <hr class="plan-divider">
         <ul class="plan-features">
-          <li class="featured-item"><span class="check">✓</span> 8 teams per auction</li>
-          <li class="featured-item"><span class="check">✓</span> 80 players</li>
+          <li class="featured-item"><span class="check">✓</span> 6 teams · 66 players</li>
+          <li class="featured-item"><span class="check">✓</span> 5 auctions</li>
           <li class="featured-item"><span class="check">✓</span> Everything in Gully</li>
-          <li class="featured-item"><span class="check">✓</span> WhatsApp team cards</li>
-          <li class="featured-item"><span class="check">✓</span> SMS OTP for captains</li>
-          <li class="featured-item"><span class="check">✓</span> PDF report</li>
-          <li class="featured-item"><span class="check">✓</span> Last 3 auctions saved</li>
-          <li><span class="cross">✗</span> Player photos</li>
+          <li class="featured-item"><span class="check">✓</span> Razorpay fee collection</li>
+          <li class="featured-item"><span class="check">✓</span> Player photos + certificates</li>
+          <li class="featured-item"><span class="check">✓</span> Excel + PDF export</li>
+          <li class="featured-item"><span class="check">✓</span> SMS viewer link</li>
+          <li class="featured-item"><span class="check">✓</span> No watermark</li>
+          <li><span class="cross">✗</span> Custom branding</li>
         </ul>
         <a href="upgrade.html?plan=club" class="plan-btn plan-btn-primary" id="clubBtn">Get Club →</a>
-        <div class="plan-limit" id="clubLimit">Annual: 6 auction cap · Extra teams ₹199</div>
+        <div class="plan-limit" id="clubLimit">Extra auction: ₹199 · Extra team: ₹99</div>
       </div>
 
-      <!-- DISTRICT -->
+      <!-- PRO -->
       <div class="pricing-card reveal reveal-delay-3">
-        <div class="plan-name">District</div>
-        <div class="plan-tagline">Serious leagues & clubs</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-tagline">For serious leagues & clubs</div>
         <div class="plan-price-box">
-          <div class="plan-price" id="distPrice">₹999</div>
-          <div class="plan-price-unit" id="distUnit">per auction · ₹71/team</div>
-          <div class="plan-annual" id="distAnnual">or ₹4,999/year (12 auctions)</div>
+          <div class="plan-price" id="proPrice">₹1,499</div>
+          <div class="plan-price-unit" id="proUnit">per auction · ₹150/team</div>
+          <div class="plan-annual" id="proAnnual">or ₹5,999/year (12 auctions)</div>
         </div>
         <hr class="plan-divider">
         <ul class="plan-features">
-          <li class="featured-item"><span class="check">✓</span> 14 teams per auction</li>
-          <li class="featured-item"><span class="check">✓</span> 150 players</li>
+          <li class="featured-item"><span class="check">✓</span> 10 teams · 150 players</li>
+          <li class="featured-item"><span class="check">✓</span> 12 auctions</li>
           <li class="featured-item"><span class="check">✓</span> Everything in Club</li>
-          <li class="featured-item"><span class="check">✓</span> Player photos <span style="font-size:10px;color:var(--gold);">SOON</span></li>
-          <li class="featured-item"><span class="check">✓</span> Live commentary <span style="font-size:10px;color:var(--gold);">SOON</span></li>
-          <li class="featured-item"><span class="check">✓</span> Custom branding <span style="font-size:10px;color:var(--gold);">SOON</span></li>
-          <li class="featured-item"><span class="check">✓</span> Unlimited history</li>
-          <li class="featured-item"><span class="check">✓</span> Priority support</li>
+          <li class="featured-item"><span class="check">✓</span> Custom branding (your logo)</li>
+          <li class="featured-item"><span class="check">✓</span> PDF auction report</li>
+          <li class="featured-item"><span class="check">✓</span> Multi-round auctions</li>
+          <li class="featured-item"><span class="check">✓</span> Priority WhatsApp support</li>
+          <li class="featured-item"><span class="check">✓</span> Audience reactions</li>
         </ul>
-        <a href="upgrade.html?plan=district" class="plan-btn plan-btn-ghost" id="distBtn">Get District →</a>
-        <div class="plan-limit" id="distLimit">Annual: 12 auction cap · Extra teams ₹199</div>
-      </div>
-
-      <!-- NATIONAL -->
-      <div class="pricing-card reveal reveal-delay-4">
-        <div class="plan-name">National</div>
-        <div class="plan-tagline">City-level & corporate</div>
-        <div class="plan-price-box">
-          <div class="plan-price" id="natPrice">₹1,999</div>
-          <div class="plan-price-unit" id="natUnit">per auction</div>
-          <div class="plan-annual" id="natAnnual">or ₹9,999/year (unlimited)</div>
-        </div>
-        <hr class="plan-divider">
-        <ul class="plan-features">
-          <li class="featured-item"><span class="check">✓</span> Unlimited teams</li>
-          <li class="featured-item"><span class="check">✓</span> Unlimited players</li>
-          <li class="featured-item"><span class="check">✓</span> Everything in District</li>
-          <li class="featured-item"><span class="check">✓</span> Multiple organizers</li>
-          <li class="featured-item"><span class="check">✓</span> Match management <span style="font-size:10px;color:var(--gold);">SOON</span></li>
-          <li class="featured-item"><span class="check">✓</span> Player career stats <span style="font-size:10px;color:var(--gold);">SOON</span></li>
-          <li class="featured-item"><span class="check">✓</span> Dedicated support</li>
-          <li class="featured-item"><span class="check">✓</span> Early feature access</li>
-        </ul>
-        <a href="upgrade.html?plan=national" class="plan-btn plan-btn-ghost">Get National →</a>
-        <div class="plan-limit">Annual: unlimited auctions</div>
+        <a href="upgrade.html?plan=pro" class="plan-btn plan-btn-ghost" id="proBtn">Get Pro →</a>
+        <div class="plan-limit" id="proLimit">Extra auction: ₹299 · Extra team: ₹99</div>
       </div>
     </div>
 
@@ -1279,10 +1256,10 @@ footer {
         <div class="launch-icon">🏅</div>
         <div class="launch-text">
           <h3>Founding League — First 100 Organizers</h3>
-          <p>Get Club plan at <strong style="color:var(--gold);">₹299/auction</strong> for 3 months · Founding badge on your viewer screen · Listed on our website as a founding partner · 25% off upgrades forever</p>
+          <p>Get Club plan at <strong style="color:var(--gold);">₹499/auction</strong> for 3 months · Founding badge on your viewer screen · 25% off upgrades forever</p>
         </div>
       </div>
-      <a href="login.html" class="launch-spots">Claim Your Spot →</a>
+      <a href="upgrade.html?plan=club" class="launch-spots">Claim Your Spot →</a>
     </div>
   </div>
 </section>
@@ -1490,41 +1467,33 @@ function toggleBilling() {
   document.getElementById('annualLabel').style.color = isAnnual ? 'var(--text)' : 'var(--muted)';
 
   if (isAnnual) {
-    document.getElementById('clubPrice').textContent = '₹2,499';
-    document.getElementById('clubUnit').textContent = 'per year · ₹416/auction';
-    document.getElementById('clubAnnual').textContent = 'Save ₹495 vs per-auction';
-    document.getElementById('clubLimit').textContent = '6 auctions included · Extra ₹499/auction';
+    document.getElementById('clubPrice').textContent = '₹2,999';
+    document.getElementById('clubUnit').textContent = 'per year · ₹600/auction';
+    document.getElementById('clubAnnual').textContent = 'Save ₹996 vs per-auction';
+    document.getElementById('clubLimit').textContent = '5 auctions included · Extra ₹199/auction';
     document.getElementById('clubBtn').textContent = 'Get Club Annual →';
     document.getElementById('clubBtn').href = 'upgrade.html?plan=club&billing=annual';
 
-    document.getElementById('distPrice').textContent = '₹4,999';
-    document.getElementById('distUnit').textContent = 'per year · ₹416/auction';
-    document.getElementById('distAnnual').textContent = 'Save ₹2,989 vs per-auction';
-    document.getElementById('distLimit').textContent = '12 auctions included · Extra ₹999/auction';
-    document.getElementById('distBtn').textContent = 'Get District Annual →';
-    document.getElementById('distBtn').href = 'upgrade.html?plan=district&billing=annual';
-
-    document.getElementById('natPrice').textContent = '₹9,999';
-    document.getElementById('natUnit').textContent = 'per year · unlimited auctions';
-    document.getElementById('natAnnual').textContent = 'Best value for regular organizers';
+    document.getElementById('proPrice').textContent = '₹5,999';
+    document.getElementById('proUnit').textContent = 'per year · ₹500/auction';
+    document.getElementById('proAnnual').textContent = 'Save ₹11,989 vs per-auction';
+    document.getElementById('proLimit').textContent = '12 auctions included · Extra ₹299/auction';
+    document.getElementById('proBtn').textContent = 'Get Pro Annual →';
+    document.getElementById('proBtn').href = 'upgrade.html?plan=pro&billing=annual';
   } else {
-    document.getElementById('clubPrice').textContent = '₹499';
-    document.getElementById('clubUnit').textContent = 'per auction · ₹62/team';
-    document.getElementById('clubAnnual').textContent = 'or ₹2,499/year (6 auctions)';
-    document.getElementById('clubLimit').textContent = 'Annual: 6 auction cap · Extra teams ₹199';
+    document.getElementById('clubPrice').textContent = '₹799';
+    document.getElementById('clubUnit').textContent = 'per auction · ₹133/team';
+    document.getElementById('clubAnnual').textContent = 'or ₹2,999/year (5 auctions)';
+    document.getElementById('clubLimit').textContent = 'Extra auction: ₹199 · Extra team: ₹99';
     document.getElementById('clubBtn').textContent = 'Get Club →';
     document.getElementById('clubBtn').href = 'upgrade.html?plan=club';
 
-    document.getElementById('distPrice').textContent = '₹999';
-    document.getElementById('distUnit').textContent = 'per auction · ₹71/team';
-    document.getElementById('distAnnual').textContent = 'or ₹4,999/year (12 auctions)';
-    document.getElementById('distLimit').textContent = 'Annual: 12 auction cap · Extra teams ₹199';
-    document.getElementById('distBtn').textContent = 'Get District →';
-    document.getElementById('distBtn').href = 'upgrade.html?plan=district';
-
-    document.getElementById('natPrice').textContent = '₹1,999';
-    document.getElementById('natUnit').textContent = 'per auction';
-    document.getElementById('natAnnual').textContent = 'or ₹9,999/year (unlimited)';
+    document.getElementById('proPrice').textContent = '₹1,499';
+    document.getElementById('proUnit').textContent = 'per auction · ₹150/team';
+    document.getElementById('proAnnual').textContent = 'or ₹5,999/year (12 auctions)';
+    document.getElementById('proLimit').textContent = 'Extra auction: ₹299 · Extra team: ₹99';
+    document.getElementById('proBtn').textContent = 'Get Pro →';
+    document.getElementById('proBtn').href = 'upgrade.html?plan=pro';
   }
 }
 

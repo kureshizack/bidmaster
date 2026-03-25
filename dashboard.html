@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — CaptainXI</title>
+<title>Dashboard — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -79,7 +79,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <body>
 
 <nav>
-  <a href="index.html" class="logo" style="text-decoration:none;">🏏 CaptainXI</a>
+  <a href="index.html" class="logo" style="text-decoration:none;">🏏 captainXI.com</a>
   <div class="nav-right">
     <a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">🏠 Home</a>
     <span class="user-name" id="userName"></span>
@@ -319,7 +319,7 @@ let userProfile = null;
   const tierMap = {
     'free':'FREE','gully':'FREE',
     'paid':'⭐ CLUB','club':'⭐ CLUB',
-    'district':'🏟️ DISTRICT','national':'🇮🇳 NATIONAL'
+    'pro':'🏟️ PRO','district':'🏟️ PRO','national':'🏟️ PRO'
   };
   planBadge.textContent = tierMap[plan] || 'FREE';
   if(plan && plan !== 'free' && plan !== 'gully'){
@@ -425,12 +425,13 @@ async function createAuction() {
 
   // Plan limit check
   const planLimits = {
-    'gully':{auctions:3,teams:3,players:18},
-    'free':{auctions:3,teams:3,players:18},
-    'club':{auctions:100,teams:8,players:60},
-    'paid':{auctions:100,teams:8,players:60},
-    'district':{auctions:100,teams:14,players:120},
-    'national':{auctions:999,teams:32,players:500}
+    'gully':{auctions:1,teams:3,players:20},
+    'free':{auctions:1,teams:3,players:20},
+    'club':{auctions:5,teams:6,players:66},
+    'paid':{auctions:5,teams:6,players:66},
+    'pro':{auctions:12,teams:10,players:150},
+    'district':{auctions:12,teams:10,players:150},
+    'national':{auctions:12,teams:10,players:150}
   };
   const userPlan = userProfile?.plan || 'gully';
   const limits = planLimits[userPlan] || planLimits['gully'];
@@ -498,7 +499,7 @@ async function createAuction() {
   // Send registration link to organizer via SMS (best effort)
   try {
     const smsMsg = encodeURIComponent(
-      '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by CaptainXI'
+      '🏏 ' + name + ' — Auction Created!\n\nShare this registration link:\n' + newlyCreatedRegLink + '\n\nPlayers: ₹' + playerFee + ' · Captains: ₹' + captainFee + '\n\nPowered by captainXI.com'
     );
     await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=YOUR_FAST2SMS_API_KEY&route=q&message=' + smsMsg + '&flash=0&numbers=' + orgMobile);
   } catch(e) { /* silent fail */ }
@@ -533,7 +534,7 @@ function shareSuccessWhatsApp() {
     '\n👑 Register as *Captain* — ₹' + captainFee.toLocaleString('en-IN') +
     '\n\n🔗 Register here:\n' + newlyCreatedRegLink +
     '\n\nFor queries contact: ' + (d.organizer_mobile || '') +
-    '\n\nPowered by CaptainXI 🏏';
+    '\n\nPowered by captainXI.com 🏏';
   navigator.clipboard.writeText(msg).then(() => {
     const btn = event.target;
     btn.textContent = '✅ Copied!';

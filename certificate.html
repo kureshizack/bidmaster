@@ -7,6 +7,7 @@
 <title>Player Certificate — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 :root{--bg:#080c14;--surface:#111827;--gold:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--border:#2a3a55;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -136,9 +137,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
       <div class="cert-footer">captainXI.com</div>
     </div>
 
-    <button class="download-btn" onclick="downloadCard()">📥 Download Card</button>
-    <button class="share-btn" onclick="shareWhatsApp()">📱 Share on WhatsApp</button>
-    <div style="font-size:12px;color:var(--muted);text-align:center;">Share your achievement with teammates!</div>
+    <button class="download-btn" onclick="downloadCard()">📥 Download HD Card — ₹10</button>
+    <button class="share-btn" onclick="shareWhatsApp()">📱 Share on WhatsApp (Free)</button>
+    <div style="font-size:12px;color:var(--muted);text-align:center;">View is free. HD download with your photo is ₹10 only.</div>
+    <div id="certPayMsg" style="font-size:12px;margin-top:6px;min-height:16px;text-align:center;"></div>
   </div>
 </div>
 
@@ -214,7 +216,41 @@ function showError(msg){
 }
 
 function downloadCard(){
-  // Simple approach — open print dialog on just the card
+  if(!saleData)return;
+  const p=saleData.players;
+  const msgEl=document.getElementById('certPayMsg');
+  
+  const options={
+    key:'rzp_live_SV1EehZnBUYxh7',
+    amount:1000, // ₹10 in paise
+    currency:'INR',
+    name:'captainXI.com',
+    description:'HD Certificate Download — '+p?.name,
+    image:'/favicon.svg',
+    theme:{color:'#f59e0b'},
+    handler:function(response){
+      // Payment successful — proceed with download
+      msgEl.style.color='#22c55e';
+      msgEl.textContent='✅ Payment received! Generating HD card...';
+      actualDownload();
+    },
+    modal:{
+      ondismiss:function(){
+        msgEl.style.color='#7a8faa';
+        msgEl.textContent='Payment cancelled. You can still share for free!';
+        setTimeout(()=>msgEl.textContent='',3000);
+      }
+    }
+  };
+  const rzp=new Razorpay(options);
+  rzp.on('payment.failed',function(){
+    msgEl.style.color='#ef4444';
+    msgEl.textContent='Payment failed. Try again.';
+  });
+  rzp.open();
+}
+
+function actualDownload(){
   const card=document.getElementById('certCard');
   const w=window.open('','_blank');
   w.document.write('<html><head><title>'+document.getElementById('certName').textContent+' Certificate</title>');
@@ -231,7 +267,7 @@ function shareWhatsApp(){
   if(!saleData)return;
   const p=saleData.players;const t=saleData.teams;const a=saleData.auctions;
   const url=window.location.href;
-  const msg='🏏 *'+p?.name+' — Sold for ₹'+Number(saleData.amount).toLocaleString('en-IN')+'!*\n\nBought by *'+t?.name+'* in '+a?.name+'\n\n🔗 View Certificate: '+url+'\n\nPowered by CaptainXI 🏆';
+  const msg='🏏 *'+p?.name+' — Sold for ₹'+Number(saleData.amount).toLocaleString('en-IN')+'!*\n\nBought by *'+t?.name+'* in '+a?.name+'\n\n🔗 View Certificate: '+url+'\n\nPowered by captainXI.com 🏆';
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 </script>
