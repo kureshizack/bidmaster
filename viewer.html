@@ -58,6 +58,17 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .btab.active{color:var(--accent);border-top-color:var(--accent);}
 .btab-icon{font-size:18px;display:block;margin-bottom:2px;}
 
+/* REACTIONS */
+.react-btn{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:42px;height:42px;font-size:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0;}
+.react-btn:hover{transform:scale(1.2);border-color:var(--accent);}
+.react-btn:active{transform:scale(0.9);}
+@keyframes floatUp{
+  0%{transform:translateY(0) scale(1);opacity:1;}
+  60%{opacity:1;}
+  100%{transform:translateY(-280px) scale(1.4);opacity:0;}
+}
+.reaction-bubble{position:absolute;bottom:0;font-size:28px;animation:floatUp 2s ease-out forwards;pointer-events:none;}
+
 .view-content{display:none;flex:1;overflow-y:auto;padding-bottom:80px;}
 .view-content.active{display:block;}
 
@@ -231,6 +242,19 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div class="view-content" id="view-stats">
     <div id="statsContent"><div class="loader"><span class="loader-spinner">⟳</span>Loading...</div></div>
   </div>
+
+  <!-- FLOATING REACTION BAR -->
+  <div id="reactionBar" style="position:fixed;bottom:56px;left:0;right:0;z-index:90;display:flex;justify-content:center;gap:6px;padding:8px 12px;background:rgba(8,12,20,0.92);backdrop-filter:blur(10px);border-top:1px solid var(--border);">
+    <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
+    <button class="react-btn" onclick="sendReaction('🏏')">🏏</button>
+    <button class="react-btn" onclick="sendReaction('💰')">💰</button>
+    <button class="react-btn" onclick="sendReaction('😱')">😱</button>
+    <button class="react-btn" onclick="sendReaction('👏')">👏</button>
+    <button class="react-btn" onclick="sendReaction('💪')">💪</button>
+  </div>
+
+  <!-- REACTION BUBBLES CONTAINER -->
+  <div id="reactionBubbles" style="position:fixed;bottom:110px;left:0;right:0;pointer-events:none;z-index:80;height:300px;overflow:hidden;"></div>
 
   <!-- Bottom Tabs -->
   <div class="bottom-tabs">
@@ -766,6 +790,59 @@ function switchView(name) {
 const fmt = n => Number(n).toLocaleString('en-IN');
 const pct = t => Math.max(0, Math.round((Number(t.credits) / Number(t.start_credits)) * 100));
 const fundCol = p => p > 50 ? 'var(--green)' : p > 20 ? 'var(--yellow)' : 'var(--red)';
+
+// ── REACTIONS ────────────────────────────────────────────
+let _lastReactionTime = 0;
+async function sendReaction(emoji) {
+  // Rate limit — 1 per 500ms
+  const now = Date.now();
+  if (now - _lastReactionTime < 500) return;
+  _lastReactionTime = now;
+
+  // Show locally immediately
+  spawnBubble(emoji);
+
+  // Save to DB (will broadcast to other viewers via realtime)
+  if (auction?.id) {
+    await sb.from('reactions').insert({
+      auction_id: auction.id,
+      emoji: emoji,
+      viewer_name: _viewerMobile || 'Viewer'
+    });
+  }
+}
+
+function spawnBubble(emoji) {
+  const container = document.getElementById('reactionBubbles');
+  const bubble = document.createElement('div');
+  bubble.className = 'reaction-bubble';
+  bubble.textContent = emoji;
+  bubble.style.left = (15 + Math.random() * 70) + '%';
+  container.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 2200);
+}
+
+// Subscribe to reactions from other viewers
+function subscribeReactions() {
+  if (!auction?.id) return;
+  sb.channel('reactions-' + auction.id)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'reactions',
+      filter: 'auction_id=eq.' + auction.id
+    }, (payload) => {
+      spawnBubble(payload.new.emoji);
+    })
+    .subscribe();
+}
+
+// Start reaction subscription after auction loads
+const _origSubscribeRealtime = subscribeRealtime;
+subscribeRealtime = function() {
+  _origSubscribeRealtime();
+  subscribeReactions();
+};
+</body>
+</html>
 </script>
 </body>
 </html>

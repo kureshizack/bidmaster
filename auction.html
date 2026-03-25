@@ -169,7 +169,7 @@ input:focus,select:focus{border-color:var(--accent);}
   </div>
 
   <!-- Pause / Complete bar -->
-  <div style="display:flex;gap:8px;margin-bottom:12px;">
+  <div style="display:flex;gap:8px;margin-bottom:8px;">
     <button class="btn" id="pauseBtn" onclick="togglePause()"
       style="background:rgba(234,179,8,0.15);color:var(--yellow);border:1px solid var(--yellow);padding:8px 16px;font-size:13px;flex:1;">
       ⏸ Pause Auction
@@ -179,6 +179,23 @@ input:focus,select:focus{border-color:var(--accent);}
       🏁 Complete Auction
     </button>
   </div>
+  <!-- Round + Replay bar -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn" onclick="startNewRound()"
+      style="background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid rgba(96,165,250,0.3);padding:6px 12px;font-size:12px;flex:1;">
+      🔄 New Round (Unsold Re-auction)
+    </button>
+    <button class="btn" onclick="showAuctionReplay()"
+      style="background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);padding:6px 12px;font-size:12px;flex:1;">
+      📺 Replay
+    </button>
+    <button class="btn" onclick="sendAllCaptainAlerts()"
+      style="background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.3);padding:6px 12px;font-size:12px;flex:1;">
+      📱 Alert Captains
+    </button>
+  </div>
+  <!-- Round indicator -->
+  <div id="roundIndicator" style="display:none;text-align:center;margin-bottom:8px;font-size:12px;color:var(--blue);font-weight:700;font-family:'Rajdhani',sans-serif;letter-spacing:1px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:6px;padding:4px 8px;"></div>
 
   <div class="sale-form">
     <div id="saleMsg"></div>
@@ -453,6 +470,7 @@ function renderAll() {
   renderDashboard();
   renderPlayers();
   renderStrategy();
+  updateRoundIndicator();
   // NOTE: renderLobby() is NOT here — it's async+DB-heavy.
   // It fires only from: initial load, bidder_sessions realtime, and the 45s poll.
 }
@@ -890,6 +908,7 @@ async function autoMarkUnsold() {
   }).eq('auction_id', auctionId);
   await sb.from('bids').delete().eq('auction_id', auctionId).eq('player_id', player.id);
   showMsg('saleMsg', `🚫 ${player.name} — No bids received. Marked as UNSOLD.`, 'success');
+  logAuctionEvent('unsold', player.id, null, null, { player_name: player.name, role: player.role });
   resetForm();
   await loadAll();
   scheduleNextPlayer();
@@ -912,6 +931,7 @@ async function markUnsold() {
 
   stopTimer();
   showMsg('saleMsg', `🚫 ${player.name} marked as UNSOLD`, 'success');
+  logAuctionEvent('unsold', player.id, null, null, { player_name: player.name, role: player.role });
   resetForm();
   await loadAll();
   scheduleNextPlayer();
@@ -1164,6 +1184,15 @@ async function confirmSold() {
   playSound('sold');
   stopTimer();
   showMsg('saleMsg', `🔨 SOLD! ${player.name} → ${team.name} for ₹${fmt(amt)}`, 'success');
+
+  // LOG EVENT — for auction replay
+  await logAuctionEvent('sold', player.id, team.id, amt, {
+    player_name: player.name, team_name: team.name, role: player.role
+  });
+
+  // WHATSAPP AUTO-ALERT — send sale notification to captain
+  autoAlertCaptain(team, player, amt);
+
   resetForm();
   await loadAll();
   scheduleNextPlayer();
@@ -1418,6 +1447,208 @@ function copyBidderLinks() {
   navigator.clipboard.writeText(msg).then(() => {
     showMsg('saleMsg', '📋 Bidder links copied! Paste on WhatsApp group to share with all captains.', 'success');
   });
+}
+
+// ══════════════════════════════════════════════════════════
+// 🎯 FEATURE: AUCTION EVENT LOG (for replay)
+// ══════════════════════════════════════════════════════════
+async function logAuctionEvent(eventType, playerId, teamId, amount, details) {
+  try {
+    await sb.from('auction_log').insert({
+      auction_id: auctionId,
+      event_type: eventType,
+      player_id: playerId || null,
+      team_id: teamId || null,
+      amount: amount || null,
+      details: details || {},
+      round: auction?.current_round || 1
+    });
+  } catch(e) { /* silent fail — logging should never block auction */ }
+}
+
+// ══════════════════════════════════════════════════════════
+// 📱 FEATURE: WHATSAPP AUTO-ALERTS
+// ══════════════════════════════════════════════════════════
+function autoAlertCaptain(team, player, amount) {
+  // Build WhatsApp message for the captain who bought the player
+  if (!team.captain_mobile) return;
+  const msg = encodeURIComponent(
+    '🏏 *' + player.name + '* — SOLD to your team!\n\n' +
+    '💰 Amount: ₹' + Number(amount).toLocaleString('en-IN') + '\n' +
+    '👥 Team: ' + team.name + '\n' +
+    '💳 Remaining Budget: ₹' + Number(team.credits - amount).toLocaleString('en-IN') + '\n\n' +
+    '🔗 ' + window.location.origin + '/viewer.html?room=' + auction.room_code + '\n\n' +
+    'Powered by captainXI.com 🏆'
+  );
+  // Open WhatsApp with pre-filled message (organizer sends manually)
+  // Auto-log the alert
+  sb.from('whatsapp_alerts').insert({
+    auction_id: auctionId,
+    alert_type: 'player_sold',
+    recipient_mobile: team.captain_mobile,
+    message: decodeURIComponent(msg)
+  }).then(() => {});
+}
+
+// Send sale alerts to ALL captains after each sale
+async function sendSaleAlertToAllCaptains(player, winningTeam, amount) {
+  for (const team of teams) {
+    if (!team.captain_mobile) continue;
+    const isWinner = team.id === winningTeam.id;
+    const msg = isWinner
+      ? '🔨 *' + player.name + '* SOLD to *' + team.name + '* for ₹' + Number(amount).toLocaleString('en-IN') + '!\nRemaining: ₹' + Number(team.credits - amount).toLocaleString('en-IN')
+      : '🔨 *' + player.name + '* sold to ' + winningTeam.name + ' for ₹' + Number(amount).toLocaleString('en-IN') + '.\nYour budget: ₹' + Number(team.credits).toLocaleString('en-IN');
+    // Log (actual SMS/WhatsApp sending via Fast2SMS happens separately)
+    await sb.from('whatsapp_alerts').insert({
+      auction_id: auctionId,
+      alert_type: 'player_sold',
+      recipient_mobile: team.captain_mobile,
+      message: msg
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// 🔄 FEATURE: MULTI-ROUND AUCTIONS
+// ══════════════════════════════════════════════════════════
+async function startNewRound() {
+  const currentRound = auction?.current_round || 1;
+  const unsoldPlayers = players.filter(p => p.unsold && !sales.find(s => s.player_id === p.id));
+  if (!unsoldPlayers.length) {
+    alert('No unsold players remaining. All players have been sold!');
+    return;
+  }
+  const nextRound = currentRound + 1;
+  if (!confirm('Start Round ' + nextRound + '?\n\n' + unsoldPlayers.length + ' unsold players will be re-auctioned.\nYou can optionally reduce base prices.')) return;
+
+  // Update auction round
+  await sb.from('auctions').update({ current_round: nextRound }).eq('id', auctionId);
+  auction.current_round = nextRound;
+
+  // Reset unsold flag for re-auction
+  for (const p of unsoldPlayers) {
+    const rounds = p.unsold_rounds || [];
+    rounds.push(currentRound);
+    await sb.from('players').update({
+      unsold: false,
+      unsold_rounds: rounds,
+      base_price: Math.max(0, Math.floor((p.base_price || 0) * 0.8)) // 20% base price reduction
+    }).eq('id', p.id);
+  }
+
+  // Log round start
+  await logAuctionEvent('round_started', null, null, null, {
+    round: nextRound,
+    unsold_count: unsoldPlayers.length,
+    player_names: unsoldPlayers.map(p => p.name)
+  });
+
+  showMsg('saleMsg', '🔄 Round ' + nextRound + ' started! ' + unsoldPlayers.length + ' players re-listed with 20% reduced base price.', 'success');
+  await loadAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// 📺 FEATURE: AUCTION REPLAY
+// ══════════════════════════════════════════════════════════
+async function showAuctionReplay() {
+  const { data: logs } = await sb.from('auction_log')
+    .select('*').eq('auction_id', auctionId)
+    .order('created_at', { ascending: true });
+
+  if (!logs?.length) {
+    alert('No auction events recorded yet. Events are logged automatically during the auction.');
+    return;
+  }
+
+  // Build replay timeline
+  let html = '<div style="max-height:500px;overflow-y:auto;padding:10px;">';
+  html += '<div style="font-family:\'Rajdhani\',sans-serif;font-size:18px;font-weight:700;color:var(--accent);margin-bottom:12px;">📺 Auction Replay — ' + logs.length + ' events</div>';
+
+  logs.forEach((log, i) => {
+    const time = new Date(log.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const d = log.details || {};
+    let icon = '📌', text = '', color = 'var(--muted)';
+
+    switch(log.event_type) {
+      case 'player_up':
+        icon = '🎯'; text = d.player_name + ' up for auction'; color = 'var(--blue)'; break;
+      case 'bid':
+        icon = '💰'; text = d.team_name + ' bid ₹' + Number(log.amount).toLocaleString('en-IN') + ' for ' + d.player_name; color = 'var(--accent)'; break;
+      case 'going_once':
+        icon = '🔔'; text = 'Going Once — ' + d.player_name; color = 'var(--yellow)'; break;
+      case 'going_twice':
+        icon = '🔔🔔'; text = 'Going Twice — ' + d.player_name; color = 'var(--red)'; break;
+      case 'sold':
+        icon = '🔨'; text = d.player_name + ' SOLD to ' + d.team_name + ' for ₹' + Number(log.amount).toLocaleString('en-IN'); color = 'var(--green)'; break;
+      case 'unsold':
+        icon = '🚫'; text = d.player_name + ' UNSOLD'; color = 'var(--red)'; break;
+      case 'round_started':
+        icon = '🔄'; text = 'Round ' + (d.round || '?') + ' started — ' + (d.unsold_count || '?') + ' players re-listed'; color = 'var(--accent)'; break;
+      case 'pause':
+        icon = '⏸'; text = 'Auction paused'; break;
+      case 'resume':
+        icon = '▶'; text = 'Auction resumed'; break;
+      default:
+        text = log.event_type;
+    }
+
+    html += '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);align-items:flex-start;">' +
+      '<div style="font-size:10px;color:var(--muted);font-family:monospace;min-width:65px;padding-top:2px;">' + time + '</div>' +
+      '<div style="font-size:16px;min-width:24px;">' + icon + '</div>' +
+      '<div style="font-size:13px;color:' + color + ';flex:1;">' + text + (log.round > 1 ? ' <span style="font-size:10px;color:var(--muted);">R' + log.round + '</span>' : '') + '</div>' +
+      '</div>';
+  });
+
+  html += '</div>';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:520px;max-height:90vh;overflow:hidden;';
+  modal.innerHTML = html + '<div style="padding:10px;text-align:center;border-top:1px solid var(--border);"><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="padding:10px 28px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:15px;cursor:pointer;">Close Replay</button></div>';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+// ── SEND ALERTS TO ALL CAPTAINS ──────────────────────────
+async function sendAllCaptainAlerts() {
+  if (!sales.length) { alert('No sales yet. Alerts will be sent as players are sold.'); return; }
+  const lastSale = sales[0]; // most recent sale
+  const player = lastSale.players;
+  const winTeam = lastSale.teams;
+  const amount = lastSale.amount;
+
+  let alertMsg = '📱 *' + auction.name + '* — Auction Update\n\n';
+  alertMsg += '🔨 Last sale: *' + player?.name + '* → *' + winTeam?.name + '* for ₹' + Number(amount).toLocaleString('en-IN') + '\n\n';
+  alertMsg += '📊 Budget Status:\n';
+  teams.forEach(t => {
+    const spent = sales.filter(s => s.team_id === t.id).reduce((sum, s) => sum + Number(s.amount), 0);
+    const bought = sales.filter(s => s.team_id === t.id).length;
+    alertMsg += '• ' + t.name + ': ₹' + Number(t.credits).toLocaleString('en-IN') + ' left · ' + bought + ' players\n';
+  });
+  alertMsg += '\n🔗 Watch live: ' + window.location.origin + '/viewer.html?room=' + auction.room_code;
+  alertMsg += '\n\nPowered by captainXI.com 🏏';
+
+  try {
+    await navigator.clipboard.writeText(alertMsg);
+    showMsg('saleMsg', '📱 Alert message copied! Paste in your captains WhatsApp group.', 'success');
+  } catch(e) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(alertMsg), '_blank');
+  }
+}
+
+// ── ROUND INDICATOR UPDATE ───────────────────────────────
+function updateRoundIndicator() {
+  const el = document.getElementById('roundIndicator');
+  const round = auction?.current_round || 1;
+  if (round > 1) {
+    el.style.display = 'block';
+    const unsoldCount = players.filter(p => p.unsold && !sales.find(s => s.player_id === p.id)).length;
+    el.textContent = '🔄 ROUND ' + round + ' — ' + unsoldCount + ' unsold players remaining';
+  } else {
+    el.style.display = 'none';
+  }
 }
 </script>
 </body>
