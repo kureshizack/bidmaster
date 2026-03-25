@@ -1015,9 +1015,17 @@ async function completeAuction() {
     current_player_id: null, stage: 'waiting', updated_at: new Date().toISOString()
   }).eq('auction_id', auctionId);
 
+  // Log completion
+  await logAuctionEvent('auction_completed', null, null, null, { total_sales: sales.length });
+
   copyWhatsAppSummary();
-  alert('✅ Auction completed! WhatsApp summary copied — paste it on your group.');
-  window.location.href = 'dashboard.html';
+
+  // Ask if they want to schedule matches
+  if (confirm('✅ Auction completed! WhatsApp summary copied.\n\nWant to schedule tournament matches now?')) {
+    window.location.href = 'schedule.html?auction=' + auctionId;
+  } else {
+    window.location.href = 'dashboard.html';
+  }
 }
 
 // ── WHATSAPP SUMMARY ──────────────────────────────────────

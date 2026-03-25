@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match Schedule — captainXI.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--surface3:#232f45;--border:#2a3a55;--accent:#f59e0b;--accent2:#fbbf24;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(245,158,11,0.06) 0%,transparent 60%);}
+nav{padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,12,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);text-decoration:none;letter-spacing:2px;}
+.logo span{color:var(--text);}
+.nav-back{color:var(--muted);text-decoration:none;font-size:13px;font-family:'Rajdhani',sans-serif;font-weight:700;transition:color .2s;}
+.nav-back:hover{color:var(--accent);}
+.container{max-width:960px;margin:0 auto;padding:28px 20px 80px;}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;text-align:center;margin-bottom:4px;}
+.page-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:28px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);}
+.btn-green{background:var(--green);color:#000;}.btn-green:hover{filter:brightness(1.1);}
+select,input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'Noto Sans',sans-serif;width:100%;}
+select:focus,input:focus{border-color:var(--accent);}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+
+/* FORMAT CARDS */
+.format-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+@media(max-width:700px){.format-grid{grid-template-columns:1fr;}}
+.format-card{background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;text-align:center;}
+.format-card:hover{border-color:rgba(245,158,11,0.4);}
+.format-card.selected{border-color:var(--accent);background:rgba(245,158,11,0.06);}
+.format-icon{font-size:32px;margin-bottom:8px;}
+.format-name{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px;}
+.format-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.format-matches{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent);margin-top:6px;}
+
+/* MATCH CARDS */
+.match-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;transition:border-color .2s;}
+.match-card:hover{border-color:rgba(245,158,11,0.3);}
+.match-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.match-num{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;}
+.match-stage{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;}
+.stage-group{background:rgba(96,165,250,0.12);color:var(--blue);}
+.stage-semi{background:rgba(245,158,11,0.12);color:var(--accent);}
+.stage-final{background:rgba(34,197,94,0.12);color:var(--green);}
+.match-teams{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.match-team{flex:1;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;text-align:center;padding:8px;background:var(--surface);border-radius:6px;}
+.match-vs{font-size:13px;color:var(--muted);font-weight:700;flex-shrink:0;}
+.match-date-row{display:flex;gap:8px;align-items:center;}
+.match-date-row input{flex:1;}
+.match-date-row input[type="time"]{max-width:120px;}
+
+/* BRACKET */
+.bracket-wrap{overflow-x:auto;padding:20px 0;}
+.bracket{display:flex;gap:40px;min-width:fit-content;}
+.bracket-round{display:flex;flex-direction:column;justify-content:space-around;min-width:200px;}
+.bracket-round-title{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:12px;}
+.bracket-match{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden;}
+.bracket-team{padding:8px 12px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.bracket-team:first-child{border-bottom:1px solid var(--border);}
+.bracket-team.winner{color:var(--green);background:rgba(34,197,94,0.06);}
+.bracket-team.tbd{color:var(--muted);font-style:italic;}
+.bracket-score{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--muted);}
+
+/* EXPORT */
+.export-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+
+footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);margin-top:40px;}
+footer a{color:var(--accent);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo">captain<span>XI</span>.com</a>
+  <a href="dashboard.html" class="nav-back">← Dashboard</a>
+</nav>
+
+<div class="container">
+  <div class="page-title">Match Schedule</div>
+  <div class="page-sub" id="auctionInfo">Loading...</div>
+
+  <!-- STEP 1: FORMAT SELECTION -->
+  <div class="panel" id="formatPanel">
+    <div class="panel-title">📋 Step 1 — Select Tournament Format</div>
+    <div id="teamCountInfo" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+    <div class="format-grid" id="formatGrid"></div>
+    <button class="btn btn-primary" onclick="generateSchedule()" style="width:100%;padding:14px;font-size:16px;" id="generateBtn" disabled>🏏 Generate Schedule</button>
+    <div id="formatMsg" style="font-size:12px;margin-top:8px;min-height:16px;text-align:center;"></div>
+  </div>
+
+  <!-- STEP 2: SCHEDULE + DATE ASSIGNMENT -->
+  <div id="schedulePanel" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">📅 Step 2 — Assign Dates & Times</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Set date and time for each match. You can also leave some TBD and fill later.</div>
+      <div id="matchList"></div>
+    </div>
+
+    <!-- BRACKET VISUALIZATION -->
+    <div class="panel" id="bracketPanel" style="display:none;">
+      <div class="panel-title">🏆 Tournament Bracket</div>
+      <div class="bracket-wrap">
+        <div class="bracket" id="bracketView"></div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-green" onclick="saveSchedule()" style="flex:1;padding:14px;font-size:16px;">💾 Save Schedule</button>
+      <button class="btn btn-ghost" onclick="exportWhatsApp()" style="flex:1;">📱 Copy for WhatsApp</button>
+      <button class="btn btn-ghost" onclick="exportPDF()" style="flex:1;">📄 Download PDF</button>
+      <button class="btn btn-ghost" onclick="resetSchedule()">🔄 Change Format</button>
+    </div>
+    <div id="saveMsg" style="font-size:12px;margin-top:8px;min-height:16px;text-align:center;"></div>
+  </div>
+</div>
+
+<footer>
+  Powered by <a href="https://captainxi.com">captainXI.com</a> 🏏
+</footer>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const auctionId=new URLSearchParams(window.location.search).get('auction');
+let auction=null;
+let teamNames=[];
+let selectedFormat=null;
+let matches=[];
+
+// ── INIT ─────────────────────────────────────────────────
+(async()=>{
+  if(!auctionId){document.getElementById('auctionInfo').textContent='No auction specified.';return;}
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='login.html';return;}
+
+  const{data}=await sb.from('auctions').select('*').eq('id',auctionId).single();
+  if(!data){document.getElementById('auctionInfo').textContent='Auction not found.';return;}
+  auction=data;
+  document.getElementById('auctionInfo').textContent=data.name+(data.league_name?' · '+data.league_name:'');
+
+  const{data:teams}=await sb.from('teams').select('name').eq('auction_id',auctionId).order('name');
+  teamNames=(teams||[]).map(t=>t.name);
+
+  if(teamNames.length<2){
+    document.getElementById('teamCountInfo').innerHTML='<span style="color:var(--red);">❌ Need at least 2 teams to create a schedule. Add teams first.</span>';
+    return;
+  }
+
+  document.getElementById('teamCountInfo').innerHTML='<b style="color:var(--accent);">'+teamNames.length+' teams</b> in this tournament: '+teamNames.join(', ');
+
+  // Check if schedule already exists
+  const{data:existing}=await sb.from('match_schedule').select('*').eq('auction_id',auctionId).order('match_number');
+  if(existing?.length){
+    matches=existing;
+    selectedFormat=existing[0]?.format||'round_robin';
+    showSchedule();
+  } else {
+    renderFormatOptions();
+  }
+})();
+
+// ── FORMAT OPTIONS ───────────────────────────────────────
+function renderFormatOptions(){
+  const n=teamNames.length;
+  const formats=[];
+
+  // Round Robin — always available
+  const rrMatches=n*(n-1)/2;
+  formats.push({
+    id:'round_robin',icon:'🔄',name:'Round Robin',
+    desc:'Every team plays every other team once. Fairest format — all teams get equal matches.',
+    matches:rrMatches,
+    available:true
+  });
+
+  // Round Robin + Knockout — 4+ teams
+  if(n>=4){
+    const groupMatches=rrMatches;
+    const koMatches=n>=6?3:1; // semis+final or just final
+    formats.push({
+      id:'round_robin_knockout',icon:'🏆',name:'Round Robin + Knockout',
+      desc:'All teams play each other (league stage), then top '+Math.min(4,n)+' play semis & final. IPL style.',
+      matches:groupMatches+koMatches,
+      available:true
+    });
+  }
+
+  // Group Stage + Knockout — 6+ teams
+  if(n>=6){
+    const groups=n>=8?Math.ceil(n/4):2;
+    const perGroup=Math.ceil(n/groups);
+    const groupMatches=groups*(perGroup*(perGroup-1)/2);
+    formats.push({
+      id:'group_knockout',icon:'🌍',name:'Group Stage + Knockout',
+      desc:groups+' groups of '+perGroup+' teams. Top from each group go to knockouts. World Cup style.',
+      matches:groupMatches+(groups>=4?7:3),
+      available:n>=6
+    });
+  }
+
+  // Straight Knockout — always available
+  const koRounds=Math.ceil(Math.log2(n));
+  const koMatches=Math.pow(2,koRounds)-1;
+  formats.push({
+    id:'knockout',icon:'⚡',name:'Straight Knockout',
+    desc:'Single elimination. Lose once and you\'re out. Fastest format — fewest matches.',
+    matches:n-1+(n%2===1?0:0), // n-1 matches for knockout
+    available:true
+  });
+
+  const grid=document.getElementById('formatGrid');
+  grid.innerHTML=formats.filter(f=>f.available).map(f=>`
+    <div class="format-card" id="fmt-${f.id}" onclick="selectFormat('${f.id}')">
+      <div class="format-icon">${f.icon}</div>
+      <div class="format-name">${f.name}</div>
+      <div class="format-desc">${f.desc}</div>
+      <div class="format-matches">${f.matches} matches</div>
+    </div>
+  `).join('');
+}
+
+function selectFormat(id){
+  selectedFormat=id;
+  document.querySelectorAll('.format-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('fmt-'+id).classList.add('selected');
+  document.getElementById('generateBtn').disabled=false;
+}
+
+// ── SCHEDULE GENERATION ──────────────────────────────────
+function generateSchedule(){
+  if(!selectedFormat)return;
+  matches=[];
+
+  switch(selectedFormat){
+    case 'round_robin': generateRoundRobin(); break;
+    case 'round_robin_knockout': generateRoundRobinKnockout(); break;
+    case 'group_knockout': generateGroupKnockout(); break;
+    case 'knockout': generateKnockout(); break;
+  }
+
+  showSchedule();
+}
+
+// ── ROUND ROBIN ──────────────────────────────────────────
+function generateRoundRobin(){
+  let num=1;
+  const teams=[...teamNames];
+  // Standard round-robin using circle method
+  const n=teams.length;
+  const isOdd=n%2===1;
+  if(isOdd)teams.push('BYE');
+  const total=teams.length;
+  const rounds=total-1;
+  const half=total/2;
+
+  for(let round=0;round<rounds;round++){
+    for(let i=0;i<half;i++){
+      const home=teams[i];
+      const away=teams[total-1-i];
+      if(home==='BYE'||away==='BYE')continue;
+      matches.push({
+        match_number:num++,
+        stage:'League',
+        group_name:null,
+        team_a:home,
+        team_b:away,
+        match_date:null,
+        match_time:null,
+        venue:auction?.location||null,
+        format:selectedFormat
+      });
+    }
+    // Rotate teams (fix first, rotate rest)
+    teams.splice(1,0,teams.pop());
+  }
+}
+
+// ── ROUND ROBIN + KNOCKOUT ───────────────────────────────
+function generateRoundRobinKnockout(){
+  generateRoundRobin();
+  const n=teamNames.length;
+  const lastNum=matches.length;
+
+  if(n>=6){
+    // Semi 1
+    matches.push({match_number:lastNum+1,stage:'Semi Final 1',group_name:null,team_a:'TBD (1st)',team_b:'TBD (4th)',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    // Semi 2
+    matches.push({match_number:lastNum+2,stage:'Semi Final 2',group_name:null,team_a:'TBD (2nd)',team_b:'TBD (3rd)',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    // Final
+    matches.push({match_number:lastNum+3,stage:'Final',group_name:null,team_a:'Winner SF1',team_b:'Winner SF2',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+  } else {
+    // Just final (top 2)
+    matches.push({match_number:lastNum+1,stage:'Final',group_name:null,team_a:'TBD (1st)',team_b:'TBD (2nd)',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+  }
+}
+
+// ── GROUP STAGE + KNOCKOUT ───────────────────────────────
+function generateGroupKnockout(){
+  const n=teamNames.length;
+  const numGroups=n>=8?Math.ceil(n/4):2;
+  const shuffled=[...teamNames].sort(()=>Math.random()-0.5);
+  const groups=[];
+  for(let g=0;g<numGroups;g++)groups.push([]);
+  shuffled.forEach((t,i)=>groups[i%numGroups].push(t));
+
+  let num=1;
+  const groupLabels='ABCDEFGH';
+
+  // Group matches
+  groups.forEach((group,gi)=>{
+    for(let i=0;i<group.length;i++){
+      for(let j=i+1;j<group.length;j++){
+        matches.push({
+          match_number:num++,
+          stage:'Group '+groupLabels[gi],
+          group_name:'Group '+groupLabels[gi],
+          team_a:group[i],
+          team_b:group[j],
+          match_date:null,
+          match_time:null,
+          venue:auction?.location||null,
+          format:selectedFormat
+        });
+      }
+    }
+  });
+
+  // Knockouts based on group count
+  if(numGroups>=4){
+    matches.push({match_number:num++,stage:'Quarter Final 1',group_name:null,team_a:'1st Group A',team_b:'2nd Group B',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Quarter Final 2',group_name:null,team_a:'1st Group B',team_b:'2nd Group A',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Quarter Final 3',group_name:null,team_a:'1st Group C',team_b:'2nd Group D',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Quarter Final 4',group_name:null,team_a:'1st Group D',team_b:'2nd Group C',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Semi Final 1',group_name:null,team_a:'Winner QF1',team_b:'Winner QF2',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Semi Final 2',group_name:null,team_a:'Winner QF3',team_b:'Winner QF4',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Final',group_name:null,team_a:'Winner SF1',team_b:'Winner SF2',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+  } else {
+    // 2 groups — semis + final
+    matches.push({match_number:num++,stage:'Semi Final 1',group_name:null,team_a:'1st Group A',team_b:'2nd Group B',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Semi Final 2',group_name:null,team_a:'1st Group B',team_b:'2nd Group A',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+    matches.push({match_number:num++,stage:'Final',group_name:null,team_a:'Winner SF1',team_b:'Winner SF2',match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat});
+  }
+}
+
+// ── STRAIGHT KNOCKOUT ────────────────────────────────────
+function generateKnockout(){
+  const n=teamNames.length;
+  const shuffled=[...teamNames].sort(()=>Math.random()-0.5);
+  let num=1;
+
+  // Calculate bracket size (next power of 2)
+  const bracketSize=Math.pow(2,Math.ceil(Math.log2(n)));
+  const byes=bracketSize-n;
+
+  // First round
+  const firstRoundMatches=bracketSize/2;
+  let roundTeams=[];
+
+  for(let i=0;i<firstRoundMatches;i++){
+    const a=shuffled[i*2]||null;
+    const b=shuffled[i*2+1]||null;
+    if(!a&&!b)continue;
+    if(!b){
+      // BYE — team auto-advances
+      roundTeams.push(a);
+      continue;
+    }
+    const stageLabel=firstRoundMatches<=2?'Semi Final':(firstRoundMatches<=4?'Quarter Final':'Round 1');
+    matches.push({
+      match_number:num++,
+      stage:stageLabel+' '+(matches.filter(m=>m.stage.startsWith(stageLabel)).length+1),
+      group_name:null,team_a:a,team_b:b,
+      match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat
+    });
+    roundTeams.push('Winner M'+num.toString());
+  }
+
+  // Remaining rounds
+  while(roundTeams.length>1){
+    const nextRound=[];
+    const stageLabel=roundTeams.length===2?'Final':roundTeams.length<=4?'Semi Final':'Quarter Final';
+    for(let i=0;i<roundTeams.length;i+=2){
+      const a=roundTeams[i];
+      const b=roundTeams[i+1]||'BYE';
+      if(b==='BYE'){nextRound.push(a);continue;}
+      matches.push({
+        match_number:num++,
+        stage:stageLabel+(roundTeams.length>2?' '+(matches.filter(m=>m.stage.startsWith(stageLabel)).length+1):''),
+        group_name:null,team_a:a,team_b:b,
+        match_date:null,match_time:null,venue:auction?.location||null,format:selectedFormat
+      });
+      nextRound.push('Winner M'+num.toString());
+    }
+    roundTeams=nextRound;
+  }
+}
+
+// ── DISPLAY SCHEDULE ─────────────────────────────────────
+function showSchedule(){
+  document.getElementById('formatPanel').style.display='none';
+  document.getElementById('schedulePanel').style.display='block';
+
+  const list=document.getElementById('matchList');
+  list.innerHTML=matches.map((m,i)=>{
+    const stageClass=m.stage.includes('Final')?'stage-final':m.stage.includes('Semi')||m.stage.includes('Quarter')?'stage-semi':'stage-group';
+    return `<div class="match-card">
+      <div class="match-header">
+        <div class="match-num">Match ${m.match_number}</div>
+        <div class="match-stage ${stageClass}">${m.stage}</div>
+      </div>
+      <div class="match-teams">
+        <div class="match-team">${m.team_a}</div>
+        <div class="match-vs">VS</div>
+        <div class="match-team">${m.team_b}</div>
+      </div>
+      <div class="match-date-row">
+        <div style="flex:1;">
+          <label>Date</label>
+          <input type="date" id="date-${i}" value="${m.match_date||''}" onchange="matches[${i}].match_date=this.value">
+        </div>
+        <div style="flex:0.6;">
+          <label>Time</label>
+          <input type="time" id="time-${i}" value="${m.match_time||''}" onchange="matches[${i}].match_time=this.value">
+        </div>
+        <div style="flex:1;">
+          <label>Venue</label>
+          <input type="text" id="venue-${i}" value="${m.venue||''}" placeholder="Venue" onchange="matches[${i}].venue=this.value">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Show bracket for knockout formats
+  if(selectedFormat==='knockout'||selectedFormat==='round_robin_knockout'||selectedFormat==='group_knockout'){
+    renderBracket();
+  }
+}
+
+// ── BRACKET VISUALIZATION ────────────────────────────────
+function renderBracket(){
+  const koMatches=matches.filter(m=>m.stage.includes('Final')||m.stage.includes('Quarter')||m.stage.includes('Round 1'));
+  if(!koMatches.length){document.getElementById('bracketPanel').style.display='none';return;}
+
+  document.getElementById('bracketPanel').style.display='block';
+  const view=document.getElementById('bracketView');
+
+  // Group by stage
+  const stages={};
+  koMatches.forEach(m=>{
+    const key=m.stage.replace(/\s*\d+$/,'').trim();
+    if(!stages[key])stages[key]=[];
+    stages[key].push(m);
+  });
+
+  const stageOrder=['Round 1','Quarter Final','Semi Final','Final'];
+  view.innerHTML=stageOrder.filter(s=>stages[s]).map(stageName=>{
+    const stageMatches=stages[stageName];
+    return `<div class="bracket-round">
+      <div class="bracket-round-title">${stageName}</div>
+      ${stageMatches.map(m=>`
+        <div class="bracket-match">
+          <div class="bracket-team${m.team_a.startsWith('Winner')||m.team_a.startsWith('TBD')||m.team_a.startsWith('1st')||m.team_a.startsWith('2nd')?' tbd':''}">${m.team_a}<span class="bracket-score">--</span></div>
+          <div class="bracket-team${m.team_b.startsWith('Winner')||m.team_b.startsWith('TBD')||m.team_b.startsWith('1st')||m.team_b.startsWith('2nd')?' tbd':''}">${m.team_b}<span class="bracket-score">--</span></div>
+        </div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ── SAVE TO DATABASE ─────────────────────────────────────
+async function saveSchedule(){
+  const msgEl=document.getElementById('saveMsg');
+  msgEl.style.color='var(--accent)';msgEl.textContent='⏳ Saving schedule...';
+
+  // Delete existing schedule for this auction
+  await sb.from('match_schedule').delete().eq('auction_id',auctionId);
+
+  // Insert all matches
+  const records=matches.map(m=>({
+    auction_id:auctionId,
+    match_number:m.match_number,
+    stage:m.stage,
+    group_name:m.group_name,
+    team_a:m.team_a,
+    team_b:m.team_b,
+    match_date:m.match_date||null,
+    match_time:m.match_time||null,
+    venue:m.venue||null,
+    format:selectedFormat
+  }));
+
+  const{error}=await sb.from('match_schedule').insert(records);
+  if(error){
+    msgEl.style.color='var(--red)';msgEl.textContent='❌ Save failed: '+error.message;return;
+  }
+  msgEl.style.color='var(--green)';msgEl.textContent='✅ Schedule saved! '+matches.length+' matches.';
+}
+
+// ── EXPORT: WHATSAPP ─────────────────────────────────────
+function exportWhatsApp(){
+  let msg='🏏 *'+auction.name+'* — Match Schedule\n';
+  msg+='📋 Format: '+selectedFormat.replace(/_/g,' ').toUpperCase()+'\n';
+  msg+='👥 '+teamNames.length+' teams · '+matches.length+' matches\n\n';
+
+  let currentStage='';
+  matches.forEach(m=>{
+    if(m.stage!==currentStage){
+      currentStage=m.stage;
+      msg+='━━ *'+currentStage+'* ━━\n';
+    }
+    const dateStr=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'TBD';
+    const timeStr=m.match_time||'';
+    msg+='M'+m.match_number+': '+m.team_a+' vs '+m.team_b;
+    msg+=' · '+dateStr+(timeStr?' '+timeStr:'');
+    if(m.venue)msg+=' · '+m.venue;
+    msg+='\n';
+  });
+
+  msg+='\nPowered by captainXI.com 🏏';
+
+  navigator.clipboard.writeText(msg).then(()=>{
+    document.getElementById('saveMsg').style.color='var(--green)';
+    document.getElementById('saveMsg').textContent='📱 Schedule copied! Paste on WhatsApp.';
+    setTimeout(()=>document.getElementById('saveMsg').textContent='',3000);
+  });
+}
+
+// ── EXPORT: PDF ──────────────────────────────────────────
+function exportPDF(){
+  const aName=auction?.name||'Tournament';
+  const date=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+
+  let html=`<html><head><title>${aName} — Schedule</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:20px;font-size:12px;}
+  .header{text-align:center;margin-bottom:20px;border-bottom:2px solid #f59e0b;padding-bottom:10px;}
+  .header h1{font-size:20px;margin-bottom:4px;}.header p{color:#666;font-size:11px;}
+  .stage-title{font-size:14px;font-weight:700;color:#f59e0b;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid #eee;}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+  th{background:#f59e0b;color:#000;text-align:left;padding:5px 8px;font-size:10px;font-weight:700;text-transform:uppercase;}
+  td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
+  tr:nth-child(even) td{background:#fafafa;}
+  .footer{text-align:center;margin-top:20px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;}
+  @media print{body{padding:10px;}@page{size:A4;margin:10mm;}}
+  </style></head><body>
+  <div class="header"><h1>🏏 ${aName}</h1><p>Match Schedule · ${teamNames.length} teams · ${matches.length} matches · Generated ${date}</p><p>captainXI.com</p></div>`;
+
+  let currentStage='';
+  html+='<table><thead><tr><th>#</th><th>Stage</th><th>Team A</th><th></th><th>Team B</th><th>Date</th><th>Time</th><th>Venue</th></tr></thead><tbody>';
+  matches.forEach(m=>{
+    const dateStr=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'TBD';
+    html+=`<tr><td>M${m.match_number}</td><td><b>${m.stage}</b></td><td><b>${m.team_a}</b></td><td>vs</td><td><b>${m.team_b}</b></td><td>${dateStr}</td><td>${m.match_time||'TBD'}</td><td>${m.venue||'—'}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  html+=`<div class="footer">Generated by captainXI.com · ${date}</div></body></html>`;
+
+  const w=window.open('','_blank');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+// ── RESET ────────────────────────────────────────────────
+function resetSchedule(){
+  if(!confirm('Change format? Current schedule will be regenerated.'))return;
+  matches=[];selectedFormat=null;
+  document.getElementById('formatPanel').style.display='block';
+  document.getElementById('schedulePanel').style.display='none';
+  renderFormatOptions();
+}
+</script>
+</body>
+</html>
