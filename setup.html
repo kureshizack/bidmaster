@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auction Setup — CaptainXI</title>
+<title>Auction Setup — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -72,7 +72,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 <body>
 
 <nav>
-  <div class="logo">🏏 CaptainXI</div>
+  <div class="logo">🏏 captainXI.com</div>
   <div class="nav-sep">/</div>
   <div class="auction-title" id="navAuctionName">Loading...</div>
   <div class="nav-right">
@@ -95,21 +95,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
         </div>
         <div class="form-row" style="margin-bottom:8px;">
           <div class="form-group" style="flex:2;">
-            <label>Captain / Owner Name *</label>
-            <input type="text" id="newCaptainName" placeholder="Captain full name">
+            <label>Captain Name *</label>
+            <input type="text" id="newCaptainName" placeholder="Type or select captain" list="captainSuggestions" autocomplete="off" oninput="autofillCaptainMobile()">
+            <datalist id="captainSuggestions"></datalist>
           </div>
           <div class="form-group" style="flex:2;">
             <label>Captain Mobile * (for OTP)</label>
-            <input type="tel" id="newCaptainMobile" placeholder="10-digit mobile number" maxlength="10">
+            <input type="tel" id="newCaptainMobile" placeholder="10-digit mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')">
           </div>
         </div>
-        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">💡 Credits and bid step are set from auction settings</p>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">💡 Credits and bid step are set from auction settings. Select a registered player/captain or type manually.</p>
         <button class="btn btn-primary" onclick="addTeam()" style="width:100%;">+ Add Team</button>
         <div id="teamMsg" style="margin-top:8px;"></div>
       </div>
 
       <div class="panel">
-        <div class="panel-title">👥 Teams (<span id="teamCount">0</span>)</div>
+        <div class="panel-title">👥 Teams · <span id="teamCount">0</span></div>
         <div id="teamsList"><p style="color:var(--muted);font-size:13px;">No teams yet.</p></div>
       </div>
 
@@ -220,6 +221,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             </select>
           </div>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted);margin:0;">
+            <input type="checkbox" id="isManualCaptain" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+            👑 Register as Captain (will also be available as team captain)
+          </label>
+        </div>
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group" style="flex:1;">
             <label>Photo (optional)</label>
@@ -262,7 +269,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
       <!-- Auction Players List -->
       <div class="panel">
-        <div class="panel-title">🏏 Auction Players (<span id="playerCount">0</span>)</div>
+        <div class="panel-title">🏏 Auction Players · <span id="playerCount">0</span></div>
         <div style="max-height:350px;overflow-y:auto;" id="playersList">
           <p style="color:var(--muted);font-size:13px;">No players yet. Import from registration portal above or add manually.</p>
         </div>
@@ -285,7 +292,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <!-- PLAYER REGISTRATION PORTAL -->
   <div class="panel" style="border-color:var(--blue);margin-bottom:16px;">
     <div class="panel-title" style="color:var(--blue);">📱 Registration Portal</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share with players and captains. Players pay ₹500 · Captains pay ₹2,500. All registrations appear here.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share with players and captains. Players pay ₹<span id="descPlayerFee">—</span> · Captains pay ₹<span id="descCaptainFee">—</span>. All registrations appear here.</p>
 
     <!-- Fees row -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
@@ -367,7 +374,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div class="stat"><div class="stat-val" id="launchPlayers" style="color:var(--green);">0</div><div class="stat-lbl">Players</div></div>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <button class="btn btn-ghost" onclick="copyViewerLink()">🔗 Copy Viewer Link</button>
+      <button class="btn btn-ghost" onclick="copyViewerLink()">🔗 Viewer Link</button>
+      <button class="btn btn-ghost" onclick="copyBidderLink()">🎯 Bidder Link</button>
       <button class="btn btn-green" onclick="launchAuction()" id="launchBtn">🔴 Go Live</button>
     </div>
     <div id="launchMsg" style="margin-top:12px;font-size:13px;min-height:18px;"></div>
@@ -408,6 +416,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   await loadPlayers();
   await initRegPortal();
   await loadRegPortalPreview();
+  await populateCaptainDropdown();
 })();
 
 async function testSMS() {
@@ -423,7 +432,7 @@ async function testSMS() {
   }
   resultEl.style.color = 'var(--accent)'; resultEl.textContent = '⏳ Sending test SMS...';
   try {
-    const msg = encodeURIComponent('CaptainXI test SMS. If you got this, Fast2SMS is working! ✅');
+    const msg = encodeURIComponent('captainXI.com test SMS. If you got this, Fast2SMS is working! ✅');
     const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${msg}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${mobile}`);
     const json = await res.json();
     if (json.return === true) {
@@ -625,7 +634,7 @@ async function saveTeamField(id, field) {
 }
 
 function copyTeamAccess(roomCode, mobile, teamName, captainName) {
-  const msg = `🏏 *CaptainXI — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by CaptainXI 🏆`;
+  const msg = `🏏 *captainXI.com — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by captainXI.com 🏆`;
   navigator.clipboard.writeText(msg).then(() => alert('Access message copied!\nPaste on WhatsApp to the captain.'));
 }
 
@@ -1064,11 +1073,24 @@ async function addPlayer() {
     auction_id: auctionId, name, role, base_price: base, mobile, photo_url: photoUrl, star: false
   });
   if (error) { showMsg('playerMsg', '❌ Error: ' + error.message, 'error'); return; }
+  // If captain checkbox is ticked, also add to player_registrations as captain
+  const isCaptain = document.getElementById('isManualCaptain').checked;
+  if (isCaptain) {
+    await sb.from('player_registrations').insert({
+      auction_id: auctionId, name, mobile, role,
+      is_captain: true, captain_team_name: null,
+      photo_url: photoUrl, payment_status: 'manual',
+      imported_to_auction: true,
+      registered_at: new Date().toISOString()
+    });
+  }
   document.getElementById('newPlayerName').value = '';
   document.getElementById('newPlayerMobile').value = '';
+  document.getElementById('isManualCaptain').checked = false;
   clearManualPhoto();
-  showMsg('playerMsg', '✅ ' + name + ' added', 'success');
+  showMsg('playerMsg', '✅ ' + name + ' added' + (isCaptain ? ' (as captain)' : ''), 'success');
   await loadPlayers();
+  await populateCaptainDropdown(); // refresh dropdown
   document.getElementById('newPlayerName').focus();
 }
 
@@ -1345,9 +1367,45 @@ async function launchAuction() {
 function copyViewerLink() {
   const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
   navigator.clipboard.writeText(url).then(() => {
-    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied! Share on WhatsApp.</span>';
+    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Viewer link copied!</span>';
     setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
   });
+}
+
+function copyBidderLink() {
+  const url = `${window.location.origin}/bidder.html?room=${auction.room_code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Bidder link copied! Share with team captains.</span>';
+    setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
+  });
+}
+
+// ── CAPTAIN DROPDOWN — populate from registered players + captains ──
+async function populateCaptainDropdown() {
+  const { data: regs } = await sb.from('player_registrations')
+    .select('name, mobile, is_captain').eq('auction_id', auctionId)
+    .order('is_captain', { ascending: false });
+  const dl = document.getElementById('captainSuggestions');
+  dl.innerHTML = '';
+  if (!regs?.length) return;
+  // Store for autofill
+  window._regLookup = {};
+  regs.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.name + (r.is_captain ? ' 👑' : '');
+    opt.setAttribute('data-mobile', r.mobile || '');
+    dl.appendChild(opt);
+    window._regLookup[r.name.toLowerCase().trim()] = r;
+    window._regLookup[(r.name + (r.is_captain ? ' 👑' : '')).toLowerCase().trim()] = r;
+  });
+}
+
+function autofillCaptainMobile() {
+  const name = document.getElementById('newCaptainName').value.trim().toLowerCase();
+  const match = window._regLookup && window._regLookup[name];
+  if (match && match.mobile) {
+    document.getElementById('newCaptainMobile').value = match.mobile;
+  }
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
@@ -1378,6 +1436,8 @@ async function loadRegPortalPreview() {
   // Fee display
   document.getElementById('displayPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
   document.getElementById('displayCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
+  document.getElementById('descPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
+  document.getElementById('descCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
 }
 
 function copyRegLink() {
@@ -1424,7 +1484,7 @@ function shareUpdateWhatsApp() {
     '🔗 ' + url + '\n\n' +
     'Enter your mobile number to find and update your registration.\n\n' +
     '📸 *Please re-upload your photo if it was missing during registration!*\n\n' +
-    'Powered by CaptainXI 🏏';
+    'Powered by captainXI.com 🏏';
   navigator.clipboard.writeText(msg).then(() => {
     const btn = document.querySelector('[onclick="shareUpdateWhatsApp()"]');
     btn.textContent = '✅ Copied! Paste on WhatsApp';
@@ -1763,7 +1823,7 @@ async function exportPlayersPDF() {
   <div class="header">
     <h1>🏏 ${aName}</h1>
     <p>Player & Captain Registration List · Generated on ${date}</p>
-    <p style="margin-top:4px;">CaptainXI — captainxi.com</p>
+    <p style="margin-top:4px;">captainXI.com</p>
   </div>
   <div class="summary">
     <div class="summary-item"><strong>${players.length}</strong>Players</div>
@@ -1791,7 +1851,7 @@ async function exportPlayersPDF() {
     html += `</tbody></table>`;
   }
 
-  html += `<div class="footer">Generated by CaptainXI · captainxi.com · ${date}</div></body></html>`;
+  html += `<div class="footer">Generated by captainXI.com · captainxi.com · ${date}</div></body></html>`;
 
   const w = window.open('', '_blank');
   w.document.write(html);
@@ -1827,7 +1887,7 @@ async function exportPlayersWhatsApp() {
   const totalPaid = [...players, ...captains].filter(r => r.payment_status === 'paid').length;
   const totalRegs = players.length + captains.length;
   msg += '📊 *Summary:* ' + totalPaid + '/' + totalRegs + ' paid\n';
-  msg += '\nPowered by CaptainXI 🏏';
+  msg += '\nPowered by captainXI.com 🏏';
 
   try {
     await navigator.clipboard.writeText(msg);

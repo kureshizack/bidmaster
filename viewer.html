@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>CaptainXI — Live Viewer</title>
+<title>captainXI.com — Live Viewer</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -122,7 +122,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 <!-- JOIN SCREEN -->
 <div id="joinScreen">
-  <div class="join-logo">🏏 CaptainXI</div>
+  <div class="join-logo">🏏 captainXI.com</div>
   <div class="join-tagline">Live Cricket Auction Viewer</div>
   <div class="join-label">Enter Room Code</div>
   <input class="room-input" type="text" id="roomInput" maxlength="6" placeholder="ABC123"
@@ -147,16 +147,17 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
       onkeydown="if(event.key==='Enter')sendViewerOtp()">
     <button class="join-btn" onclick="sendViewerOtp()" id="viewerMobileBtn">Send OTP →</button>
     <div class="join-error" id="viewerMobileErr"></div>
-    <div class="otp-box" id="viewerOtpStatus" style="display:none;">
-      <div style="font-size:13px;color:var(--accent);font-weight:600;" id="viewerOtpStatusText"></div>
-    </div>
   </div>
 
   <!-- Step 2: OTP -->
   <div id="verifyStep2" style="display:none;width:100%;">
+    <div class="otp-box" id="viewerOtpStatus" style="display:none;">
+      <div style="font-size:13px;color:var(--accent);font-weight:600;" id="viewerOtpStatusText"></div>
+    </div>
     <div class="join-label" id="viewerOtpLabel">Enter 6-digit OTP</div>
-    <input class="room-input" type="number" id="viewerOtpInput" maxlength="6" placeholder="000000"
+    <input class="room-input" type="tel" id="viewerOtpInput" maxlength="6" placeholder="000000"
       style="font-size:28px;letter-spacing:8px;"
+      oninput="this.value=this.value.replace(/\D/g,'')"
       onkeydown="if(event.key==='Enter')verifyViewerOtp()">
     <button class="join-btn" onclick="verifyViewerOtp()" id="viewerOtpBtn">Verify & Watch →</button>
     <div class="join-error" id="viewerOtpErr"></div>
@@ -169,7 +170,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
   <!-- LOBBY COUNTDOWN OVERLAY -->
   <div id="lobbyOverlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
-    <div style="font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:3px;color:var(--accent);margin-bottom:8px;">🏏 AUCTIONXI</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:3px;color:var(--accent);margin-bottom:8px;">🏏 captainXI.com</div>
     <div id="vlobbyAuction" style="font-size:13px;color:var(--muted);margin-bottom:28px;"></div>
     <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">🎉 All teams are online!</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px;" id="vlobbySubMsg">Auction begins in</div>
@@ -182,7 +183,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   </div>
   <!-- Header -->
   <div class="app-header">
-    <div class="app-logo">🏏 CaptainXI</div>
+    <div class="app-logo">🏏 captainXI.com</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="live-dot" id="liveStatus">LIVE</div>
       <div class="room-badge" id="appRoomCode"></div>
@@ -193,22 +194,22 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div id="stageBanner" style="display:none;padding:10px 14px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;transition:all 0.3s;"></div>
 
   <!-- Timer -->
-  <div id="timerBox" style="display:none;text-align:center;padding:8px;background:var(--surface);border-bottom:1px solid var(--border);">
-    <div id="timerLabel" style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;"></div>
-    <div id="timerNum" style="font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;line-height:1;"></div>
+  <div id="timerBox" style="display:none;text-align:center;padding:4px 8px;background:var(--surface);border-bottom:1px solid var(--border);display:inline-flex;align-items:center;gap:6px;justify-content:center;width:100%;">
+    <span id="timerLabel" style="font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:700;"></span>
+    <span id="timerNum" style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;line-height:1;"></span>
   </div>
 
   <!-- Now Up For Auction -->
   <div class="now-up" id="nowUpBox">
     <div class="now-up-label">Now Up for Auction</div>
     <div class="now-up-empty" id="nowUpEmpty">Waiting for auctioneer...</div>
-    <div id="nowUpPlayer" style="display:none;">
+    <div id="nowUpPlayer" style="display:none;text-align:center;">
       <!-- Player photo -->
-      <div id="nowUpPhotoWrap" style="text-align:center;margin-bottom:10px;display:none;">
-        <img id="nowUpPhoto" src="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 0 16px rgba(245,158,11,0.3);">
+      <div id="nowUpPhotoWrap" style="text-align:center;margin-bottom:12px;display:none;">
+        <img id="nowUpPhoto" src="" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid var(--accent);box-shadow:0 0 30px rgba(245,158,11,0.4);display:block;margin:0 auto;">
       </div>
-      <div class="now-up-name" id="nowUpName"></div>
-      <div class="now-up-meta" id="nowUpMeta"></div>
+      <div class="now-up-name" id="nowUpName" style="text-align:center;"></div>
+      <div class="now-up-meta" id="nowUpMeta" style="text-align:center;"></div>
       <!-- Current bid display -->
       <div id="currentBidBox" style="background:var(--surface2);border-radius:8px;padding:12px;margin-top:10px;text-align:center;">
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Current Highest Bid</div>
@@ -352,10 +353,10 @@ async function sendViewerOtp() {
 
   statusBox.style.display = 'block';
 
-  if (DEV_MODE) {
-    // DEV MODE — show OTP on screen, skip SMS
+  if (DEV_MODE || FAST2SMS_API_KEY === 'YOUR_FAST2SMS_API_KEY' || !FAST2SMS_API_KEY) {
+    // No SMS configured — show OTP directly on screen
     statusTxt.style.color = 'var(--accent)';
-    statusTxt.innerHTML = '🔧 Dev Mode — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:26px;letter-spacing:6px;color:var(--accent);">' + _viewerOtp + '</b>';
+    statusTxt.innerHTML = '🔑 Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:30px;letter-spacing:8px;color:var(--accent);display:block;margin-top:4px;">' + _viewerOtp + '</b><span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Enter this code above to join</span>';
     btn.textContent = 'Send OTP →'; btn.disabled = false;
     return;
   }
@@ -363,7 +364,7 @@ async function sendViewerOtp() {
   // PRODUCTION — send real SMS
   statusTxt.textContent = '📱 Sending OTP...';
   try {
-    const smsMsg = encodeURIComponent('Your CaptainXI viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
+    const smsMsg = encodeURIComponent('Your captainXI.com viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
     const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=' + FAST2SMS_API_KEY + '&route=dlt&sender_id=' + FAST2SMS_SENDER + '&message=' + smsMsg + '&template_id=' + FAST2SMS_TMPL_ID + '&flash=0&numbers=' + mobile);
     const json = await res.json();
     if (json.return === true) {
