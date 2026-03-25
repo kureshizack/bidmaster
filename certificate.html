@@ -139,7 +139,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
     <button class="download-btn" onclick="downloadCard()">📥 Download HD Card — ₹10</button>
     <button class="share-btn" onclick="shareWhatsApp()">📱 Share on WhatsApp (Free)</button>
-    <div style="font-size:12px;color:var(--muted);text-align:center;">View is free. HD download with your photo is ₹10 only.</div>
+    <div class="download-note" style="font-size:12px;color:var(--muted);text-align:center;">View is free. HD download with your photo is ₹10 only.</div>
     <div id="certPayMsg" style="font-size:12px;margin-top:6px;min-height:16px;text-align:center;"></div>
   </div>
 </div>
@@ -154,6 +154,7 @@ const playerId=params.get('player');
 const auctionId=params.get('auction');
 
 let saleData=null;
+let hasPaidForDownload=false; // Track if user already paid
 
 (async()=>{
   if(!saleId&&!playerId){showError('No certificate ID in this link.');return;}
@@ -167,6 +168,11 @@ let saleData=null;
   }
   if(!sale){showError('This player was not sold in this auction.');return;}
   saleData=sale;
+  // Check if already paid for this certificate
+  try{
+    const{data:existingPayment}=await sb.from('certificate_payments').select('id').eq('sale_id',sale.id).limit(1).single();
+    if(existingPayment){hasPaidForDownload=true;updateDownloadBtn();}
+  }catch(e){}
   // Calculate rank
   const{data:allSales}=await sb.from('sales').select('amount').eq('auction_id',sale.auction_id).order('amount',{ascending:false});
   const rank=(allSales||[]).findIndex(s=>Number(s.amount)===Number(sale.amount))+1;
@@ -174,12 +180,21 @@ let saleData=null;
   renderCert(sale,rank,total);
 })();
 
+function updateDownloadBtn(){
+  const btn=document.querySelector('.download-btn');
+  if(hasPaidForDownload){
+    btn.textContent='📥 Download HD Card';
+    btn.onclick=generateHDImage;
+    const noteEl=document.querySelector('.download-note');
+    if(noteEl)noteEl.textContent='✅ Paid — download anytime!';
+  }
+}
+
 function renderCert(sale,rank,total){
   const p=sale.players;const t=sale.teams;const a=sale.auctions;
-  // Photo
   const photoArea=document.getElementById('certPhotoArea');
   if(p?.photo_url){
-    photoArea.innerHTML='<img src="'+p.photo_url+'" class="cert-photo" alt="'+p.name+'">';
+    photoArea.innerHTML='<img src="'+p.photo_url+'" class="cert-photo" alt="'+p.name+'" crossorigin="anonymous">';
   } else {
     photoArea.innerHTML='<div class="cert-photo-placeholder">🏏</div>';
   }
@@ -215,52 +230,248 @@ function showError(msg){
   document.getElementById('errorMsg').textContent=msg;
 }
 
+// ── HD DOWNLOAD ──────────────────────────────────────────
 function downloadCard(){
   if(!saleData)return;
+  if(hasPaidForDownload){generateHDImage();return;}
+
   const p=saleData.players;
   const msgEl=document.getElementById('certPayMsg');
-  
+
   const options={
     key:'rzp_live_SV1EehZnBUYxh7',
-    amount:1000, // ₹10 in paise
+    amount:1000,
     currency:'INR',
     name:'captainXI.com',
-    description:'HD Certificate Download — '+p?.name,
+    description:'HD Certificate — '+p?.name,
     image:'/favicon.svg',
     theme:{color:'#f59e0b'},
-    handler:function(response){
-      // Payment successful — proceed with download
+    handler:async function(response){
+      hasPaidForDownload=true;
       msgEl.style.color='#22c55e';
       msgEl.textContent='✅ Payment received! Generating HD card...';
-      actualDownload();
+      updateDownloadBtn();
+      // Save payment record
+      try{
+        await sb.from('certificate_payments').insert({
+          sale_id:saleData.id,
+          player_name:p?.name||'Unknown',
+          amount:10,
+          razorpay_payment_id:response.razorpay_payment_id
+        });
+      }catch(e){}
+      generateHDImage();
     },
-    modal:{
-      ondismiss:function(){
-        msgEl.style.color='#7a8faa';
-        msgEl.textContent='Payment cancelled. You can still share for free!';
-        setTimeout(()=>msgEl.textContent='',3000);
-      }
-    }
+    modal:{ondismiss:function(){
+      msgEl.style.color='#7a8faa';
+      msgEl.textContent='Payment cancelled. Share for free anytime!';
+      setTimeout(()=>msgEl.textContent='',3000);
+    }}
   };
   const rzp=new Razorpay(options);
   rzp.on('payment.failed',function(){
-    msgEl.style.color='#ef4444';
-    msgEl.textContent='Payment failed. Try again.';
+    msgEl.style.color='#ef4444';msgEl.textContent='Payment failed. Try again.';
   });
   rzp.open();
 }
 
-function actualDownload(){
-  const card=document.getElementById('certCard');
-  const w=window.open('','_blank');
-  w.document.write('<html><head><title>'+document.getElementById('certName').textContent+' Certificate</title>');
-  w.document.write('<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Bebas+Neue&display=swap" rel="stylesheet">');
-  w.document.write('<style>body{margin:0;background:#080c14;display:flex;align-items:center;justify-content:center;min-height:100vh;}*{box-sizing:border-box;}</style>');
-  w.document.write('</head><body>');
-  w.document.write(card.outerHTML);
-  w.document.write('</body></html>');
-  w.document.close();
-  setTimeout(()=>w.print(),500);
+// ── CANVAS HD IMAGE GENERATION ───────────────────────────
+async function generateHDImage(){
+  const msgEl=document.getElementById('certPayMsg');
+  msgEl.style.color='#f59e0b';msgEl.textContent='⏳ Generating HD certificate...';
+
+  const p=saleData.players;
+  const t=saleData.teams;
+  const a=saleData.auctions;
+  const W=1080,H=1440; // Instagram story size
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const ctx=c.getContext('2d');
+
+  // Background
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0a0f1a');bg.addColorStop(0.5,'#141e30');bg.addColorStop(1,'#0a0f1a');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Gold glow at top
+  const glow=ctx.createRadialGradient(W/2,0,0,W/2,0,500);
+  glow.addColorStop(0,'rgba(245,158,11,0.15)');glow.addColorStop(1,'transparent');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,400);
+
+  // Border
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=4;
+  roundRect(ctx,40,40,W-80,H-80,24);ctx.stroke();
+
+  // Inner border
+  ctx.strokeStyle='rgba(245,158,11,0.3)';ctx.lineWidth=1;
+  roundRect(ctx,56,56,W-112,H-112,18);ctx.stroke();
+
+  // Header
+  ctx.fillStyle='rgba(245,158,11,0.7)';
+  ctx.font='700 14px Rajdhani, sans-serif';
+  ctx.letterSpacing='6px';
+  ctx.textAlign='center';
+  ctx.fillText('🏏  OFFICIAL PLAYER AUCTION CERTIFICATE',W/2,120);
+
+  // Photo circle
+  let photoLoaded=false;
+  if(p?.photo_url){
+    try{
+      const img=await loadImage(p.photo_url);
+      const cx=W/2,cy=280,r=100;
+      ctx.save();
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.closePath();ctx.clip();
+      ctx.drawImage(img,cx-r,cy-r,r*2,r*2);
+      ctx.restore();
+      // Gold ring
+      ctx.strokeStyle='#f59e0b';ctx.lineWidth=4;
+      ctx.beginPath();ctx.arc(cx,cy,r+3,0,Math.PI*2);ctx.stroke();
+      photoLoaded=true;
+    }catch(e){}
+  }
+  if(!photoLoaded){
+    ctx.fillStyle='#1a2235';
+    ctx.beginPath();ctx.arc(W/2,280,100,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#f59e0b';ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(W/2,280,103,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#f59e0b';ctx.font='60px sans-serif';ctx.textAlign='center';
+    ctx.fillText('🏏',W/2,300);
+  }
+
+  // Player name
+  ctx.fillStyle='#f0f4ff';
+  ctx.font='700 56px "Bebas Neue", sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText((p?.name||'PLAYER').toUpperCase(),W/2,450);
+
+  // Role badge
+  const role=p?.role||'BAT';
+  const roleColors={BAT:'#1e3a5f',BOWL:'#3f1515',ALL:'#14391f',WK:'#3d2608'};
+  const roleTextColors={BAT:'#93c5fd',BOWL:'#fca5a5',ALL:'#86efac',WK:'#fcd34d'};
+  const roleTxt=role;
+  const rw=ctx.measureText(roleTxt).width+40;
+  ctx.fillStyle=roleColors[role]||'#1e3a5f';
+  roundRect(ctx,W/2-rw/2,470,rw,36,18);ctx.fill();
+  ctx.fillStyle=roleTextColors[role]||'#93c5fd';
+  ctx.font='700 16px Rajdhani, sans-serif';
+  ctx.fillText(roleTxt,W/2,495);
+
+  // Sold for label
+  ctx.fillStyle='rgba(245,158,11,0.6)';
+  ctx.font='700 14px Rajdhani, sans-serif';
+  ctx.fillText('SOLD FOR',W/2,560);
+
+  // Amount
+  ctx.fillStyle='#f59e0b';
+  ctx.font='700 80px "Bebas Neue", sans-serif';
+  ctx.fillText('₹'+Number(saleData.amount).toLocaleString('en-IN'),W/2,650);
+
+  // Bought by
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.font='400 16px "Noto Sans", sans-serif';
+  ctx.fillText('Bought by',W/2,700);
+
+  // Team name
+  ctx.fillStyle='#f0f4ff';
+  ctx.font='700 32px Rajdhani, sans-serif';
+  ctx.fillText(t?.name||'Unknown Team',W/2,745);
+
+  // Divider
+  ctx.strokeStyle='rgba(245,158,11,0.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(140,790);ctx.lineTo(W-140,790);ctx.stroke();
+
+  // Tournament + Date
+  ctx.fillStyle='#f0f4ff';
+  ctx.font='700 20px Rajdhani, sans-serif';
+  ctx.fillText((a?.name||'Tournament').substring(0,25),W/2-150,840);
+  ctx.fillText(new Date(saleData.sold_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}),W/2+150,840);
+
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  ctx.font='400 11px Rajdhani, sans-serif';
+  ctx.fillText('TOURNAMENT',W/2-150,860);
+  ctx.fillText('DATE',W/2+150,860);
+
+  // Rank badge
+  const{data:allSales}=await sb.from('sales').select('amount').eq('auction_id',saleData.auction_id).order('amount',{ascending:false});
+  const rank=(allSales||[]).findIndex(s=>Number(s.amount)===Number(saleData.amount))+1;
+  if(rank===1){
+    ctx.fillStyle='rgba(245,158,11,0.12)';
+    roundRect(ctx,180,890,W-360,44,10);ctx.fill();
+    ctx.strokeStyle='rgba(245,158,11,0.3)';ctx.lineWidth=1;
+    roundRect(ctx,180,890,W-360,44,10);ctx.stroke();
+    ctx.fillStyle='#f59e0b';ctx.font='500 15px "Noto Sans", sans-serif';
+    ctx.fillText('🏆 Most Expensive Player in this Auction!',W/2,918);
+  } else if(rank<=3){
+    ctx.fillStyle='rgba(245,158,11,0.08)';
+    roundRect(ctx,180,890,W-360,44,10);ctx.fill();
+    ctx.fillStyle='#f59e0b';ctx.font='500 14px "Noto Sans", sans-serif';
+    ctx.fillText('🥇 #'+rank+' Most Expensive of '+(allSales?.length||1)+' players sold',W/2,918);
+  }
+
+  // Footer branding
+  ctx.fillStyle='rgba(245,158,11,0.35)';
+  ctx.font='700 13px Rajdhani, sans-serif';
+  ctx.letterSpacing='4px';
+  ctx.fillText('CAPTAINXI.COM',W/2,H-70);
+
+  // Decorative corner accents
+  const cornerLen=40;ctx.strokeStyle='rgba(245,158,11,0.5)';ctx.lineWidth=2;
+  // Top-left
+  ctx.beginPath();ctx.moveTo(50,80);ctx.lineTo(50,50);ctx.lineTo(80,50);ctx.stroke();
+  // Top-right
+  ctx.beginPath();ctx.moveTo(W-50,80);ctx.lineTo(W-50,50);ctx.lineTo(W-80,50);ctx.stroke();
+  // Bottom-left
+  ctx.beginPath();ctx.moveTo(50,H-80);ctx.lineTo(50,H-50);ctx.lineTo(80,H-50);ctx.stroke();
+  // Bottom-right
+  ctx.beginPath();ctx.moveTo(W-50,H-80);ctx.lineTo(W-50,H-50);ctx.lineTo(W-80,H-50);ctx.stroke();
+
+  // Download as image
+  try{
+    c.toBlob(function(blob){
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=(p?.name||'Player').replace(/[^a-zA-Z0-9]/g,'_')+'_Certificate.png';
+      document.body.appendChild(a);
+      a.click();document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      msgEl.style.color='#22c55e';
+      msgEl.textContent='✅ HD Certificate downloaded! Share it on Instagram & WhatsApp.';
+    },'image/png');
+  }catch(e){
+    // Fallback if toBlob fails (CORS)
+    try{
+      const dataUrl=c.toDataURL('image/png');
+      const a=document.createElement('a');
+      a.href=dataUrl;
+      a.download=(p?.name||'Player').replace(/[^a-zA-Z0-9]/g,'_')+'_Certificate.png';
+      a.click();
+      msgEl.style.color='#22c55e';
+      msgEl.textContent='✅ HD Certificate downloaded!';
+    }catch(e2){
+      msgEl.style.color='#ef4444';
+      msgEl.textContent='Download failed due to browser restrictions. Try screenshot instead.';
+    }
+  }
+}
+
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error('Image load failed'));
+    img.src=src;
+  });
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
 }
 
 function shareWhatsApp(){
