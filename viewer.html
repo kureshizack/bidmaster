@@ -62,6 +62,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .react-btn{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:42px;height:42px;font-size:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0;}
 .react-btn:hover{transform:scale(1.2);border-color:var(--accent);}
 .react-btn:active{transform:scale(0.9);}
+
+/* CROWD RATING */
+.rate-row{display:flex;align-items:center;gap:8px;}
+.rate-label{font-size:12px;color:var(--muted);font-weight:600;min-width:70px;}
+.star-row{display:flex;gap:4px;}
+.star-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;padding:0;}
+.star-btn:hover{border-color:var(--accent);color:var(--accent);}
+.star-btn.active{background:rgba(245,158,11,0.15);border-color:var(--accent);color:var(--accent);}
+.meter-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.meter-label{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:0.5px;min-width:32px;}
+.meter-track{flex:1;height:8px;background:var(--surface);border-radius:4px;overflow:hidden;}
+.meter-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 0.6s ease;}
+.meter-fill-bowl{background:var(--red);}
+.meter-fill-field{background:var(--green);}
+.meter-val{font-size:11px;font-weight:700;color:var(--text);min-width:22px;text-align:right;font-family:'Rajdhani',sans-serif;}
 @keyframes floatUp{
   0%{transform:translateY(0) scale(1);opacity:1;}
   60%{opacity:1;}
@@ -226,6 +241,42 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">Current Highest Bid</div>
         <div id="currentBidAmt" style="font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--accent);">₹0</div>
         <div id="currentBidTeam" style="font-size:13px;color:var(--muted);margin-top:3px;"></div>
+      </div>
+
+      <!-- CROWD RATING — viewers vote on player strength -->
+      <div id="crowdRatingPanel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center;">⚡ Rate This Player</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="rate-row">
+            <span class="rate-label">🏏 Batting</span>
+            <div class="star-row" id="stars-batting"></div>
+          </div>
+          <div class="rate-row">
+            <span class="rate-label">🎳 Bowling</span>
+            <div class="star-row" id="stars-bowling"></div>
+          </div>
+          <div class="rate-row">
+            <span class="rate-label">⚡ Fielding</span>
+            <div class="star-row" id="stars-fielding"></div>
+          </div>
+        </div>
+        <button id="submitRatingBtn" onclick="submitRating()" style="width:100%;margin-top:10px;padding:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Submit Rating</button>
+        <div id="ratingMsg" style="font-size:11px;text-align:center;margin-top:6px;min-height:14px;"></div>
+        <!-- Crowd average display -->
+        <div id="crowdAvgDisplay" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;margin-bottom:6px;">Crowd Verdict · <span id="crowdVoteCount">0</span> votes</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="flex:1;">
+              <div class="meter-row"><span class="meter-label">BAT</span><div class="meter-track"><div class="meter-fill" id="meterBat" style="width:0%;"></div></div><span class="meter-val" id="meterBatVal">-</span></div>
+              <div class="meter-row"><span class="meter-label">BOWL</span><div class="meter-track"><div class="meter-fill meter-fill-bowl" id="meterBowl" style="width:0%;"></div></div><span class="meter-val" id="meterBowlVal">-</span></div>
+              <div class="meter-row"><span class="meter-label">FIELD</span><div class="meter-track"><div class="meter-fill meter-fill-field" id="meterField" style="width:0%;"></div></div><span class="meter-val" id="meterFieldVal">-</span></div>
+            </div>
+            <div style="text-align:center;min-width:50px;">
+              <div id="crowdOverall" style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--accent);line-height:1;">-</div>
+              <div style="font-size:9px;color:var(--muted);">OVERALL</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -615,7 +666,9 @@ function renderNowUp() {
 
   // Player card
   if (!p) {
-    emptyEl.style.display = 'block'; playerEl.style.display = 'none'; return;
+    emptyEl.style.display = 'block'; playerEl.style.display = 'none';
+    hideRatingPanel();
+    return;
   }
   emptyEl.style.display = 'none'; playerEl.style.display = 'block';
   // Photo
@@ -628,6 +681,9 @@ function renderNowUp() {
     <span class="role-badge role-${p.role}">${p.role}</span>
     ${p.base_price ? `<span style="font-size:13px;color:var(--muted);">Base ₹${fmt(p.base_price)}</span>` : ''}
     ${p.star ? '<span style="color:var(--accent);font-size:13px;font-weight:700;">⭐ Star Player</span>' : ''}`;
+
+  // Show crowd rating panel for this player
+  showRatingPanel(p.id);
 
   // Current bid
   const bidAmt = cs.current_bid || 0;
@@ -835,14 +891,141 @@ function subscribeReactions() {
     .subscribe();
 }
 
-// Start reaction subscription after auction loads
+// Start reaction + rating subscription after auction loads
 const _origSubscribeRealtime = subscribeRealtime;
 subscribeRealtime = function() {
   _origSubscribeRealtime();
   subscribeReactions();
+  subscribeRatings();
 };
-</body>
-</html>
+
+// ── CROWD RATING SYSTEM ──────────────────────────────────
+let _ratingState = { batting: 0, bowling: 0, fielding: 0 };
+let _currentRatingPlayerId = null;
+let _hasVotedThisPlayer = false;
+
+function initStarButtons() {
+  ['batting', 'bowling', 'fielding'].forEach(cat => {
+    const container = document.getElementById('stars-' + cat);
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'star-btn';
+      btn.textContent = '★';
+      btn.onclick = function() { setStars(cat, i); };
+      btn.id = 'star-' + cat + '-' + i;
+      container.appendChild(btn);
+    }
+  });
+}
+
+function setStars(category, value) {
+  _ratingState[category] = value;
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.getElementById('star-' + category + '-' + i);
+    btn.className = 'star-btn' + (i <= value ? ' active' : '');
+  }
+}
+
+function showRatingPanel(playerId) {
+  _currentRatingPlayerId = playerId;
+  _ratingState = { batting: 0, bowling: 0, fielding: 0 };
+  _hasVotedThisPlayer = false;
+  initStarButtons();
+  document.getElementById('crowdRatingPanel').style.display = 'block';
+  document.getElementById('submitRatingBtn').style.display = 'block';
+  document.getElementById('submitRatingBtn').textContent = 'Submit Rating';
+  document.getElementById('submitRatingBtn').disabled = false;
+  document.getElementById('ratingMsg').textContent = '';
+  loadCrowdAverage(playerId);
+  checkExistingVote(playerId);
+}
+
+function hideRatingPanel() {
+  document.getElementById('crowdRatingPanel').style.display = 'none';
+  _currentRatingPlayerId = null;
+}
+
+async function checkExistingVote(playerId) {
+  if (!_viewerMobile || !auction?.id) return;
+  try {
+    const { data } = await sb.from('crowd_ratings')
+      .select('batting,bowling,fielding')
+      .eq('auction_id', auction.id).eq('player_id', playerId)
+      .eq('viewer_mobile', _viewerMobile).single();
+    if (data) {
+      _hasVotedThisPlayer = true;
+      setStars('batting', data.batting);
+      setStars('bowling', data.bowling);
+      setStars('fielding', data.fielding);
+      _ratingState = { batting: data.batting, bowling: data.bowling, fielding: data.fielding };
+      document.getElementById('submitRatingBtn').textContent = '✅ Voted — Tap to Update';
+    }
+  } catch(e) {}
+}
+
+async function submitRating() {
+  if (!_currentRatingPlayerId || !auction?.id) return;
+  if (_ratingState.batting === 0 && _ratingState.bowling === 0 && _ratingState.fielding === 0) {
+    document.getElementById('ratingMsg').textContent = 'Tap at least one star!';
+    document.getElementById('ratingMsg').style.color = 'var(--red)'; return;
+  }
+  const btn = document.getElementById('submitRatingBtn');
+  btn.disabled = true; btn.textContent = '⏳ Saving...';
+  const mobile = _viewerMobile || 'anon_' + Math.random().toString(36).substring(2, 8);
+  const record = {
+    auction_id: auction.id, player_id: _currentRatingPlayerId,
+    viewer_mobile: mobile,
+    batting: _ratingState.batting || null,
+    bowling: _ratingState.bowling || null,
+    fielding: _ratingState.fielding || null
+  };
+  if (_hasVotedThisPlayer) {
+    await sb.from('crowd_ratings')
+      .update({ batting: record.batting, bowling: record.bowling, fielding: record.fielding })
+      .eq('auction_id', auction.id).eq('player_id', _currentRatingPlayerId).eq('viewer_mobile', mobile);
+  } else {
+    await sb.from('crowd_ratings').insert(record);
+  }
+  _hasVotedThisPlayer = true;
+  btn.textContent = '✅ Rated!';
+  document.getElementById('ratingMsg').textContent = 'Your rating is counted!';
+  document.getElementById('ratingMsg').style.color = 'var(--green)';
+  setTimeout(() => { btn.textContent = '✅ Voted — Tap to Update'; btn.disabled = false; }, 1500);
+  loadCrowdAverage(_currentRatingPlayerId);
+}
+
+async function loadCrowdAverage(playerId) {
+  if (!auction?.id) return;
+  const { data } = await sb.from('crowd_ratings')
+    .select('batting, bowling, fielding')
+    .eq('auction_id', auction.id).eq('player_id', playerId);
+  const avgDisplay = document.getElementById('crowdAvgDisplay');
+  if (!data || data.length === 0) { avgDisplay.style.display = 'none'; return; }
+  avgDisplay.style.display = 'block';
+  document.getElementById('crowdVoteCount').textContent = data.length;
+  const avg = (arr, key) => { const valid = arr.filter(r => r[key]); return valid.length ? valid.reduce((s, r) => s + r[key], 0) / valid.length : 0; };
+  const avgBat = avg(data, 'batting'), avgBowl = avg(data, 'bowling'), avgField = avg(data, 'fielding');
+  document.getElementById('meterBat').style.width = (avgBat / 5 * 100) + '%';
+  document.getElementById('meterBatVal').textContent = avgBat > 0 ? avgBat.toFixed(1) : '-';
+  document.getElementById('meterBowl').style.width = (avgBowl / 5 * 100) + '%';
+  document.getElementById('meterBowlVal').textContent = avgBowl > 0 ? avgBowl.toFixed(1) : '-';
+  document.getElementById('meterField').style.width = (avgField / 5 * 100) + '%';
+  document.getElementById('meterFieldVal').textContent = avgField > 0 ? avgField.toFixed(1) : '-';
+  const vals = [avgBat, avgBowl, avgField].filter(v => v > 0);
+  const overall = vals.length ? vals.reduce((a, b) => a + b) / vals.length : 0;
+  const oel = document.getElementById('crowdOverall');
+  oel.textContent = overall > 0 ? overall.toFixed(1) : '-';
+  oel.style.color = overall >= 4 ? 'var(--green)' : overall >= 3 ? 'var(--accent)' : overall >= 2 ? 'var(--yellow)' : 'var(--red)';
+}
+
+function subscribeRatings() {
+  if (!auction?.id) return;
+  sb.channel('ratings-' + auction.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crowd_ratings', filter: 'auction_id=eq.' + auction.id },
+      () => { if (_currentRatingPlayerId) loadCrowdAverage(_currentRatingPlayerId); })
+    .subscribe();
+}
 </script>
 </body>
 </html>

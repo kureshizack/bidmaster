@@ -240,6 +240,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
             <div class="current-bid-amount" id="currentBidAmt">₹0</div>
             <div class="current-bid-team" id="currentBidTeamLabel">No bids yet — be first!</div>
           </div>
+          <!-- CROWD STRENGTH METER — read-only for bidders -->
+          <div id="bidderCrowdMeter" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:8px;">
+            <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:6px;">⚡ Crowd Strength · <span id="bCrowdVotes">0</span> votes</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;"><span style="font-size:9px;color:var(--muted);font-weight:700;min-width:28px;">BAT</span><div style="flex:1;height:6px;background:var(--surface);border-radius:3px;overflow:hidden;"><div id="bMeterBat" style="height:100%;background:var(--accent);border-radius:3px;transition:width .5s;width:0%;"></div></div><span id="bValBat" style="font-size:10px;font-weight:700;color:var(--text);min-width:18px;text-align:right;">-</span></div>
+                <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;"><span style="font-size:9px;color:var(--muted);font-weight:700;min-width:28px;">BOWL</span><div style="flex:1;height:6px;background:var(--surface);border-radius:3px;overflow:hidden;"><div id="bMeterBowl" style="height:100%;background:var(--red);border-radius:3px;transition:width .5s;width:0%;"></div></div><span id="bValBowl" style="font-size:10px;font-weight:700;color:var(--text);min-width:18px;text-align:right;">-</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><span style="font-size:9px;color:var(--muted);font-weight:700;min-width:28px;">FIELD</span><div style="flex:1;height:6px;background:var(--surface);border-radius:3px;overflow:hidden;"><div id="bMeterField" style="height:100%;background:var(--green);border-radius:3px;transition:width .5s;width:0%;"></div></div><span id="bValField" style="font-size:10px;font-weight:700;color:var(--text);min-width:18px;text-align:right;">-</span></div>
+              </div>
+              <div style="text-align:center;min-width:44px;">
+                <div id="bCrowdOverall" style="font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--accent);line-height:1;">-</div>
+                <div style="font-size:8px;color:var(--muted);letter-spacing:0.5px;">OVERALL</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -578,6 +593,7 @@ function subscribeRealtime(sessionId){
       location.reload();
     })
     .subscribe();
+  subscribeBidderRatings();
   if(sessionId){
     const hb = setInterval(()=>sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',sessionId), 25000);
     const markOffline = () => {
@@ -743,6 +759,9 @@ function renderBidApp(){
   const rb=document.getElementById('cpRoleBadge');rb.textContent=player.role;rb.className='player-role-center role-'+player.role;
   document.getElementById('cpBasePriceLabel').textContent=player.base_price?'Base ₹'+fmt(player.base_price):'';
   document.getElementById('cpStarLabel').textContent=player.star?'⭐ Star Player':'';
+  // Load crowd strength meter for this player
+  document.getElementById('cpName')._playerId = player.id;
+  loadBidderCrowdMeter(player.id);
 
   if(stage==='sold'){
     const winner=currentBids[0];
@@ -878,6 +897,37 @@ function toggleMute(){soundMuted=!soundMuted;const btn=document.getElementById('
 const fmt=n=>Number(n).toLocaleString('en-IN');
 const pct=t=>Math.max(0,Math.round((Number(t.credits)/Number(t.start_credits))*100));
 const fundCol=p=>p>50?'var(--green)':p>20?'var(--yellow)':'var(--red)';
+
+// ── CROWD STRENGTH METER (read-only for bidders) ─────────
+async function loadBidderCrowdMeter(playerId){
+  if(!myAuction?.id||!playerId){document.getElementById('bidderCrowdMeter').style.display='none';return;}
+  const{data}=await sb.from('crowd_ratings').select('batting,bowling,fielding').eq('auction_id',myAuction.id).eq('player_id',playerId);
+  const el=document.getElementById('bidderCrowdMeter');
+  if(!data||data.length===0){el.style.display='none';return;}
+  el.style.display='block';
+  document.getElementById('bCrowdVotes').textContent=data.length;
+  const avg=(arr,key)=>{const v=arr.filter(r=>r[key]);return v.length?v.reduce((s,r)=>s+r[key],0)/v.length:0;};
+  const ab=avg(data,'batting'),aw=avg(data,'bowling'),af=avg(data,'fielding');
+  document.getElementById('bMeterBat').style.width=(ab/5*100)+'%';
+  document.getElementById('bValBat').textContent=ab>0?ab.toFixed(1):'-';
+  document.getElementById('bMeterBowl').style.width=(aw/5*100)+'%';
+  document.getElementById('bValBowl').textContent=aw>0?aw.toFixed(1):'-';
+  document.getElementById('bMeterField').style.width=(af/5*100)+'%';
+  document.getElementById('bValField').textContent=af>0?af.toFixed(1):'-';
+  const vals=[ab,aw,af].filter(v=>v>0);
+  const overall=vals.length?vals.reduce((a,b)=>a+b)/vals.length:0;
+  const oel=document.getElementById('bCrowdOverall');
+  oel.textContent=overall>0?overall.toFixed(1):'-';
+  oel.style.color=overall>=4?'var(--green)':overall>=3?'var(--accent)':overall>=2?'var(--yellow)':'var(--red)';
+}
+// Subscribe to live rating changes for bidder
+function subscribeBidderRatings(){
+  if(!myAuction?.id)return;
+  sb.channel('bidder-ratings-'+myAuction.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'crowd_ratings',filter:'auction_id=eq.'+myAuction.id},
+    ()=>{const cs=document.getElementById('cpName');if(cs&&cs._playerId)loadBidderCrowdMeter(cs._playerId);})
+    .subscribe();
+}
 </script>
 </body>
 </html>
