@@ -487,7 +487,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
   // Load profile for superadmin check
-  const { data: _profile } = await sb.from('profiles').select('plan,is_superadmin,is_admin').eq('id', currentUser.id).single();
+  const { data: _profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
   window._userPlan = _profile?.plan || 'free';
   window._isSuperAdmin = _profile?.is_superadmin === true || _profile?.is_admin === true;
 
