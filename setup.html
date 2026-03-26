@@ -123,22 +123,50 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
           </div>
         </div>
         <!-- VIEW MODE -->
-        <div id="settingsView" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
-          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
+        <div id="settingsView">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px;">
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoCredits">—</div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Credits/Team</div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBidStep">—</div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Bid Step ₹</div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBasePrice">—</div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Base Price ₹</div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoMinSquad">—</div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
+            </div>
           </div>
-          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBidStep">—</div>
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Bid Step ₹</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:8px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--blue);" id="infoMaxTeams">—</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">Max Teams</div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:8px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--green);" id="infoMaxPlayers">—</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">Max Players</div>
+            </div>
+            <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:8px;">
+              <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--muted);" id="infoReleasePct">—</div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">Release %</div>
+            </div>
           </div>
-          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoBasePrice">—</div>
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Base Price ₹</div>
-          </div>
-          <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px;">
-            <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);" id="infoMinSquad">—</div>
-            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Min Squad</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;">
+              <span style="color:var(--muted);">Player Fee:</span> <span style="color:var(--blue);font-weight:700;" id="infoPlayerFee">—</span>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;">
+              <span style="color:var(--muted);">Captain Fee:</span> <span style="color:var(--accent);font-weight:700;" id="infoCaptainFee">—</span>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;grid-column:1/-1;">
+              <span style="color:var(--muted);">📍</span> <span style="color:var(--text);font-size:12px;" id="infoLocation">—</span>
+              <span style="color:var(--muted);margin-left:10px;">📅</span> <span style="color:var(--text);font-size:12px;" id="infoDate">—</span>
+            </div>
           </div>
         </div>
         <!-- EDIT MODE (hidden by default) -->
@@ -516,6 +544,13 @@ function updateSettingsView(data) {
   document.getElementById('infoBidStep').textContent = '₹' + Number(data.bid_step || 1000).toLocaleString('en-IN');
   document.getElementById('infoBasePrice').textContent = '₹' + Number(data.base_price || 1000).toLocaleString('en-IN');
   document.getElementById('infoMinSquad').textContent = data.min_squad || 11;
+  document.getElementById('infoMaxTeams').textContent = data.max_teams || 8;
+  document.getElementById('infoMaxPlayers').textContent = data.max_players || '∞';
+  document.getElementById('infoReleasePct').textContent = (data.release_pct ?? 50) + '%';
+  document.getElementById('infoPlayerFee').textContent = '₹' + Number(data.player_fee || 500).toLocaleString('en-IN');
+  document.getElementById('infoCaptainFee').textContent = '₹' + Number(data.captain_fee || 2500).toLocaleString('en-IN');
+  document.getElementById('infoLocation').textContent = data.location || 'Not set';
+  document.getElementById('infoDate').textContent = data.tournament_date ? new Date(data.tournament_date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : 'Not set';
 }
 
 function editAuctionSettings() {
@@ -540,7 +575,7 @@ function editAuctionSettings() {
 }
 
 function cancelAuctionSettings() {
-  document.getElementById('settingsView').style.display = 'grid';
+  document.getElementById('settingsView').style.display = 'block';
   document.getElementById('settingsEdit').style.display = 'none';
   document.getElementById('editSettingsBtn').style.display = 'inline-block';
   document.getElementById('settingsSaveMsg').textContent = '';
@@ -610,11 +645,14 @@ async function saveAuctionSettings() {
   document.getElementById('auctionTitle').textContent = name;
   document.getElementById('basePriceHint').textContent = Number(basePrice).toLocaleString('en-IN');
 
-  cancelAuctionSettings();
   await loadTeams(); await loadPlayers();
-  await loadRegPortalPreview(); // refresh fee display + free toggle state
-  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ All settings saved and applied!';
-  setTimeout(() => msgEl.textContent = '', 3000);
+  await loadRegPortalPreview();
+
+  // Show success then close edit form
+  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ All settings saved!';
+  setTimeout(() => {
+    cancelAuctionSettings();
+  }, 1200);
 }
 
 // ── TEAMS ─────────────────────────────────────────────────
