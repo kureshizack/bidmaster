@@ -325,8 +325,9 @@ let userProfile = null;
   if(profile?.is_superadmin || profile?.is_admin){
     planBadge.textContent = '🛡 ADMIN';
     planBadge.className = 'plan-badge paid';
-    upgradeLink.textContent = '∞ Unlimited';
-    upgradeLink.style.pointerEvents = 'none';
+    upgradeLink.textContent = '🛡 Admin Console';
+    upgradeLink.href = 'admin.html';
+    upgradeLink.style.pointerEvents = 'auto';
   } else if(plan && plan !== 'free' && plan !== 'gully'){
     planBadge.className = 'plan-badge paid';
     upgradeLink.textContent = '⚙ Manage Plan';

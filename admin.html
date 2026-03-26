@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin — captainXI.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0a0e17;--surface:#111827;--surface2:#1a2538;--surface3:#243248;
+  --border:#2a3a55;--accent:#f59e0b;--accent2:#fbbf24;
+  --text:#f0f4ff;--muted:#7a8faa;
+  --green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#a78bfa;
+  --admin:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ADMIN BANNER */
+.admin-banner{background:linear-gradient(90deg,#7f1d1d,#991b1b,#7f1d1d);padding:6px 16px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:#fca5a5;text-transform:uppercase;}
+
+/* NAV */
+nav{background:var(--surface);border-bottom:2px solid var(--admin);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--admin);text-decoration:none;letter-spacing:2px;}
+.logo span{color:var(--text);}
+.nav-right{display:flex;gap:10px;align-items:center;font-size:13px;}
+.admin-badge{background:rgba(239,68,68,0.15);border:1px solid var(--red);color:#fca5a5;padding:3px 10px;border-radius:4px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.5px;}
+
+/* LAYOUT */
+.layout{display:flex;min-height:calc(100vh - 80px);}
+.sidebar{width:280px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto;flex-shrink:0;}
+.main{flex:1;padding:24px;overflow-y:auto;}
+@media(max-width:768px){
+  .layout{flex-direction:column;}
+  .sidebar{width:100%;max-height:50vh;border-right:none;border-bottom:1px solid var(--border);}
+}
+
+/* SIDEBAR */
+.sidebar-title{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:0 16px;margin-bottom:10px;}
+.search-box{margin:0 12px 14px;position:relative;}
+.search-box input{width:100%;padding:10px 12px 10px 34px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;outline:none;}
+.search-box input:focus{border-color:var(--accent);}
+.search-box::before{content:'🔍';position:absolute;left:10px;top:10px;font-size:13px;}
+.sidebar-tabs{display:flex;gap:0;margin:0 12px 12px;background:var(--surface2);border-radius:6px;overflow:hidden;}
+.sidebar-tab{flex:1;padding:8px;text-align:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;}
+.sidebar-tab.active{background:var(--accent);color:#000;}
+
+/* ORGANISER LIST */
+.org-list{max-height:calc(100vh - 240px);overflow-y:auto;}
+.org-item{padding:10px 16px;cursor:pointer;border-left:3px solid transparent;transition:all .15s;display:flex;align-items:center;gap:10px;}
+.org-item:hover{background:var(--surface2);border-left-color:var(--accent);}
+.org-item.active{background:rgba(245,158,11,0.08);border-left-color:var(--accent);}
+.org-avatar{width:36px;height:36px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);flex-shrink:0;font-family:'Rajdhani',sans-serif;}
+.org-info{flex:1;min-width:0;}
+.org-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.org-meta{font-size:11px;color:var(--muted);}
+.org-plan{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.org-plan.free{background:rgba(148,163,184,0.1);color:var(--muted);}
+.org-plan.club{background:rgba(96,165,250,0.15);color:var(--blue);}
+.org-plan.district{background:rgba(245,158,11,0.15);color:var(--accent);}
+.org-plan.national{background:rgba(167,139,250,0.15);color:var(--purple);}
+.org-plan.pro{background:rgba(239,68,68,0.15);color:var(--red);}
+
+/* MAIN CONTENT */
+.main-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;color:var(--muted);text-align:center;}
+.main-empty .icon{font-size:56px;margin-bottom:12px;}
+.main-empty h3{font-family:'Rajdhani',sans-serif;font-size:22px;color:var(--text);margin-bottom:6px;}
+
+/* ORGANISER PROFILE CARD */
+.org-profile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+.org-profile-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.org-profile-avatar{width:52px;height:52px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--accent);font-family:'Bebas Neue',sans-serif;flex-shrink:0;}
+.org-profile-name{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;}
+.org-profile-detail{font-size:12px;color:var(--muted);}
+.org-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.org-stat{background:var(--surface2);border-radius:8px;padding:10px;text-align:center;}
+.org-stat-num{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);}
+.org-stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+.org-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* AUCTION CARDS */
+.auction-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:14px;}
+.auction-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border-color .2s;cursor:pointer;}
+.auction-card:hover{border-color:var(--accent);}
+.ac-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.ac-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;}
+.ac-league{font-size:12px;color:var(--muted);margin-bottom:8px;}
+.ac-meta{display:flex;gap:12px;font-size:12px;color:var(--muted);}
+.ac-room{font-family:monospace;font-size:12px;color:var(--accent);font-weight:700;letter-spacing:2px;margin-top:6px;}
+.ac-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.status-badge{font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;text-transform:uppercase;letter-spacing:0.5px;}
+.status-setup{background:rgba(96,165,250,0.15);color:var(--blue);}
+.status-live{background:rgba(34,197,94,0.15);color:var(--green);}
+.status-ended{background:rgba(148,163,184,0.1);color:var(--muted);}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;transition:all .15s;letter-spacing:0.3px;}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);border-color:var(--accent);}
+.btn-danger{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid var(--red);}.btn-danger:hover{background:var(--red);color:#fff;}
+.btn-admin{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid var(--purple);}.btn-admin:hover{background:var(--purple);color:#fff;}
+.btn-green{background:var(--green);color:#000;}.btn-green:hover{filter:brightness(1.1);}
+
+/* ADMIN ACTION LOG */
+.log-section{margin-top:20px;}
+.log-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+.log-item{padding:8px 12px;border-left:2px solid var(--border);margin-bottom:6px;font-size:12px;color:var(--muted);}
+.log-item .log-action{color:var(--text);font-weight:600;}
+.log-item .log-time{font-size:10px;color:var(--border);}
+
+/* QUICK ACTIONS PANEL */
+.quick-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
+.quick-panel-title{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
+
+/* PLAN CHANGE */
+.plan-select{display:flex;gap:6px;flex-wrap:wrap;}
+.plan-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;font-family:'Rajdhani',sans-serif;transition:all .2s;}
+.plan-chip:hover{border-color:var(--accent);}
+.plan-chip.active{background:var(--accent);color:#000;border-color:var(--accent);}
+
+/* LOADING */
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--green);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);font-weight:600;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.error{border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ADMIN BANNER -->
+<div class="admin-banner">🛡️ Super Admin Console — captainXI.com</div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="logo">🛡️ ADMIN<span>XI</span></a>
+  <div class="nav-right">
+    <span id="adminName" style="color:var(--muted);"></span>
+    <span class="admin-badge">SUPER ADMIN</span>
+    <a href="dashboard.html" class="btn btn-ghost" style="font-size:11px;">← Dashboard</a>
+    <button class="btn btn-ghost" onclick="signOut()" style="font-size:11px;">Sign Out</button>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Organisers</div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search name, email, mobile..." oninput="filterOrganisers(this.value)">
+    </div>
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" id="tabAll" onclick="setTab('all')">All</div>
+      <div class="sidebar-tab" id="tabFree" onclick="setTab('free')">Free</div>
+      <div class="sidebar-tab" id="tabPaid" onclick="setTab('paid')">Paid</div>
+    </div>
+    <div class="org-list" id="orgList">
+      <div style="text-align:center;padding:40px;color:var(--muted);"><div class="spinner"></div><div style="margin-top:10px;font-size:12px;">Loading organisers...</div></div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);" id="orgCount">—</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainContent">
+    <div class="main-empty">
+      <div class="icon">🛡️</div>
+      <h3>Select an Organiser</h3>
+      <p style="font-size:13px;color:var(--muted);max-width:360px;line-height:1.7;">Click any organiser from the left panel to view their auctions, manage settings, and resolve issues on their behalf.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let currentUser=null;
+let allOrganisers=[];
+let filteredOrganisers=[];
+let selectedOrg=null;
+let currentTab='all';
+
+// ── INIT ──────────────────────────────────────────────────
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='login.html';return;}
+  currentUser=session.user;
+
+  // Verify admin
+  const{data:profile}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  if(!profile?.is_admin && !profile?.is_superadmin){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;color:var(--red);font-size:18px;font-family:Rajdhani,sans-serif;font-weight:700;">🚫 Access Denied — Admin Only</div>';
+    return;
+  }
+  document.getElementById('adminName').textContent=profile.name||currentUser.email;
+  await loadOrganisers();
+})();
+
+// ── LOAD ALL ORGANISERS ───────────────────────────────────
+async function loadOrganisers(){
+  const{data:profiles}=await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  if(!profiles){document.getElementById('orgList').innerHTML='<div style="color:var(--red);padding:16px;font-size:13px;">Failed to load</div>';return;}
+
+  // Get auction counts per user
+  const{data:auctions}=await sb.from('auctions').select('id,owner_id,status');
+
+  const auctionMap={};
+  (auctions||[]).forEach(a=>{
+    if(!auctionMap[a.owner_id])auctionMap[a.owner_id]={total:0,live:0,setup:0,ended:0};
+    auctionMap[a.owner_id].total++;
+    auctionMap[a.owner_id][a.status]=(auctionMap[a.owner_id][a.status]||0)+1;
+  });
+
+  allOrganisers=profiles.map(p=>({
+    ...p,
+    auctions:auctionMap[p.id]||{total:0,live:0,setup:0,ended:0}
+  }));
+
+  filterOrganisers('');
+}
+
+function filterOrganisers(query){
+  const q=query.toLowerCase().trim();
+  filteredOrganisers=allOrganisers.filter(o=>{
+    if(currentTab==='free'&&o.plan&&o.plan!=='free'&&o.plan!=='gully')return false;
+    if(currentTab==='paid'&&(!o.plan||o.plan==='free'||o.plan==='gully'))return false;
+    if(!q)return true;
+    return(o.name||'').toLowerCase().includes(q)||
+      (o.email||'').toLowerCase().includes(q)||
+      (o.mobile||'').includes(q);
+  });
+  renderOrgList();
+}
+
+function setTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.sidebar-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  filterOrganisers(document.getElementById('searchInput').value);
+}
+
+function renderOrgList(){
+  const el=document.getElementById('orgList');
+  document.getElementById('orgCount').textContent=filteredOrganisers.length+' organisers';
+
+  if(!filteredOrganisers.length){
+    el.innerHTML='<div style="padding:20px 16px;color:var(--muted);font-size:13px;text-align:center;">No organisers found</div>';
+    return;
+  }
+
+  el.innerHTML=filteredOrganisers.map(o=>{
+    const initials=(o.name||o.email||'?').substring(0,2).toUpperCase();
+    const plan=o.plan||'free';
+    const planClass=plan==='free'||plan==='gully'?'free':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
+    const isActive=selectedOrg?.id===o.id;
+    return `<div class="org-item ${isActive?'active':''}" onclick="selectOrganiser('${o.id}')">
+      <div class="org-avatar">${initials}</div>
+      <div class="org-info">
+        <div class="org-name">${o.name||o.email||'Unknown'}</div>
+        <div class="org-meta">${o.mobile||''} · ${o.auctions.total} auctions${o.auctions.live?' · 🔴 '+o.auctions.live+' live':''}</div>
+      </div>
+      <span class="org-plan ${planClass}">${plan}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── SELECT ORGANISER ──────────────────────────────────────
+async function selectOrganiser(userId){
+  const org=allOrganisers.find(o=>o.id===userId);
+  if(!org)return;
+  selectedOrg=org;
+  renderOrgList(); // highlight active
+
+  const main=document.getElementById('mainContent');
+  main.innerHTML='<div style="text-align:center;padding:40px;"><div class="spinner"></div></div>';
+
+  // Load their auctions
+  const{data:auctions}=await sb.from('auctions')
+    .select('*, teams(count), players(count)')
+    .eq('owner_id',userId)
+    .order('created_at',{ascending:false});
+
+  // Load their registrations count
+  const auctionIds=(auctions||[]).map(a=>a.id);
+  let totalRegs=0;
+  if(auctionIds.length){
+    const{count}=await sb.from('player_registrations').select('*',{count:'exact',head:true}).in('auction_id',auctionIds);
+    totalRegs=count||0;
+  }
+
+  const plan=org.plan||'free';
+  const planClass=plan==='free'||plan==='gully'?'free':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
+  const joinDate=org.created_at?new Date(org.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
+  const initials=(org.name||org.email||'?').substring(0,2).toUpperCase();
+
+  main.innerHTML=`
+    <!-- ORGANISER PROFILE -->
+    <div class="org-profile">
+      <div class="org-profile-header">
+        <div class="org-profile-avatar">${initials}</div>
+        <div>
+          <div class="org-profile-name">${org.name||'Unknown'}</div>
+          <div class="org-profile-detail">${org.email||'—'} · ${org.mobile||'No mobile'} · Joined ${joinDate}</div>
+        </div>
+        <span class="org-plan ${planClass}" style="font-size:12px;padding:4px 12px;margin-left:auto;">${plan.toUpperCase()}</span>
+      </div>
+      <div class="org-stats">
+        <div class="org-stat"><div class="org-stat-num">${(auctions||[]).length}</div><div class="org-stat-lbl">Auctions</div></div>
+        <div class="org-stat"><div class="org-stat-num" style="color:var(--green);">${(auctions||[]).filter(a=>a.status==='live').length}</div><div class="org-stat-lbl">Live Now</div></div>
+        <div class="org-stat"><div class="org-stat-num" style="color:var(--blue);">${totalRegs}</div><div class="org-stat-lbl">Registrations</div></div>
+        <div class="org-stat"><div class="org-stat-num" style="color:var(--muted);">${(auctions||[]).reduce((s,a)=>(a.teams?.[0]?.count||0)+s,0)}</div><div class="org-stat-lbl">Total Teams</div></div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="quick-panel">
+      <div class="quick-panel-title">⚡ Quick Actions</div>
+      <div class="org-actions">
+        <button class="btn btn-admin" onclick="changePlan('${org.id}')">🔄 Change Plan</button>
+        <button class="btn btn-ghost" onclick="viewAsOrganiser('${org.id}')">👁️ View Dashboard</button>
+        <button class="btn btn-ghost" onclick="copyOrgInfo('${org.id}')">📋 Copy Info</button>
+        ${org.id!==currentUser.id?`<button class="btn btn-danger" onclick="resetOrgPlan('${org.id}')">↩️ Reset to Free</button>`:''}
+      </div>
+      <div id="quickActionMsg" style="margin-top:8px;min-height:18px;font-size:12px;"></div>
+
+      <!-- Plan Change Panel (hidden) -->
+      <div id="planChangePanel" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Select new plan for <b style="color:var(--text);">${org.name||'this organiser'}</b>:</div>
+        <div class="plan-select">
+          ${['free','club','district','national','pro'].map(p=>
+            `<div class="plan-chip ${plan===p?'active':''}" onclick="applyPlan('${org.id}','${p}')">${p.toUpperCase()}</div>`
+          ).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- AUCTIONS -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">🏏 Their Auctions (${(auctions||[]).length})</div>
+    </div>
+    <div class="auction-grid" id="auctionGrid">
+      ${(auctions||[]).length===0
+        ?'<div style="color:var(--muted);font-size:13px;padding:20px;">No auctions created yet.</div>'
+        :(auctions||[]).map(a=>{
+          const teams=a.teams?.[0]?.count||0;
+          const players=a.players?.[0]?.count||0;
+          const date=a.created_at?new Date(a.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+          const statusClass={setup:'status-setup',live:'status-live',ended:'status-ended'}[a.status]||'status-setup';
+          const statusLabel={setup:'Setup',live:'🔴 Live',ended:'Ended'}[a.status]||a.status;
+          return `<div class="auction-card">
+            <div class="ac-header">
+              <div class="ac-name">${a.name}</div>
+              <span class="status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="ac-league">${a.league_name||'No league'}</div>
+            <div class="ac-meta">
+              <span>👥 ${teams} teams</span>
+              <span>🏏 ${players} players</span>
+              <span>📅 ${date}</span>
+            </div>
+            <div class="ac-room">${a.room_code||'—'}</div>
+            <div class="ac-actions">
+              <button class="btn btn-primary" onclick="enterAuction('${a.id}','${a.status}')">
+                ${a.status==='setup'?'⚙️ Setup':a.status==='live'?'🔴 Live Arena':'📊 View'}
+              </button>
+              <button class="btn btn-ghost" onclick="openViewer('${a.room_code}')">📺 Viewer</button>
+              <button class="btn btn-ghost" onclick="openBidder('${a.room_code}')">🎯 Bidder</button>
+              ${a.status==='live'?`<button class="btn btn-danger" onclick="forceEndAuction('${a.id}','${a.name}')">⏹ End</button>`:''}
+              ${a.status==='ended'?`<button class="btn btn-ghost" onclick="reopenAuction('${a.id}','${a.name}')">🔄 Reopen</button>`:''}
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+
+    <!-- ADMIN LOG -->
+    <div class="log-section">
+      <div class="log-title">📋 Admin Actions on this organiser</div>
+      <div id="adminLog"><div style="font-size:12px;color:var(--muted);">Loading...</div></div>
+    </div>
+  `;
+
+  // Load admin log
+  loadAdminLog(userId);
+}
+
+// ── ADMIN ACTIONS ─────────────────────────────────────────
+function changePlan(userId){
+  const panel=document.getElementById('planChangePanel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+}
+
+async function applyPlan(userId,newPlan){
+  const{error}=await sb.from('profiles').update({plan:newPlan}).eq('id',userId);
+  if(error){showToast('❌ '+error.message,'error');return;}
+
+  await logAdminAction(userId,'Changed plan to '+newPlan.toUpperCase());
+  showToast('✅ Plan changed to '+newPlan.toUpperCase());
+
+  // Refresh
+  const org=allOrganisers.find(o=>o.id===userId);
+  if(org)org.plan=newPlan;
+  renderOrgList();
+  selectOrganiser(userId);
+}
+
+async function resetOrgPlan(userId){
+  if(!confirm('Reset this organiser to FREE plan?'))return;
+  await applyPlan(userId,'free');
+}
+
+function viewAsOrganiser(userId){
+  // Open their dashboard in a new tab with admin context
+  window.open('dashboard.html','_blank');
+  showToast('ℹ️ Dashboard opened — you see your own. Use Setup/Auction links below to enter their auctions directly.');
+}
+
+function enterAuction(auctionId,status){
+  if(status==='setup'){
+    window.open('setup.html?auction='+auctionId,'_blank');
+  }else{
+    window.open('auction.html?auction='+auctionId,'_blank');
+  }
+  logAdminAction(selectedOrg?.id,'Entered auction '+auctionId+' ('+status+')');
+}
+
+function openViewer(roomCode){
+  window.open('viewer.html?room='+roomCode,'_blank');
+}
+function openBidder(roomCode){
+  window.open('bidder.html?room='+roomCode,'_blank');
+}
+
+async function forceEndAuction(auctionId,name){
+  if(!confirm('Force end "'+name+'"? This will stop the live auction.'))return;
+  await sb.from('auctions').update({status:'ended'}).eq('id',auctionId);
+  await logAdminAction(selectedOrg?.id,'Force-ended auction: '+name);
+  showToast('⏹ Auction ended: '+name);
+  selectOrganiser(selectedOrg.id);
+}
+
+async function reopenAuction(auctionId,name){
+  if(!confirm('Reopen "'+name+'" back to setup mode?'))return;
+  await sb.from('auctions').update({status:'setup'}).eq('id',auctionId);
+  await logAdminAction(selectedOrg?.id,'Reopened auction: '+name);
+  showToast('🔄 Auction reopened: '+name);
+  selectOrganiser(selectedOrg.id);
+}
+
+function copyOrgInfo(userId){
+  const org=allOrganisers.find(o=>o.id===userId);
+  if(!org)return;
+  const info=`📋 Organiser Info\nName: ${org.name||'—'}\nEmail: ${org.email||'—'}\nMobile: ${org.mobile||'—'}\nPlan: ${(org.plan||'free').toUpperCase()}\nJoined: ${org.created_at?new Date(org.created_at).toLocaleDateString('en-IN'):'—'}\nAuctions: ${org.auctions.total}\nUser ID: ${org.id}`;
+  navigator.clipboard.writeText(info);
+  showToast('📋 Organiser info copied');
+}
+
+// ── ADMIN AUDIT LOG ───────────────────────────────────────
+async function logAdminAction(targetUserId,action){
+  try{
+    await sb.from('admin_audit_log').insert({
+      admin_id:currentUser.id,
+      target_user_id:targetUserId||null,
+      action:action,
+      created_at:new Date().toISOString()
+    });
+  }catch(e){/* silent — table might not exist yet */}
+}
+
+async function loadAdminLog(userId){
+  const logEl=document.getElementById('adminLog');
+  try{
+    const{data}=await sb.from('admin_audit_log')
+      .select('*')
+      .eq('target_user_id',userId)
+      .order('created_at',{ascending:false})
+      .limit(20);
+    if(!data?.length){
+      logEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">No admin actions recorded yet.</div>';
+      return;
+    }
+    logEl.innerHTML=data.map(l=>{
+      const time=new Date(l.created_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      return `<div class="log-item"><span class="log-action">${l.action}</span> <span class="log-time">· ${time}</span></div>`;
+    }).join('');
+  }catch(e){
+    logEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Run admin_audit_log migration to enable logging.</div>';
+  }
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast'+(type==='error'?' error':'')+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  window.location.href='login.html';
+}
+</script>
+</body>
+</html>
