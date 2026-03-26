@@ -446,6 +446,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div class="stat"><div class="stat-val" id="launchTeams" style="color:var(--blue);">0</div><div class="stat-lbl">Teams</div></div>
       <div class="stat"><div class="stat-val" id="launchPlayers" style="color:var(--green);">0</div><div class="stat-lbl">Players</div></div>
     </div>
+
+    <!-- Bidder Online Status -->
+    <div id="bidderStatusPanel" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin:12px 0;text-align:left;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;">🟢 Bidders Online</div>
+        <div style="font-size:12px;color:var(--muted);" id="bidderOnlineCount">Checking...</div>
+      </div>
+      <div id="bidderStatusList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;" id="bidderStatusHint">Teams will appear here when captains open their bidder link</div>
+    </div>
+
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="copyViewerLink()">🔗 Viewer Link</button>
       <button class="btn btn-ghost" onclick="copyBidderLink()">🎯 Bidder Link</button>
@@ -515,6 +526,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   await initRegPortal();
   await loadRegPortalPreview();
   await populateCaptainDropdown();
+  startBidderTracking();
 })();
 
 async function testSMS() {
@@ -1081,7 +1093,8 @@ function renderPlayers(players) {
           '<button onclick="cancelEditBase(\'' + p.id + '\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
         '</div>' +
       '</td>' +
-      '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')">✕</button></td>' +
+      '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')" title="Remove player">✕</button>' +
+      '<button style="padding:2px 6px;background:rgba(245,158,11,0.12);color:var(--accent);border:1px solid var(--accent);border-radius:4px;font-size:11px;cursor:pointer;margin-left:3px;" onclick="appointCaptain(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.mobile||'') + '\')" title="Make team captain">👑</button></td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -1309,6 +1322,47 @@ async function deletePlayer(id) {
   await loadPlayers();
 }
 
+async function appointCaptain(playerId, playerName, playerMobile) {
+  // Check if player is already a captain
+  if (playerMobile) {
+    const { data: existingTeam } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', playerMobile).single();
+    if (existingTeam) {
+      alert('⚠️ ' + playerName + ' is already captain of "' + existingTeam.name + '"');
+      return;
+    }
+  }
+
+  const teamName = prompt('👑 Make ' + playerName + ' a team captain\n\nEnter team name:', playerName + ' XI');
+  if (!teamName) return;
+
+  // Check plan limits
+  const limits = window.getPlanLimits();
+  const { data: existingTeams } = await sb.from('teams').select('id').eq('auction_id', auctionId);
+  if ((existingTeams?.length || 0) >= limits.teams && !window._isSuperAdmin) {
+    window.showUpgradePrompt('More than ' + limits.teams + ' teams', 'club');
+    return;
+  }
+
+  const teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const { error } = await sb.from('teams').insert({
+    auction_id: auctionId,
+    name: teamName,
+    captain_name: playerName,
+    captain_mobile: playerMobile || null,
+    team_code: teamCode,
+    start_credits: auction.default_credits || 100000,
+    credits: auction.default_credits || 100000,
+    bid_increment: auction.bid_step || 1000,
+    min_squad: auction.min_squad || 11,
+    players_bought: 0
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+  alert('✅ ' + playerName + ' is now captain of "' + teamName + '"!\n\nTeam code: ' + teamCode);
+  await loadTeams();
+  await loadPlayers();
+}
+
 // ── QUICK TEST FILL ───────────────────────────────────────
 function genTeamCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -1524,6 +1578,73 @@ async function launchAuction() {
   window.location.href = `auction.html?auction=${auctionId}`;
 }
 
+// ── BIDDER ONLINE STATUS ──────────────────────────────────
+let _bidderChannel = null;
+function startBidderTracking() {
+  if (!auction?.room_code) return;
+  
+  // Subscribe to presence channel that bidders join
+  _bidderChannel = sb.channel('bidder-presence-' + auction.room_code);
+  
+  _bidderChannel.on('presence', { event: 'sync' }, () => {
+    renderBidderStatus();
+  });
+  
+  _bidderChannel.subscribe();
+  
+  // Also poll the bidder_sessions table as fallback (bidders write their status here)
+  pollBidderStatus();
+  setInterval(pollBidderStatus, 10000); // every 10 seconds
+}
+
+async function pollBidderStatus() {
+  if (!auctionId) return;
+  
+  // Get all teams
+  const { data: allTeams } = await sb.from('teams').select('id,name,captain_name,captain_mobile').eq('auction_id', auctionId);
+  if (!allTeams?.length) {
+    document.getElementById('bidderStatusList').innerHTML = '<div style="font-size:12px;color:var(--muted);">No teams created yet</div>';
+    document.getElementById('bidderOnlineCount').textContent = '0 / 0';
+    return;
+  }
+  
+  // Check which teams have active bidder sessions (last_seen within 60 seconds)
+  const cutoff = new Date(Date.now() - 60000).toISOString();
+  const { data: sessions } = await sb.from('bidder_sessions')
+    .select('team_id,last_seen')
+    .eq('auction_id', auctionId)
+    .gt('last_seen', cutoff);
+  
+  const onlineTeamIds = new Set((sessions || []).map(s => s.team_id));
+  const onlineCount = onlineTeamIds.size;
+  const totalCount = allTeams.length;
+  
+  document.getElementById('bidderOnlineCount').textContent = onlineCount + ' / ' + totalCount + ' online';
+  document.getElementById('bidderOnlineCount').style.color = onlineCount === totalCount ? 'var(--green)' : onlineCount > 0 ? 'var(--accent)' : 'var(--muted)';
+  
+  document.getElementById('bidderStatusList').innerHTML = allTeams.map(t => {
+    const isOnline = onlineTeamIds.has(t.id);
+    return '<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:' + 
+      (isOnline ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.05)') + 
+      ';border:1px solid ' + (isOnline ? 'var(--green)' : 'var(--border)') + 
+      ';border-radius:8px;font-size:12px;">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + (isOnline ? 'var(--green)' : 'var(--muted)') + ';flex-shrink:0;' + (isOnline ? 'box-shadow:0 0 6px var(--green);' : '') + '"></span>' +
+      '<span style="font-weight:700;color:' + (isOnline ? 'var(--text)' : 'var(--muted)') + ';">' + t.name + '</span>' +
+      '</div>';
+  }).join('');
+  
+  document.getElementById('bidderStatusHint').textContent = onlineCount === totalCount 
+    ? '✅ All teams are online! Ready to go live.' 
+    : onlineCount > 0 
+      ? '⏳ Waiting for ' + (totalCount - onlineCount) + ' more team(s)...'
+      : 'Teams will appear here when captains open their bidder link';
+}
+
+function renderBidderStatus() {
+  // Called from presence sync — trigger poll to refresh
+  pollBidderStatus();
+}
+
 function copyViewerLink() {
   const url = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
   navigator.clipboard.writeText(url).then(() => {
@@ -1532,11 +1653,33 @@ function copyViewerLink() {
   });
 }
 
-function copyBidderLink() {
+async function copyBidderLink() {
   const url = `${window.location.origin}/bidder.html?room=${auction.room_code}`;
-  navigator.clipboard.writeText(url).then(() => {
-    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Bidder link copied! Share with team captains.</span>';
-    setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 3000);
+  
+  // Load all teams for the message
+  const { data: allTeams } = await sb.from('teams').select('name,captain_name,captain_mobile').eq('auction_id', auctionId).order('name');
+  
+  let msg = '🏏 *captainXI.com — Live Bidding*\n';
+  msg += 'Auction: *' + (auction.name || 'Auction') + '*\n';
+  msg += '📱 Bidding Link (tap to open):\n' + url + '\n';
+  msg += '━━━━━━━━━━━━━━━━━━\n';
+  
+  if (allTeams?.length) {
+    allTeams.forEach(t => {
+      msg += '🏏 *' + t.name + '*\n';
+      msg += 'Captain: ' + (t.captain_name || '—') + '\n';
+      if (t.captain_mobile) msg += 'Mobile: ' + t.captain_mobile + '\n';
+      msg += '\n';
+    });
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+  }
+  
+  msg += 'Open the link and enter your registered mobile number to receive an OTP and start bidding!\n\n';
+  msg += 'Powered by captainXI.com 🏆';
+  
+  navigator.clipboard.writeText(msg).then(() => {
+    document.getElementById('launchMsg').innerHTML = '<span style="color:var(--green);">✅ Bidder message copied with ' + (allTeams?.length || 0) + ' team details! Paste on WhatsApp.</span>';
+    setTimeout(() => document.getElementById('launchMsg').innerHTML = '', 4000);
   });
 }
 

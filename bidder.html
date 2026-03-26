@@ -497,6 +497,23 @@ async function enterBiddingApp(sessionId){
   document.getElementById('auctionNameHeader').textContent=myAuction.name;
   await loadAll();
   subscribeRealtime(sessionId);
+  startBidderHeartbeat();
+}
+
+// ── BIDDER HEARTBEAT — tells organiser we're online ──────
+function startBidderHeartbeat() {
+  sendHeartbeat(); // immediate
+  setInterval(sendHeartbeat, 15000); // every 15s
+}
+async function sendHeartbeat() {
+  if (!myTeam?.id || !myAuction?.id) return;
+  try {
+    await sb.from('bidder_sessions').upsert({
+      team_id: myTeam.id,
+      auction_id: myAuction.id,
+      last_seen: new Date().toISOString()
+    }, { onConflict: 'team_id,auction_id' });
+  } catch(e) { /* silent */ }
 }
 
 async function logout(){
