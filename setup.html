@@ -479,6 +479,27 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const { data: _profile } = await sb.from('profiles').select('plan,is_superadmin').eq('id', currentUser.id).single();
   window._userPlan = _profile?.plan || 'free';
   window._isSuperAdmin = _profile?.is_superadmin === true;
+
+  // ── PLAN ENFORCEMENT ─────────────────────────────────────
+  // Plan tiers: gully(free) < club < district < national
+  const PLAN_LEVELS = { free: 0, gully: 0, club: 1, district: 2, national: 3 };
+  window.getPlanLevel = () => PLAN_LEVELS[window._userPlan] || 0;
+  window.hasPlan = (minPlan) => window._isSuperAdmin || (window.getPlanLevel() >= (PLAN_LEVELS[minPlan] || 0));
+  window.PLAN_LIMITS = {
+    free:     { teams: 3, players: 18, auctions: 3 },
+    gully:    { teams: 3, players: 18, auctions: 3 },
+    club:     { teams: 8, players: 60, auctions: 6 },
+    district: { teams: 14, players: 120, auctions: 12 },
+    national: { teams: 32, players: 500, auctions: 999 }
+  };
+  window.getPlanLimits = () => window.PLAN_LIMITS[window._userPlan] || window.PLAN_LIMITS.free;
+
+  // Show upgrade prompt for gated features
+  window.showUpgradePrompt = (feature, minPlan) => {
+    const msg = '🔒 ' + feature + ' requires ' + minPlan.charAt(0).toUpperCase() + minPlan.slice(1) + ' plan or above.\n\nYour current plan: ' + (window._userPlan || 'Free').toUpperCase() + '\n\nUpgrade now?';
+    if (confirm(msg)) window.location.href = 'upgrade.html?plan=' + minPlan;
+    return false;
+  };
   if (DEV_MODE) document.getElementById('devQuickFillPanel').style.display = 'block';
 
   // Secret dev shortcut — Ctrl+Shift+D (only for organiser use)
@@ -1277,6 +1298,7 @@ async function importFromFile() {
 }
 
 async function toggleStar(id, current) {
+  if (!window.hasPlan('club')) { window.showUpgradePrompt('Star player tagging', 'club'); return; }
   await sb.from('players').update({ star: !current }).eq('id', id);
   await loadPlayers();
 }
@@ -1847,22 +1869,38 @@ async function sendSMSToAll() {
   if (!auction?.room_code) { alert('Go Live first to get the viewer link.'); return; }
   const btn = document.getElementById('smsBtn');
   const msgEl = document.getElementById('smsMsg');
+  const viewerUrl = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
+
+  // Check if Fast2SMS is configured
+  const smsConfigured = FAST2SMS_KEY && FAST2SMS_KEY !== 'YOUR_FAST2SMS_API_KEY';
+
+  if (!smsConfigured) {
+    // Fallback — copy WhatsApp message with viewer link for all players
+    const { data: players } = await sb.from('player_registrations')
+      .select('name,mobile').eq('auction_id', auctionId);
+    const count = players?.length || 0;
+    const msg = '🏏 *' + (auction.name || 'Auction') + '* is LIVE!\n\n' +
+      '📺 Watch the auction live:\n' + viewerUrl + '\n\n' +
+      'Enter your registered mobile number + OTP to join.\n\n' +
+      'Powered by captainXI.com 🏏';
+    try {
+      await navigator.clipboard.writeText(msg);
+      msgEl.style.color = 'var(--green)';
+      msgEl.innerHTML = '✅ WhatsApp message copied! Paste in your players WhatsApp group (' + count + ' registered).' +
+        '<br><span style="font-size:11px;color:var(--muted);">SMS not configured — <a href="https://www.fast2sms.com" target="_blank" style="color:var(--blue);">Setup Fast2SMS</a> for auto-sending to each player.</span>';
+    } catch(e) {
+      msgEl.style.color = 'var(--accent)';
+      msgEl.innerHTML = '📋 Copy this viewer link and share on WhatsApp:<br><span style="font-family:monospace;font-size:11px;color:var(--accent);word-break:break-all;">' + viewerUrl + '</span>';
+    }
+    return;
+  }
+
   btn.textContent = 'Sending...'; btn.disabled = true;
   const { data: players } = await sb.from('player_registrations')
     .select('*').eq('auction_id', auctionId).eq('sms_sent', false);
   if (!players?.length) {
     msgEl.style.color = 'var(--muted)';
     msgEl.textContent = 'All players already notified, or none registered yet.';
-    btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
-    return;
-  }
-  const viewerUrl = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
-
-  if (DEV_MODE) {
-    // DEV MODE — just copy link, don't send SMS
-    msgEl.style.color = 'var(--accent)';
-    msgEl.textContent = `🔧 Dev Mode — SMS skipped. Viewer link: ${viewerUrl}`;
-    navigator.clipboard.writeText(viewerUrl);
     btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
     return;
   }
@@ -1897,6 +1935,7 @@ async function getExportData() {
 }
 
 async function exportPlayersExcel() {
+  if (!window.hasPlan('club')) { window.showUpgradePrompt('Excel export', 'club'); return; }
   const { players, captains } = await getExportData();
   if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
 
@@ -1962,6 +2001,7 @@ async function exportPlayersExcel() {
 }
 
 async function exportPlayersPDF() {
+  if (!window.hasPlan('club')) { window.showUpgradePrompt('PDF export', 'club'); return; }
   const { players, captains } = await getExportData();
   if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
 

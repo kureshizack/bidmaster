@@ -494,8 +494,28 @@ function enterViewer(data) {
     document.getElementById('liveStatus').textContent = 'ENDED';
     document.getElementById('liveStatus').style.cssText += ';background:rgba(148,163,184,0.1);border-color:var(--muted);color:var(--muted);animation:none;';
   }
+
+  // Check organiser plan for watermark
+  checkWatermark(data.owner_id);
   loadAll();
   subscribeRealtime();
+}
+
+async function checkWatermark(ownerId) {
+  try {
+    const { data: profile } = await sb.from('profiles').select('plan,is_superadmin').eq('id', ownerId).single();
+    const plan = profile?.plan || 'free';
+    const isAdmin = profile?.is_superadmin === true;
+    const isPaid = isAdmin || (plan !== 'free' && plan !== 'gully');
+    if (!isPaid) {
+      // Show watermark for free plan organisers
+      const wm = document.createElement('div');
+      wm.id = 'freeWatermark';
+      wm.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(245,158,11,0.95);color:#000;text-align:center;padding:6px 12px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;z-index:999;';
+      wm.innerHTML = '⚡ Powered by <a href="https://captainxi.com" target="_blank" style="color:#000;text-decoration:underline;">captainXI.com</a> — India\'s Cricket Auction Platform';
+      document.body.appendChild(wm);
+    }
+  } catch(e) { /* silently skip watermark check */ }
 }
 
 // ── LOAD ALL DATA ─────────────────────────────────────────
