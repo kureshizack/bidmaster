@@ -10,7 +10,7 @@
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
+body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;}
 .screen{display:none;flex-direction:column;min-height:100vh;padding:32px 24px;align-items:center;justify-content:center;text-align:center;}
 .screen.active{display:flex;}
 .logo{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;color:var(--accent);margin-bottom:6px;}
@@ -61,7 +61,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .player-card.state-going_twice{border-color:var(--red);}
 .player-card.state-sold{border-color:var(--green);}
 .player-waiting{text-align:center;padding:32px 20px;color:var(--muted);font-size:14px;}
-.player-card-body{padding:16px;}
+.player-card-body{overflow-x:hidden;padding:16px;}
 .player-name-big{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;margin-bottom:8px;}
 .player-role-center{display:inline-block;padding:4px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:10px;}
 .role-BAT{background:#1e3a5f;color:#93c5fd;}

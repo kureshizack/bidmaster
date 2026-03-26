@@ -91,9 +91,15 @@ nav {
 }
 .nav-cta:hover { background: var(--gold2) !important; transform: translateY(-1px); }
 @media (max-width: 768px) {
-  nav { padding: 14px 20px; }
-  .nav-links { gap: 16px; }
+  nav { padding: 12px 14px; }
+  .nav-logo { font-size: 20px; letter-spacing: 1px; }
+  .nav-links { gap: 8px; }
   .nav-links a:not(.nav-cta) { display: none; }
+  .nav-cta { padding: 8px 14px; font-size: 12px; letter-spacing: 0.5px; }
+}
+@media (max-width: 420px) {
+  .nav-logo { font-size: 16px; }
+  .nav-cta { padding: 7px 10px; font-size: 11px; }
 }
 
 /* ── HERO ── */
@@ -354,9 +360,16 @@ nav {
   .hero-visual { display: none; }
   .hero { padding: 100px 24px 60px; }
 }
+@media (max-width: 480px) {
+  .hero { padding: 90px 16px 40px; }
+  .hero-title { font-size: 38px; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .hero-actions .btn-primary, .hero-actions .btn-ghost { width: 100%; max-width: 280px; text-align: center; }
+}
 
 /* ── SECTION COMMON ── */
 section { padding: 100px 40px; position: relative; }
+@media (max-width: 480px) { section { padding: 60px 16px; } }
 .section-inner { max-width: 1200px; margin: 0 auto; }
 .section-tag {
   font-size: 11px;
@@ -834,7 +847,7 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: gap;
+  flex-wrap: wrap;
   gap: 16px;
 }
 .footer-copy { font-size: 13px; color: var(--muted); }
@@ -895,7 +908,7 @@ footer {
     <a href="#features">Features</a>
     <a href="#how-it-works">How It Works</a>
     <a href="#pricing">Pricing</a>
-    <a href="login.html#login" class="nav-cta" style="background:#F59E0B;border:1px solid rgba(245,158,11,0.4);color:var(--gold);">Sign In</a>
+    <a href="login.html#login" class="nav-cta" style="background:transparent;border:1px solid rgba(245,158,11,0.4);color:var(--gold);">Sign In</a>
     <a href="login.html#signup" class="nav-cta">Sign Up Free →</a>
   </div>
 </nav>
@@ -1509,10 +1522,11 @@ reveals.forEach(r => observer.observe(r));
 // ── NAV SCROLL ──
 window.addEventListener('scroll', () => {
   const nav = document.getElementById('navbar');
+  const isMobile = window.innerWidth <= 768;
   if (window.scrollY > 60) {
-    nav.style.padding = '12px 40px';
+    nav.style.padding = isMobile ? '10px 14px' : '12px 40px';
   } else {
-    nav.style.padding = '18px 40px';
+    nav.style.padding = isMobile ? '12px 14px' : '18px 40px';
   }
 });
 </script>
