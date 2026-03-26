@@ -389,10 +389,16 @@ const DEFAULT_CAPTAIN_FEE=2500;
   document.getElementById('playerFeeLabel').textContent='₹'+playerFee.toLocaleString('en-IN');
   document.getElementById('captainFeeLabel').textContent='₹'+captainFee.toLocaleString('en-IN');
 
-  // Load registration stats — separate players and captains explicitly
+  // Load registration stats — count BOTH registered players AND manually added players
   const{data:playerRegs}=await sb.from('player_registrations').select('id',{count:'exact'}).eq('auction_id',auctionId).eq('is_captain',false);
   const{data:captainRegs}=await sb.from('player_registrations').select('id',{count:'exact'}).eq('auction_id',auctionId).eq('is_captain',true);
-  const playerCount=(playerRegs||[]).length;
+  // Also count manually added players (in players table but not in registrations)
+  const{data:manualPlayers}=await sb.from('players').select('id',{count:'exact'}).eq('auction_id',auctionId);
+  const regCount=(playerRegs||[]).length;
+  const manualCount=(manualPlayers||[]).length;
+  // Total unique players = max of manual (setup) or registered (portal)
+  // Because imported registrations become players too, use whichever is higher
+  const playerCount=Math.max(regCount, manualCount);
   const captainCount=(captainRegs||[]).length;
   const maxPlayers=data.max_players||999;
   const spotsLeft=Math.max(0,maxPlayers-playerCount);
@@ -518,6 +524,20 @@ function updateFeeDisplay(type){
   document.getElementById('breakdownRegFee').textContent = feeStr;
   document.getElementById('breakdownPlatformFee').textContent = PLATFORM_FEE;
   document.getElementById('breakdownTotal').textContent = '₹' + totalPayable.toLocaleString('en-IN');
+
+  // Free registration override
+  if (auction?.free_registration) {
+    amtDisp.textContent = 'FREE';
+    payAmt.textContent = 'FREE';
+    document.getElementById('breakdownRegFee').textContent = 'FREE';
+    document.getElementById('breakdownPlatformFee').textContent = '0';
+    document.getElementById('breakdownTotal').textContent = 'FREE';
+    payDesc.textContent = '✅ This tournament has free registration. No payment required.';
+    document.getElementById('payNowBtn').textContent = '📝 Register Now (Free)';
+    document.getElementById('payNowBtn').className = 'submit-btn submit-btn-player';
+    const razorpayNote = document.querySelector('[id="payNowSection"] div[style*="Razorpay"]') || document.querySelector('[id="payNowSection"] div:last-child');
+    if (razorpayNote && razorpayNote.textContent.includes('Razorpay')) razorpayNote.style.display = 'none';
+  }
 }
 
 // ── CRICKET ROLE ──────────────────────────────────────────
@@ -606,57 +626,21 @@ async function submitRegistration(){
 
   btn.textContent='Opening payment...'; 
 
-  // ── RAZORPAY PAYMENT ────────────────────────────────────
-  const fee = isCaptain ? (auction?.captain_fee||DEFAULT_CAPTAIN_FEE) : (auction?.player_fee||DEFAULT_PLAYER_FEE);
-  const totalPayable = fee + PLATFORM_FEE;
+  // ── CHECK FREE REGISTRATION ─────────────────────────────
+  const isFreeRegistration = auction?.free_registration === true;
+  const fee = isFreeRegistration ? 0 : (isCaptain ? (auction?.captain_fee||DEFAULT_CAPTAIN_FEE) : (auction?.player_fee||DEFAULT_PLAYER_FEE));
+  const platformFee = isFreeRegistration ? 0 : PLATFORM_FEE;
+  const totalPayable = fee + platformFee;
 
-  await new Promise((resolve, reject) => {
-    const options = {
-      key: RAZORPAY_KEY,
-      amount: totalPayable * 100,   // Razorpay takes paise (fee + platform fee)
-      currency: 'INR',
-      name: auction.name || 'captainXI.com',
-      description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
-      image: '/favicon.svg',
-      prefill: {
-        name: name,
-        contact: '+91' + mobile,
-      },
-      notes: {
-        auction_id: auctionId,
-        player_name: name,
-        mobile: mobile,
-        type: isCaptain ? 'captain' : 'player'
-      },
-      theme: { color: '#f59e0b' },
-      modal: {
-        ondismiss: () => {
-          showFormMsg('Payment cancelled. Try again when ready.', 'error');
-          btn.textContent = '💳 Pay & Register'; btn.disabled = false;
-          reject(new Error('cancelled'));
-        }
-      },
-      handler: async (response) => {
-        // Payment successful — response.razorpay_payment_id exists
-        resolve(response);
-      }
-    };
-    const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (response) => {
-      showFormMsg('❌ Payment failed: ' + response.error.description, 'error');
-      btn.textContent = '💳 Pay & Register'; btn.disabled = false;
-      reject(new Error('failed'));
-    });
-    rzp.open();
-  }).then(async (paymentResponse) => {
+  // ── COMMON SAVE FUNCTION ────────────────────────────────
+  async function saveRegistration(paymentId) {
+    btn.textContent = isFreeRegistration ? '✅ Registering...' : '✅ Paid! Registering...';
 
-    const paymentId = paymentResponse.razorpay_payment_id;
-    btn.textContent = '✅ Paid! Registering...';
-
-    // Show paid badge
-    document.getElementById('paymentPaidBadge').style.display = 'block';
-    document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + paymentId;
-    document.getElementById('payNowSection').style.display = 'none';
+    if (!isFreeRegistration) {
+      document.getElementById('paymentPaidBadge').style.display = 'block';
+      document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + paymentId;
+      document.getElementById('payNowSection').style.display = 'none';
+    }
 
     // ── UPLOAD PHOTO ──────────────────────────────────────
     let photoUrl = null;
@@ -685,16 +669,16 @@ async function submitRegistration(){
       tshirt_name: tshirtName,
       tshirt_number: tshirtNumber,
       registration_fee: fee,
-      platform_fee: PLATFORM_FEE,
-      total_paid: fee + PLATFORM_FEE,
-      payment_status: 'paid',
-      payment_id: paymentId,
+      platform_fee: platformFee,
+      total_paid: totalPayable,
+      payment_status: isFreeRegistration ? 'free' : 'paid',
+      payment_id: paymentId || null,
       registered_at: new Date().toISOString()
     }).select().single();
 
     if(regErr){
-      showFormMsg('Payment done but registration save failed: ' + regErr.message + '. Screenshot Payment ID: ' + paymentId, 'error');
-      btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+      showFormMsg((isFreeRegistration ? 'Registration' : 'Payment done but registration') + ' save failed: ' + regErr.message + (paymentId ? '. Screenshot Payment ID: ' + paymentId : ''), 'error');
+      btn.textContent = isFreeRegistration ? '📝 Register' : '💳 Pay & Register'; btn.disabled = false;
       return;
     }
 
@@ -704,7 +688,9 @@ async function submitRegistration(){
     document.getElementById('successEmoji').textContent = isCaptain ? '👑' : '🎉';
     document.getElementById('successTitle').textContent = isCaptain ? 'CAPTAIN REGISTERED!' : 'REGISTERED!';
     if(isCaptain) document.getElementById('successTitle').style.color = 'var(--gold)';
-    document.getElementById('successSub').textContent = '✅ Payment confirmed! Your registration is complete.';
+    document.getElementById('successSub').textContent = isFreeRegistration
+      ? '✅ Free registration complete!'
+      : '✅ Payment confirmed! Your registration is complete.';
     document.getElementById('successNotice').textContent = isCaptain
       ? '📞 Contact your organizer to activate your team account for live bidding.'
       : '📱 You\'ll receive the live viewer link on WhatsApp before the auction starts.';
@@ -715,10 +701,57 @@ async function submitRegistration(){
         ? '<div class="success-card-row"><span style="color:var(--muted);">Team Name</span><span style="font-weight:700;">'+teamName+'</span></div>'
         : '<div class="success-card-row"><span style="color:var(--muted);">Role</span><span style="font-weight:700;">'+selectedCricketRole+'</span></div>')+
       (selectedSize ? '<div class="success-card-row"><span style="color:var(--muted);">T-Shirt</span><span style="font-weight:700;">'+selectedSize+'</span></div>' : '')+
-      '<div class="success-card-row"><span style="color:var(--muted);">Fee Paid</span><span style="font-weight:700;color:var(--green);">₹'+fee.toLocaleString('en-IN')+' ✅</span></div>'+
-      '<div class="success-card-row"><span style="color:var(--muted);">Payment ID</span><span style="font-weight:700;font-size:11px;font-family:monospace;">'+paymentId+'</span></div>'+
+      '<div class="success-card-row"><span style="color:var(--muted);">Fee</span><span style="font-weight:700;color:var(--green);">'+(isFreeRegistration?'FREE ✅':'₹'+fee.toLocaleString('en-IN')+' ✅')+'</span></div>'+
+      (paymentId ? '<div class="success-card-row"><span style="color:var(--muted);">Payment ID</span><span style="font-weight:700;font-size:11px;font-family:monospace;">'+paymentId+'</span></div>' : '')+
       '<div class="success-card-row"><span style="color:var(--muted);">Tournament</span><span style="font-weight:700;">'+auction.name+'</span></div>';
+  }
 
+  // ── FREE REGISTRATION — skip payment ────────────────────
+  if (isFreeRegistration) {
+    await saveRegistration(null);
+    return;
+  }
+
+  // ── RAZORPAY PAYMENT ────────────────────────────────────
+  await new Promise((resolve, reject) => {
+    const options = {
+      key: RAZORPAY_KEY,
+      amount: totalPayable * 100,
+      currency: 'INR',
+      name: auction.name || 'captainXI.com',
+      description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
+      image: '/favicon.svg',
+      prefill: {
+        name: name,
+        contact: '+91' + mobile,
+      },
+      notes: {
+        auction_id: auctionId,
+        player_name: name,
+        mobile: mobile,
+        type: isCaptain ? 'captain' : 'player'
+      },
+      theme: { color: '#f59e0b' },
+      modal: {
+        ondismiss: () => {
+          showFormMsg('Payment cancelled. Try again when ready.', 'error');
+          btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+          reject(new Error('cancelled'));
+        }
+      },
+      handler: async (response) => {
+        resolve(response);
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', (response) => {
+      showFormMsg('❌ Payment failed: ' + response.error.description, 'error');
+      btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+      reject(new Error('failed'));
+    });
+    rzp.open();
+  }).then(async (paymentResponse) => {
+    await saveRegistration(paymentResponse.razorpay_payment_id);
   }).catch(() => {
     // payment cancelled or failed — already handled above
   });

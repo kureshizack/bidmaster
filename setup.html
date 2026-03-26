@@ -295,7 +295,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Share with players and captains. Players pay ₹<span id="descPlayerFee">—</span> · Captains pay ₹<span id="descCaptainFee">—</span>. All registrations appear here.</p>
 
     <!-- Fees row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
       <div style="background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.25);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--blue);">₹<span id="displayPlayerFee">500</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Player Fee</div>
@@ -303,6 +303,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
       <div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">₹<span id="displayCaptainFee">2,500</span></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Captain Fee</div>
+      </div>
+    </div>
+    <!-- Free registration toggle -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="freeRegToggle" onchange="toggleFreeRegistration()" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
+      <div>
+        <div style="font-size:13px;font-weight:600;">🆓 Free Registration</div>
+        <div style="font-size:11px;color:var(--muted);">Skip payment — players register without paying. Use when organiser pays captainXI directly.</div>
       </div>
     </div>
 
@@ -402,6 +410,10 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
+  // Load profile for superadmin check
+  const { data: _profile } = await sb.from('profiles').select('plan,is_superadmin').eq('id', currentUser.id).single();
+  window._userPlan = _profile?.plan || 'free';
+  window._isSuperAdmin = _profile?.is_superadmin === true;
   if (DEV_MODE) document.getElementById('devQuickFillPanel').style.display = 'block';
 
   // Secret dev shortcut — Ctrl+Shift+D (only for organiser use)
@@ -647,12 +659,11 @@ async function addTeam() {
   if (!name) { showMsg('teamMsg', 'Enter team name', 'error'); return; }
   if (!captainName) { showMsg('teamMsg', 'Enter captain name', 'error'); return; }
   if (!captainMobile || captainMobile.length !== 10) { showMsg('teamMsg', 'Enter valid 10-digit mobile number', 'error'); return; }
-  // Check duplicate mobile across teams in this auction
+  // Check duplicate mobile across teams in this auction (prevent same captain on 2 teams)
   const { data: dupTeam } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', captainMobile).single();
   if (dupTeam) { showMsg('teamMsg', '❌ Mobile ' + captainMobile + ' already used by team "' + dupTeam.name + '". Each captain must have a unique mobile.', 'error'); return; }
-  // Check duplicate mobile across player registrations too
-  const { data: dupReg } = await sb.from('player_registrations').select('id,name').eq('auction_id', auctionId).eq('mobile', captainMobile).single();
-  if (dupReg) { showMsg('teamMsg', '❌ Mobile ' + captainMobile + ' is already registered as a player (' + dupReg.name + '). Use a different number.', 'error'); return; }
+  // NOTE: We intentionally allow a registered player to be a team captain
+  // A captain IS a player — they should be able to register as player AND captain a team
   // Plan limit check
   const { count } = await sb.from('teams').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
   if (!checkTeamLimit(count || 0)) return;
@@ -1057,6 +1068,12 @@ async function addPlayer() {
   // Plan limit check
   const { count } = await sb.from('players').select('*', { count: 'exact', head: true }).eq('auction_id', auctionId);
   if (!checkPlayerLimit(count || 0)) return;
+  // Max players limit check (from auction settings)
+  const maxPlayers = auction?.max_players || 999;
+  if (maxPlayers < 999 && (count || 0) >= maxPlayers) {
+    showMsg('playerMsg', '⚠️ Player limit reached! Max ' + maxPlayers + ' players allowed (teams × squad size). You have ' + count + ' players.', 'error');
+    return;
+  }
   showMsg('playerMsg', '⏳ Adding player...', 'success');
   // Upload photo if provided
   let photoUrl = null;
@@ -1277,17 +1294,20 @@ async function clearAllData() {
 
 // ── PLAN LIMITS ───────────────────────────────────────────
 const PLAN_LIMITS = {
-  free:     { teams: 6,  players: 30  },
-  club:     { teams: 8,  players: 80  },
-  district: { teams: 14, players: 150 },
-  national: { teams: 999,players: 999 }
+  free:     { teams: 3,   players: 20  },
+  gully:    { teams: 3,   players: 20  },
+  club:     { teams: 6,   players: 66  },
+  paid:     { teams: 6,   players: 66  },
+  pro:      { teams: 10,  players: 150 },
+  district: { teams: 10,  players: 150 },
+  national: { teams: 999, players: 9999 }
 };
-const PLAN_NAMES = { free:'Gully', club:'Club', district:'District', national:'National' };
-const UPGRADE_PRICES = { free:'₹499/auction', club:'₹999/auction', district:'₹1,999/auction' };
+const PLAN_NAMES = { free:'Gully', gully:'Gully', club:'Club', paid:'Club', pro:'Pro', district:'Pro', national:'Admin' };
+const UPGRADE_PRICES = { free:'₹799/auction', gully:'₹799/auction', club:'₹1,499/auction', pro:'Contact us' };
 
 function getUserPlan() {
-  // For now everyone is on free until Razorpay is integrated
-  return 'free';
+  if (window._isSuperAdmin) return 'national'; // unlimited
+  return window._userPlan || 'free';
 }
 
 function checkTeamLimit(currentCount) {
@@ -1438,6 +1458,8 @@ async function loadRegPortalPreview() {
   document.getElementById('displayCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
   document.getElementById('descPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
   document.getElementById('descCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
+  // Init free registration toggle state
+  initFreeRegToggle();
 }
 
 function copyRegLink() {
@@ -1447,6 +1469,35 @@ function copyRegLink() {
     document.getElementById('smsMsg').textContent = '✅ Registration link copied! Share with players on WhatsApp.';
     setTimeout(() => document.getElementById('smsMsg').textContent = '', 3000);
   });
+}
+
+async function toggleFreeRegistration() {
+  const isChecked = document.getElementById('freeRegToggle').checked;
+  await sb.from('auctions').update({ free_registration: isChecked }).eq('id', auctionId);
+  auction.free_registration = isChecked;
+  // Update fee display
+  if (isChecked) {
+    document.getElementById('displayPlayerFee').textContent = 'FREE';
+    document.getElementById('displayCaptainFee').textContent = 'FREE';
+    document.getElementById('descPlayerFee').textContent = '0 (Free)';
+    document.getElementById('descCaptainFee').textContent = '0 (Free)';
+  } else {
+    document.getElementById('displayPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
+    document.getElementById('displayCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
+    document.getElementById('descPlayerFee').textContent = (auction?.player_fee || 500).toLocaleString('en-IN');
+    document.getElementById('descCaptainFee').textContent = (auction?.captain_fee || 2500).toLocaleString('en-IN');
+  }
+}
+
+function initFreeRegToggle() {
+  const toggle = document.getElementById('freeRegToggle');
+  if (toggle && auction?.free_registration) {
+    toggle.checked = true;
+    document.getElementById('displayPlayerFee').textContent = 'FREE';
+    document.getElementById('displayCaptainFee').textContent = 'FREE';
+    document.getElementById('descPlayerFee').textContent = '0 (Free)';
+    document.getElementById('descCaptainFee').textContent = '0 (Free)';
+  }
 }
 
 function shareRegWhatsApp() {
