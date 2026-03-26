@@ -438,6 +438,10 @@ function showSchedule(){
           <input type="text" id="venue-${i}" value="${m.venue||''}" placeholder="Venue" onchange="matches[${i}].venue=this.value">
         </div>
       </div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        ${!m.team_a.startsWith('Winner')&&!m.team_a.startsWith('TBD')&&!m.team_a.startsWith('1st')&&!m.team_a.startsWith('2nd')?
+        '<button onclick="startScoring(\''+m.team_a.replace(/'/g,"\\'")+'\',\''+m.team_b.replace(/'/g,"\\'")+'\',\''+(m.venue||'').replace(/'/g,"\\'")+'\','+i+')" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--green);background:rgba(34,197,94,0.08);color:var(--green);font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;cursor:pointer;">🏏 Start Scoring</button>':''}
+      </div>
     </div>`;
   }).join('');
 
@@ -570,6 +574,12 @@ function exportPDF(){
 }
 
 // ── RESET ────────────────────────────────────────────────
+// ── START SCORING — open scorer for a specific match ─────
+function startScoring(teamA, teamB, venue, matchIndex){
+  const url = 'scorer.html?auction='+auctionId+'&teamA='+encodeURIComponent(teamA)+'&teamB='+encodeURIComponent(teamB)+'&venue='+encodeURIComponent(venue||'');
+  window.location.href = url;
+}
+
 function resetSchedule(){
   if(!confirm('Change format? Current schedule will be regenerated.'))return;
   matches=[];selectedFormat=null;

@@ -376,6 +376,8 @@ function auctionCard(a) {
         ${a.status === 'setup' ? '⚙️ Setup' : a.status === 'live' ? '🔴 Open Live' : '📊 View'}
       </button>
       <button class="btn btn-ghost" onclick="copyRoomLink('${a.room_code}')" title="Copy viewer link">🔗 Share</button>
+      ${a.status === 'ended' ? `<button class="btn btn-ghost" onclick="window.location.href='schedule.html?auction=${a.id}'" title="Match Schedule">📅</button>` : ''}
+      ${a.status === 'ended' ? `<button class="btn btn-ghost" onclick="window.location.href='scorer.html?auction=${a.id}'" title="Live Scoring">🏏 Score</button>` : ''}
       ${a.status !== 'live' ? `<button class="btn btn-danger" onclick="deleteAuction('${a.id}',event)" title="Delete">🗑</button>` : ''}
     </div>
   </div>`;
