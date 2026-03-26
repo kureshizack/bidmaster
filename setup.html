@@ -493,7 +493,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
 
   // ── PLAN ENFORCEMENT ─────────────────────────────────────
   // Plan tiers: gully(free) < club < district < national
-  const PLAN_LEVELS = { free: 0, gully: 0, club: 1, district: 2, national: 3 };
+  const PLAN_LEVELS = { free: 0, gully: 0, club: 1, district: 2, national: 3, pro: 3, paid: 1 };
   window.getPlanLevel = () => PLAN_LEVELS[window._userPlan] || 0;
   window.hasPlan = (minPlan) => window._isSuperAdmin || (window.getPlanLevel() >= (PLAN_LEVELS[minPlan] || 0));
   window.PLAN_LIMITS = {
