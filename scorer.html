@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#080c14;--surface:#111827;--surface2:#1a2235;--surface3:#232f45;--border:#2a3a55;--accent:#f59e0b;--text:#f0f4ff;--muted:#7a8faa;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#a78bfa;}
+:root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--surface3:#2e3f5a;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;}
 
@@ -80,7 +80,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
 
 /* MODALS */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,36,0.92);z-index:500;align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;}
 .modal h3{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;}
@@ -124,6 +124,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
         <input class="setup-input" id="sTeamB" placeholder="Team B name" list="teamSuggestions"></div>
     </div>
     <datalist id="teamSuggestions"></datalist>
+    <datalist id="playerSuggestions"></datalist>
+    <datalist id="battingTeamPlayers"></datalist>
+    <datalist id="bowlingTeamPlayers"></datalist>
     <div class="setup-row">
       <div><label class="setup-label">Overs Per Side</label>
         <select class="setup-input" id="sOvers">
@@ -153,11 +156,11 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div class="setup-card">
     <label class="setup-label">Opening Batsmen (Team Batting First)</label>
     <div class="setup-row">
-      <input class="setup-input" id="sStriker" placeholder="Striker name">
-      <input class="setup-input" id="sNonStriker" placeholder="Non-striker name">
+      <input class="setup-input" id="sStriker" placeholder="Striker name" list="battingTeamPlayers">
+      <input class="setup-input" id="sNonStriker" placeholder="Non-striker name" list="battingTeamPlayers">
     </div>
     <label class="setup-label">Opening Bowler</label>
-    <input class="setup-input" id="sBowler" placeholder="Bowler name">
+    <input class="setup-input" id="sBowler" placeholder="Bowler name" list="bowlingTeamPlayers">
   </div>
 
   <div id="setupMsg" style="font-size:13px;text-align:center;min-height:18px;color:var(--red);margin-bottom:8px;"></div>
@@ -296,11 +299,11 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">Fielder (optional)</label>
-      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma">
+      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma" list="bowlingTeamPlayers">
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">New Batsman</label>
-      <input class="setup-input" id="newBatsman" placeholder="New batsman name">
+      <input class="setup-input" id="newBatsman" placeholder="New batsman name" list="battingTeamPlayers">
     </div>
     <button class="modal-btn modal-btn-primary" onclick="finalizeWicket()" style="margin-top:10px;">✅ Confirm Wicket</button>
     <button class="modal-btn modal-btn-ghost" onclick="cancelWicket()">Cancel</button>
@@ -333,7 +336,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <h3>🎳 Change Bowler</h3>
     <div id="bowlerList" style="margin-bottom:10px;"></div>
     <label class="setup-label">Or enter new bowler</label>
-    <input class="setup-input" id="newBowlerName" placeholder="Bowler name">
+    <input class="setup-input" id="newBowlerName" placeholder="Bowler name" list="bowlingTeamPlayers">
     <button class="modal-btn modal-btn-primary" onclick="confirmBowlerChange()" style="margin-top:10px;">✅ Set Bowler</button>
     <button class="modal-btn modal-btn-ghost" onclick="closeBowlerModal()">Cancel</button>
   </div>
@@ -367,6 +370,9 @@ let striker=null;    // batting_card row
 let nonStriker=null;
 let bowler=null;     // bowling_card row
 
+let allPlayersByTeam = {}; // { 'Team A': ['Player1','Player2'], ... }
+let allPlayerNames = []; // flat list of all player names
+
 // ══════════════════════════════════════════════════════════
 // INIT — Load teams if auction context exists
 // ══════════════════════════════════════════════════════════
@@ -375,10 +381,40 @@ let bowler=null;     // bowling_card row
     const{data:teams}=await sb.from('teams').select('name').eq('auction_id',auctionId).order('name');
     const dl=document.getElementById('teamSuggestions');
     (teams||[]).forEach(t=>{const o=document.createElement('option');o.value=t.name;dl.appendChild(o);});
+
+    // Load all players per team from sales
+    const{data:sales}=await sb.from('sales').select('*,players(name),teams(name)').eq('auction_id',auctionId);
+    if(sales){
+      sales.forEach(s=>{
+        const tn=s.teams?.name;const pn=s.players?.name;
+        if(!tn||!pn)return;
+        if(!allPlayersByTeam[tn])allPlayersByTeam[tn]=[];
+        allPlayersByTeam[tn].push(pn);
+        allPlayerNames.push(pn);
+      });
+    }
+    // Also load unsold players (they might play)
+    const{data:players}=await sb.from('players').select('name').eq('auction_id',auctionId);
+    if(players){
+      players.forEach(p=>{
+        if(!allPlayerNames.includes(p.name))allPlayerNames.push(p.name);
+      });
+    }
   }
   // If match ID passed, resume scoring
   if(matchId){
     await resumeMatch(matchId);
+  } else {
+    // Check localStorage for active match
+    const savedMatchId = localStorage.getItem('captainxi_active_match');
+    if(savedMatchId){
+      const resume = confirm('You have an active match in progress. Resume scoring?');
+      if(resume){
+        await resumeMatch(savedMatchId);
+      } else {
+        localStorage.removeItem('captainxi_active_match');
+      }
+    }
   }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
@@ -401,6 +437,26 @@ function updateTossDropdown(){
   sel.innerHTML='<option value="">Select team</option>';
   if(a)sel.innerHTML+='<option value="'+a+'">'+a+'</option>';
   if(b)sel.innerHTML+='<option value="'+b+'">'+b+'</option>';
+  updatePlayerSuggestions();
+}
+
+function updatePlayerSuggestions(){
+  const a=document.getElementById('sTeamA').value.trim();
+  const b=document.getElementById('sTeamB').value.trim();
+
+  // All players datalist
+  const allDl=document.getElementById('playerSuggestions');
+  allDl.innerHTML=allPlayerNames.map(n=>'<option value="'+n+'">').join('');
+
+  // Team A (batting) players
+  const batDl=document.getElementById('battingTeamPlayers');
+  const batPlayers=allPlayersByTeam[a]||allPlayerNames;
+  batDl.innerHTML=batPlayers.map(n=>'<option value="'+n+'">').join('');
+
+  // Team B (bowling) players
+  const bowlDl=document.getElementById('bowlingTeamPlayers');
+  const bowlPlayers=allPlayersByTeam[b]||allPlayerNames;
+  bowlDl.innerHTML=bowlPlayers.map(n=>'<option value="'+n+'">').join('');
 }
 
 let tossDecision=null;
@@ -408,6 +464,19 @@ function setToss(decision){
   tossDecision=decision;
   document.getElementById('tossBat').style.cssText=decision==='bat'?'flex:1;padding:12px;border-radius:8px;border:2px solid var(--accent);background:rgba(245,158,11,0.1);color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;':'flex:1;padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
   document.getElementById('tossBowl').style.cssText=decision==='bowl'?'flex:1;padding:12px;border-radius:8px;border:2px solid var(--blue);background:rgba(96,165,250,0.1);color:var(--blue);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;':'flex:1;padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+  // Update datalists based on who bats/bowls first
+  const tossWinner=document.getElementById('sTossWinner').value;
+  const teamA=document.getElementById('sTeamA').value.trim();
+  const teamB=document.getElementById('sTeamB').value.trim();
+  if(tossWinner){
+    let batTeam=teamA,bowlTeam=teamB;
+    if(decision==='bat'){batTeam=tossWinner;bowlTeam=tossWinner===teamA?teamB:teamA;}
+    else{bowlTeam=tossWinner;batTeam=tossWinner===teamA?teamB:teamA;}
+    const batDl=document.getElementById('battingTeamPlayers');
+    batDl.innerHTML=(allPlayersByTeam[batTeam]||allPlayerNames).map(n=>'<option value="'+n+'">').join('');
+    const bowlDl=document.getElementById('bowlingTeamPlayers');
+    bowlDl.innerHTML=(allPlayersByTeam[bowlTeam]||allPlayerNames).map(n=>'<option value="'+n+'">').join('');
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -450,6 +519,7 @@ async function startMatch(){
   }).select().single();
   if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
   match=m;
+  localStorage.setItem('captainxi_active_match', m.id);
 
   // Create 1st innings
   const{data:inn}=await sb.from('innings').insert({
@@ -943,6 +1013,7 @@ async function endMatch(){
 
   await sb.from('matches').update({status:'completed',result:result,winner:result.split(' won')[0]}).eq('id',match.id);
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
+  localStorage.removeItem('captainxi_active_match');
 
   alert('🏆 Match Complete!\n\n'+result+'\n\nShare the scorecard link with everyone!');
   shareScore();
