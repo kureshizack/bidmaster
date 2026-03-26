@@ -1093,8 +1093,12 @@ function renderPlayers(players) {
           '<button onclick="cancelEditBase(\'' + p.id + '\')" style="padding:2px 5px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;">✕</button>' +
         '</div>' +
       '</td>' +
-      '<td><button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')" title="Remove player">✕</button>' +
-      '<button style="padding:2px 6px;background:rgba(245,158,11,0.12);color:var(--accent);border:1px solid var(--accent);border-radius:4px;font-size:11px;cursor:pointer;margin-left:3px;" onclick="appointCaptain(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.mobile||'') + '\')" title="Make team captain">👑</button></td>' +
+      '<td style="white-space:nowrap;">' +
+        '<div style="display:flex;flex-direction:column;gap:4px;align-items:center;">' +
+          '<button class="btn btn-danger btn-sm" onclick="deletePlayer(\'' + p.id + '\')" title="Remove player" style="padding:3px 8px;font-size:12px;">✕</button>' +
+          '<button onclick="appointCaptain(\'' + p.id + '\',\'' + p.name.replace(/'/g,"\\'") + '\',\'' + (p.mobile||'') + '\')" title="Make team captain" style="padding:2px 8px;background:rgba(245,158,11,0.15);color:var(--accent);border:1px solid rgba(245,158,11,0.4);border-radius:4px;font-size:10px;cursor:pointer;font-weight:700;">👑</button>' +
+        '</div>' +
+      '</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -1327,21 +1331,72 @@ async function appointCaptain(playerId, playerName, playerMobile) {
   if (playerMobile) {
     const { data: existingTeam } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', playerMobile).single();
     if (existingTeam) {
-      alert('⚠️ ' + playerName + ' is already captain of "' + existingTeam.name + '"');
+      showCaptainMsg('⚠️ ' + playerName + ' is already captain of "' + existingTeam.name + '"', 'error');
       return;
     }
   }
 
-  const teamName = prompt('👑 Make ' + playerName + ' a team captain\n\nEnter team name:', playerName + ' XI');
-  if (!teamName) return;
+  // Show styled modal instead of browser prompt
+  showCaptainModal(playerId, playerName, playerMobile);
+}
+
+function showCaptainModal(playerId, playerName, playerMobile) {
+  // Remove existing modal if any
+  const old = document.getElementById('captainModal');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'captainModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;">
+      <div style="font-size:48px;margin-bottom:8px;">👑</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;">Make Captain</div>
+      <div style="font-size:14px;color:var(--text);margin-bottom:16px;"><b>${playerName}</b> will become a team captain</div>
+      <div style="text-align:left;margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Team Name *</label>
+        <input type="text" id="captainTeamInput" value="${playerName} XI" maxlength="40"
+          style="width:100%;padding:12px 14px;background:var(--surface2);border:2px solid var(--accent);color:var(--text);border-radius:10px;font-size:16px;font-weight:700;outline:none;font-family:'Rajdhani',sans-serif;"
+          onkeydown="if(event.key==='Enter')confirmCaptainAppoint('${playerId}','${playerName.replace(/'/g,"\\'")}','${playerMobile}')">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="confirmCaptainAppoint('${playerId}','${playerName.replace(/'/g,"\\'")}','${playerMobile}')"
+          style="flex:1;padding:12px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">
+          👑 Create Team
+        </button>
+        <button onclick="document.getElementById('captainModal').remove()"
+          style="padding:12px 20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+      <div id="captainModalMsg" style="margin-top:10px;min-height:16px;font-size:13px;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  // Click outside to close
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  // Focus input
+  setTimeout(() => {
+    const inp = document.getElementById('captainTeamInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 100);
+}
+
+async function confirmCaptainAppoint(playerId, playerName, playerMobile) {
+  const teamName = document.getElementById('captainTeamInput').value.trim();
+  const msgEl = document.getElementById('captainModalMsg');
+  if (!teamName) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Enter a team name'; return; }
 
   // Check plan limits
   const limits = window.getPlanLimits();
   const { data: existingTeams } = await sb.from('teams').select('id').eq('auction_id', auctionId);
   if ((existingTeams?.length || 0) >= limits.teams && !window._isSuperAdmin) {
+    document.getElementById('captainModal').remove();
     window.showUpgradePrompt('More than ' + limits.teams + ' teams', 'club');
     return;
   }
+
+  msgEl.style.color = 'var(--accent)'; msgEl.textContent = '⏳ Creating team...';
 
   const teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   const { error } = await sb.from('teams').insert({
@@ -1353,14 +1408,28 @@ async function appointCaptain(playerId, playerName, playerMobile) {
     start_credits: auction.default_credits || 100000,
     credits: auction.default_credits || 100000,
     bid_increment: auction.bid_step || 1000,
-    min_squad: auction.min_squad || 11,
-    players_bought: 0
+    min_squad: auction.min_squad || 11
   });
 
-  if (error) { alert('Error: ' + error.message); return; }
-  alert('✅ ' + playerName + ' is now captain of "' + teamName + '"!\n\nTeam code: ' + teamCode);
+  if (error) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ ' + error.message; return; }
+
+  // Success — show in modal then close
+  msgEl.style.color = 'var(--green)'; msgEl.textContent = '✅ Team created! Code: ' + teamCode;
+  setTimeout(() => {
+    document.getElementById('captainModal')?.remove();
+  }, 1500);
   await loadTeams();
   await loadPlayers();
+  await pollBidderStatus();
+}
+
+function showCaptainMsg(msg, type) {
+  const el = document.getElementById('playerMsg');
+  if (el) {
+    el.style.color = type === 'error' ? 'var(--red)' : 'var(--green)';
+    el.textContent = msg;
+    setTimeout(() => el.textContent = '', 4000);
+  }
 }
 
 // ── QUICK TEST FILL ───────────────────────────────────────
