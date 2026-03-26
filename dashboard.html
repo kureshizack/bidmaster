@@ -322,7 +322,12 @@ let userProfile = null;
     'pro':'🏟️ PRO','district':'🏟️ PRO','national':'🏟️ PRO'
   };
   planBadge.textContent = tierMap[plan] || 'FREE';
-  if(plan && plan !== 'free' && plan !== 'gully'){
+  if(profile?.is_superadmin || profile?.is_admin){
+    planBadge.textContent = '🛡 ADMIN';
+    planBadge.className = 'plan-badge paid';
+    upgradeLink.textContent = '∞ Unlimited';
+    upgradeLink.style.pointerEvents = 'none';
+  } else if(plan && plan !== 'free' && plan !== 'gully'){
     planBadge.className = 'plan-badge paid';
     upgradeLink.textContent = '⚙ Manage Plan';
   } else {
@@ -436,8 +441,9 @@ async function createAuction() {
     'national':{auctions:12,teams:10,players:150}
   };
   const userPlan = userProfile?.plan || 'gully';
+  const isSuperAdmin = userProfile?.is_superadmin === true || userProfile?.is_admin === true;
   const limits = planLimits[userPlan] || planLimits['gully'];
-  if (!DEV_MODE) {
+  if (!DEV_MODE && !isSuperAdmin) {
     const { count } = await sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id);
     if (count >= limits.auctions) {
       msgEl.innerHTML = '<div class="msg msg-error">You\'ve reached your '+limits.auctions+' auction limit. <a href="upgrade.html" style="color:var(--accent);font-weight:700;">Upgrade your plan →</a></div>'; return;
