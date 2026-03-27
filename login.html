@@ -211,7 +211,7 @@ async function sendLoginOtp(){
   const btn=document.getElementById('loginOtpBtn');
   btn.textContent='Looking up...';btn.disabled=true;hideMsg();
 
-  const{data:profile}=await sb.from('profiles').select('email').eq('mobile',mobile).single();
+  const{data:profile}=await sb.from('profiles').select('email').eq('mobile',mobile).maybeSingle();
   if(!profile?.email){
     showMsg('No account found with this mobile. Please sign up first.','error');
     btn.textContent='Get OTP →';btn.disabled=false;return;
@@ -334,7 +334,8 @@ async function doSignup(){
   const btn=document.getElementById('signupBtn');
   btn.textContent='Creating...';btn.disabled=true;hideMsg();
 
-  const{data:ex}=await sb.from('profiles').select('id').eq('mobile',mobile).single();
+  // Check if mobile already registered (use maybeSingle to avoid 406 on no match)
+  const{data:ex}=await sb.from('profiles').select('id').eq('mobile',mobile).maybeSingle();
   if(ex){showMsg('Mobile already registered. Login instead.','error');btn.textContent='Create Account →';btn.disabled=false;return;}
 
   sessionStorage.setItem('pending_signup',JSON.stringify({name,mobile,email}));
