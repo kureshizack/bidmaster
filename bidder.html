@@ -306,11 +306,12 @@ const DEV_MODE = false;
 // When false: real SMS via Fast2SMS, plan limits enforced
 // ══════════════════════════════════════════════════════════
 
-// ── FAST2SMS CONFIG ──────────────────────────────────────
-// Get these from your Fast2SMS dashboard → DLT section
-const FAST2SMS_API_KEY  = 'YOUR_FAST2SMS_API_KEY';   // Your API key
-const FAST2SMS_SENDER   = 'AUCTNX';                   // Your 6-char DLT Sender ID
-const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';          // DLT Template ID for OTP
+// ── MSG91 OTP CONFIG ────────────────────────────────────
+// Same keys as login.html — get from msg91.com dashboard
+const MSG91_WIDGET_ID = '36634167535a323031353436';
+const MSG91_AUTHKEY   = '503787A7iBbM14169c65418P1';
+const MSG91_CONFIGURED = MSG91_WIDGET_ID !== 'YOUR_MSG91_WIDGET_ID' && MSG91_AUTHKEY !== 'YOUR_MSG91_AUTHKEY';
+let _bidderMsg91ReqId = '';
 // ════════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -420,11 +421,6 @@ async function submitRoomAndMobile() {
 
 async function sendOtpToMobile(mobile, teamName) {
   const errEl = document.getElementById('codeErr');
-  currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  await sb.from('otp_verifications').insert({
-    mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: expiresAt
-  });
 
   // Update OTP screen
   document.getElementById('otpSentTo').textContent = `OTP for ${teamName} · +91 ${mobile}`;
@@ -433,31 +429,51 @@ async function sendOtpToMobile(mobile, teamName) {
   smsBox.style.display = 'block';
   showScreen(3);
 
-  if (DEV_MODE) {
-    // DEV MODE — show OTP on screen, skip SMS
-    smsTxt.style.color = 'var(--accent)';
-    smsTxt.innerHTML = '🔧 Dev Mode — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:26px;letter-spacing:6px;color:var(--accent);">' + currentOtp + '</b>';
-    return;
-  }
-
-  // PRODUCTION — send real SMS via DLT route
-  smsTxt.textContent = '📱 Sending OTP via SMS...';
-  smsTxt.style.color = 'var(--blue)';
-  try {
-    const smsMsg = encodeURIComponent('Your captainXI.com OTP is: ' + currentOtp + '. Valid 10 minutes. Do not share.');
-    const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${smsMsg}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${mobile}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (json.return === true) {
-      smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
-      smsTxt.style.color = 'var(--green)';
-    } else {
+  if (MSG91_CONFIGURED) {
+    // MSG91 OTP
+    smsTxt.textContent = '📱 Sending OTP via SMS...';
+    smsTxt.style.color = 'var(--blue)';
+    try {
+      const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTHKEY,
+          identifier: '91' + mobile
+        })
+      });
+      const result = await res.json();
+      if (result.type === 'success' || result.type === 'info') {
+        _bidderMsg91ReqId = result.message || result.reqId || '';
+        currentOtp = null; // MSG91 handles OTP — we don't know it
+        smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
+        smsTxt.style.color = 'var(--green)';
+      } else {
+        // MSG91 failed — fallback to on-screen OTP
+        currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        await sb.from('otp_verifications').insert({
+          mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
+        });
+        smsTxt.style.color = 'var(--yellow)';
+        smsTxt.innerHTML = '⚠️ SMS failed — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b>';
+      }
+    } catch(e) {
+      currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      await sb.from('otp_verifications').insert({
+        mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
+      });
       smsTxt.style.color = 'var(--yellow)';
-      smsTxt.innerHTML = '⚠️ SMS failed — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
+      smsTxt.innerHTML = '⚠️ SMS unavailable — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b>';
     }
-  } catch(e) {
-    smsTxt.style.color = 'var(--yellow)';
-    smsTxt.innerHTML = '⚠️ SMS unavailable — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
+  } else {
+    // No SMS configured — show OTP on screen (dev/demo mode)
+    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    await sb.from('otp_verifications').insert({
+      mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
+    });
+    smsTxt.style.color = 'var(--accent)';
+    smsTxt.innerHTML = '🔑 Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:28px;letter-spacing:6px;color:var(--accent);display:block;margin-top:4px;">' + currentOtp + '</b><span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">SMS not configured — enter this code above</span>';
   }
 }
 
@@ -471,12 +487,40 @@ async function verifyOtp(){
   const errEl=document.getElementById('otpErr');const btn=document.getElementById('otpBtn');
   if(entered.length!==6){errEl.textContent='Enter 6-digit OTP';return;}
   btn.textContent='Verifying...';btn.disabled=true;
-  if(entered!==currentOtp){
-    const mobile=document.getElementById('mobileInput').value.trim();
-    const{data}=await sb.from('otp_verifications').select('*').eq('mobile',mobile).eq('team_code',myTeam.team_code).eq('otp',entered).eq('verified',false).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(1).single();
-    if(!data){errEl.textContent='Invalid or expired OTP.';btn.textContent='Verify & Enter →';btn.disabled=false;return;}
-    await sb.from('otp_verifications').update({verified:true}).eq('id',data.id);
+
+  // If MSG91 was used — verify via MSG91 API
+  if (_bidderMsg91ReqId && MSG91_CONFIGURED && !currentOtp) {
+    try {
+      const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTHKEY,
+          reqId: _bidderMsg91ReqId,
+          otp: entered
+        })
+      });
+      const result = await res.json();
+      if (result.type !== 'success') {
+        errEl.textContent = 'Invalid OTP. Try again.';
+        btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
+      }
+      // MSG91 verified — proceed to enter bidding app
+    } catch(e) {
+      errEl.textContent = 'Verification failed. Try again.';
+      btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
+    }
+  } else {
+    // Local OTP verification (fallback/dev mode)
+    if(entered!==currentOtp){
+      const mobile=document.getElementById('mobileInput').value.trim();
+      const{data}=await sb.from('otp_verifications').select('*').eq('mobile',mobile).eq('team_code',myTeam.team_code).eq('otp',entered).eq('verified',false).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(1).single();
+      if(!data){errEl.textContent='Invalid or expired OTP.';btn.textContent='Verify & Enter →';btn.disabled=false;return;}
+      await sb.from('otp_verifications').update({verified:true}).eq('id',data.id);
+    }
   }
+
   // Create session — invalidate any previous session for this team
   await sb.from('bidder_sessions').delete().eq('team_id',myTeam.id).eq('auction_id',myAuction.id);
   mySessionToken=Math.random().toString(36).substring(2)+Date.now().toString(36);
