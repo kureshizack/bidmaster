@@ -10,6 +10,32 @@
 <title>captainXI.com — Live Bidding</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- ── MSG91 OTP WIDGET ───────────────────────────────────
+     Configuration must be defined BEFORE otp-provider.js loads.
+     exposeMethods:false  → MSG91 shows its own popup UI (no 401 errors,
+     no API calls from frontend, no OTP on screen).
+──────────────────────────────────────────────────────── -->
+<script>
+var configuration = {
+  widgetId:      "36634167535a323031353436",
+  tokenAuth:     "503787TQ8kbvMmN69c681b4P1",
+  exposeMethods: false,
+  success: function(data) {
+    // MSG91 verified the OTP successfully — hand off to our login flow
+    if (typeof window._msg91Success === 'function') window._msg91Success(data);
+  },
+  failure: function(error) {
+    console.error("MSG91 failure:", error);
+    if (typeof window._msg91Failure === 'function') window._msg91Failure(error);
+  }
+};
+</script>
+<script type="text/javascript"
+  src="https://verify.msg91.com/otp-provider.js"
+  onload="initSendOTP(configuration)">
+</script>
+
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -29,8 +55,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 .primary-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .ghost-btn{width:100%;padding:12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
 .err-msg{color:var(--red);font-size:13px;min-height:18px;margin-bottom:6px;width:100%;text-align:center;}
-.demo-otp-box{background:rgba(245,158,11,0.1);border:1px solid var(--accent);border-radius:8px;padding:14px;margin:12px 0;width:100%;text-align:center;}
-.demo-otp-code{font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--accent);letter-spacing:8px;}
 #bidApp{display:none;flex-direction:column;min-height:100vh;}
 .bid-header{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
 .bid-logo{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);}
@@ -47,7 +71,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 .stage-going_twice{background:rgba(239,68,68,0.2);color:var(--red);animation:stagePulse 0.6s infinite;}
 .stage-sold{background:rgba(34,197,94,0.2);color:var(--green);}
 @keyframes stagePulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
-/* Compact timer — inline with stage banner */
 .timer-box{display:none;text-align:center;padding:4px 8px;background:var(--surface);border-bottom:1px solid var(--border);}
 .timer-num{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;line-height:1;}
 .timer-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;}
@@ -122,7 +145,7 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 </head>
 <body>
 
-<!-- SCREEN 1: Mobile only (auction from URL) OR room code fallback -->
+<!-- SCREEN 1: Mobile input + room code -->
 <div class="screen active" id="screen1">
   <div class="logo">🏏 captainXI.com</div>
   <div class="tagline">Captain Bidding Portal</div>
@@ -150,25 +173,12 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 <!-- SCREEN 2: unused placeholder -->
 <div class="screen" id="screen2" style="display:none;"></div>
 
-<div class="screen" id="screen3">
-  <div class="logo">🏏 captainXI.com</div>
-  <div class="screen-title">Verify OTP</div>
-  <div class="screen-sub" id="otpSentTo">OTP sent to your number</div>
-  <!-- SMS status box — shown while sending -->
-  <div id="smsStatusBox" style="background:rgba(96,165,250,0.1);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;margin:12px 0;width:100%;text-align:center;display:none;">
-    <div style="font-size:13px;color:var(--blue);font-weight:600;" id="smsStatusText">📱 Sending OTP via SMS...</div>
-  </div>
-  <span class="input-label">Enter 6-digit OTP</span>
-  <input class="big-input" type="number" id="otpInput" maxlength="6" placeholder="000000" onkeydown="if(event.key==='Enter')verifyOtp()" style="letter-spacing:8px;">
-  <div class="err-msg" id="otpErr"></div>
-  <button class="primary-btn" onclick="verifyOtp()" id="otpBtn">Verify & Enter →</button>
-  <button class="ghost-btn" onclick="resendOtp()">Resend OTP</button>
-  <button class="ghost-btn" onclick="showScreen(2)">← Back</button>
-</div>
+<!-- SCREEN 3: removed — MSG91 widget handles its own popup now -->
+<div class="screen" id="screen3" style="display:none;"></div>
 
 <div id="bidApp">
 
-  <!-- LOBBY COUNTDOWN OVERLAY — shown when all teams join -->
+  <!-- LOBBY COUNTDOWN OVERLAY -->
   <div id="lobbyOverlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
     <div style="font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:4px;color:var(--accent);margin-bottom:8px;">🏏 captainXI.com</div>
     <div id="lobbyOverlayAuction" style="font-size:13px;color:var(--muted);margin-bottom:32px;"></div>
@@ -182,7 +192,7 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
     </div>
   </div>
 
-  <!-- STICKY TOP PANEL: header + team stats + stage + timer -->
+  <!-- STICKY TOP PANEL -->
   <div style="position:sticky;top:0;z-index:100;">
     <div class="bid-header">
       <div>
@@ -200,7 +210,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
       <div class="team-stat"><div class="team-stat-val" style="color:var(--green);" id="myPlayersBought">0</div><div class="team-stat-lbl">Bought</div></div>
       <div class="team-stat"><div class="team-stat-val" style="color:var(--blue);" id="mySlotsLeft">0</div><div class="team-stat-lbl">Slots Left</div></div>
     </div>
-    <!-- Stage banner + timer on ONE compact line -->
     <div id="stageBannerRow" style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 14px;min-height:30px;">
       <div class="stage-banner stage-waiting" id="stageBanner" style="padding:0;background:none;border:none;flex:1;text-align:left;">Waiting...</div>
       <div id="timerBox" style="display:none;align-items:center;gap:6px;flex-shrink:0;">
@@ -208,9 +217,7 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
         <div class="timer-num" id="timerNum" style="color:var(--yellow);">30</div>
       </div>
     </div>
-    <!-- Next player / system message -->
     <div id="systemMsg" style="display:none;background:rgba(96,165,250,0.15);color:var(--blue);padding:5px 14px;text-align:center;font-size:12px;font-weight:600;border-bottom:1px solid var(--border);"></div>
-    <!-- Lobby status — collapsible, compact single line -->
     <div id="lobbyStatusBar" style="display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 10px;">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
         <span style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;">Online:</span>
@@ -228,7 +235,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
       <div id="cpDetails" style="display:none;">
         <div class="player-card-body">
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:10px;">🎯 Now Up for Auction</div>
-          <!-- Player photo -->
           <div id="cpPhotoWrap" style="margin-bottom:12px;display:none;text-align:center;">
             <img id="cpPhoto" src="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);box-shadow:0 0 16px rgba(245,158,11,0.3);">
           </div>
@@ -243,7 +249,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
             <div class="current-bid-amount" id="currentBidAmt">₹0</div>
             <div class="current-bid-team" id="currentBidTeamLabel">No bids yet — be first!</div>
           </div>
-          <!-- CROWD STRENGTH METER — read-only for bidders -->
           <div id="bidderCrowdMeter" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:8px;">
             <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:6px;">⚡ Crowd Strength · <span id="bCrowdVotes">0</span> votes</div>
             <div style="display:flex;gap:6px;align-items:center;">
@@ -302,32 +307,48 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 // ══════════════════════════════════════════════════════════
 // 🔧 DEV MODE — flip to false before going live
 const DEV_MODE = false;
-// When true:  OTP shows on screen, no SMS sent, unlimited auctions
-// When false: real SMS via Fast2SMS, plan limits enforced
 // ══════════════════════════════════════════════════════════
 
-// ── MSG91 OTP CONFIG ────────────────────────────────────
-// Same keys as login.html — get from msg91.com dashboard
-const MSG91_WIDGET_ID = 'YOUR_MSG91_WIDGET_ID';
-const MSG91_AUTHKEY   = 'YOUR_MSG91_AUTHKEY';
-const MSG91_CONFIGURED = MSG91_WIDGET_ID !== 'YOUR_MSG91_WIDGET_ID' && MSG91_AUTHKEY !== 'YOUR_MSG91_AUTHKEY';
-let _bidderMsg91ReqId = '';
-// ════════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let myTeam=null,myAuction=null,currentState=null,currentOtp=null;
+let myTeam=null,myAuction=null,currentState=null;
 let currentBids=[],allSales=[],allTeams=[],allPlayers=[];
 let soundMuted=false,timerInterval=null,lastPlayerId=null;
 let mySessionToken=null;
 
 // ── URL PARAMS ────────────────────────────────────────────
 const _params = new URLSearchParams(window.location.search);
-const _urlAuctionId = _params.get('auction');   // direct link: bidder.html?auction=UUID
-const _urlRoomCode  = _params.get('room');      // fallback:    bidder.html?room=ABC123
+const _urlAuctionId = _params.get('auction');
+const _urlRoomCode  = _params.get('room');
 
 // ── SESSION KEY ───────────────────────────────────────────
 const SESSION_KEY='captainxi_bidder_session';
+
+// ══════════════════════════════════════════════════════════
+// MSG91 WIDGET — OTP FLOW
+// ══════════════════════════════════════════════════════════
+
+// Holds the mobile number while MSG91 popup is open
+let _pendingMobile = null;
+
+// Called by MSG91 widget on successful OTP verification
+window._msg91Success = async function(data) {
+  console.log("MSG91 OTP verified ✅", data);
+  if (!_pendingMobile || !myTeam) {
+    document.getElementById('codeErr').textContent = 'Session lost — please reload and try again.';
+    return;
+  }
+  await _createSessionAndEnter(_pendingMobile);
+};
+
+// Called by MSG91 widget on failure
+window._msg91Failure = function(error) {
+  console.error("MSG91 OTP failed ❌", error);
+  document.getElementById('codeErr').textContent = 'OTP verification failed. Please try again.';
+  document.getElementById('codeBtn').textContent = 'Send OTP →';
+  document.getElementById('codeBtn').disabled = false;
+};
 
 // ── INIT ─────────────────────────────────────────────────
 (async()=>{
@@ -348,7 +369,7 @@ const SESSION_KEY='captainxi_bidder_session';
     localStorage.removeItem(SESSION_KEY);
   }
 
-  // 2. If auction ID in URL — pre-load auction, hide room code field
+  // 2. Pre-load auction from URL param if present
   if(_urlAuctionId){
     const{data}=await sb.from('auctions').select('*').eq('id',_urlAuctionId).single();
     if(data){ myAuction=data; }
@@ -357,11 +378,9 @@ const SESSION_KEY='captainxi_bidder_session';
       ? 'Joining: ' + (myAuction.name||'') + ' — enter your registered WhatsApp number'
       : 'Enter your registered WhatsApp number to get an OTP';
   } else if(_urlRoomCode){
-    // Pre-fill room code if passed as param
     document.getElementById('roomCodeInput').value = _urlRoomCode.toUpperCase();
     document.getElementById('roomCodeSection').style.display='block';
   } else {
-    // Show room code field as fallback
     document.getElementById('roomCodeSection').style.display='block';
     document.getElementById('screen1Sub').textContent = 'Enter the room code from your organizer and your registered mobile number';
   }
@@ -377,15 +396,18 @@ function showScreen(n){
   target.classList.add('active');
 }
 
+// ── STEP 1: Validate mobile + auction, then trigger MSG91 popup ──────
 async function submitRoomAndMobile() {
   const mobile = document.getElementById('mobileInput').value.trim();
-  const errEl = document.getElementById('codeErr');
-  const btn = document.getElementById('codeBtn');
+  const errEl  = document.getElementById('codeErr');
+  const btn    = document.getElementById('codeBtn');
 
-  if (mobile.length !== 10 || isNaN(mobile)) { errEl.textContent = 'Enter valid 10-digit mobile number'; return; }
+  if (mobile.length !== 10 || isNaN(mobile)) {
+    errEl.textContent = 'Enter valid 10-digit mobile number'; return;
+  }
   btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
 
-  // Resolve auction — either pre-loaded from URL or from room code input
+  // Resolve auction — pre-loaded from URL, or look up by room code
   if (!myAuction) {
     const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
     if (roomCode.length !== 6) {
@@ -404,135 +426,66 @@ async function submitRoomAndMobile() {
     myAuction = auctionData;
   }
 
-  // Find team by captain mobile in this auction
+  // Find the team for this captain's mobile in this auction
   const { data: teamData, error: tErr } = await sb.from('teams')
     .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
   if (tErr || !teamData) {
     errEl.textContent = 'Mobile not registered for this auction. Check with your organizer.';
     btn.textContent = 'Send OTP →'; btn.disabled = false;
-    myAuction = _urlAuctionId ? myAuction : null; // reset only if from room code
+    myAuction = _urlAuctionId ? myAuction : null;
     return;
   }
 
   myTeam = { ...teamData };
-  btn.textContent = 'Send OTP →'; btn.disabled = false;
-  await sendOtpToMobile(mobile, teamData.name);
-}
+  _pendingMobile = mobile;
 
-async function sendOtpToMobile(mobile, teamName) {
-  const errEl = document.getElementById('codeErr');
-
-  // Update OTP screen
-  document.getElementById('otpSentTo').textContent = `OTP for ${teamName} · +91 ${mobile}`;
-  const smsBox = document.getElementById('smsStatusBox');
-  const smsTxt = document.getElementById('smsStatusText');
-  smsBox.style.display = 'block';
-  showScreen(3);
-
-  if (MSG91_CONFIGURED) {
-    // MSG91 OTP
-    smsTxt.textContent = '📱 Sending OTP via SMS...';
-    smsTxt.style.color = 'var(--blue)';
-    try {
-      const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          widgetId: MSG91_WIDGET_ID,
-          tokenAuth: MSG91_AUTHKEY,
-          identifier: '91' + mobile
-        })
-      });
-      const result = await res.json();
-      if (result.type === 'success' || result.type === 'info') {
-        _bidderMsg91ReqId = result.message || result.reqId || '';
-        currentOtp = null; // MSG91 handles OTP — we don't know it
-        smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
-        smsTxt.style.color = 'var(--green)';
-      } else {
-        // MSG91 failed — fallback to on-screen OTP
-        currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-        await sb.from('otp_verifications').insert({
-          mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
-        });
-        smsTxt.style.color = 'var(--yellow)';
-        smsTxt.innerHTML = '⚠️ SMS failed — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b>';
-      }
-    } catch(e) {
-      currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      await sb.from('otp_verifications').insert({
-        mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
-      });
-      smsTxt.style.color = 'var(--yellow)';
-      smsTxt.innerHTML = '⚠️ SMS unavailable — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + currentOtp + '</b>';
-    }
-  } else {
-    // No SMS configured — show OTP on screen (dev/demo mode)
-    currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    await sb.from('otp_verifications').insert({
-      mobile, team_code: myTeam.team_code || myTeam.id, otp: currentOtp, expires_at: new Date(Date.now() + 10*60*1000).toISOString()
-    });
-    smsTxt.style.color = 'var(--accent)';
-    smsTxt.innerHTML = '🔑 Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:28px;letter-spacing:6px;color:var(--accent);display:block;margin-top:4px;">' + currentOtp + '</b><span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">SMS not configured — enter this code above</span>';
-  }
-}
-
-// Keep legacy functions as no-ops for safety
-async function submitTeamCode() { await submitRoomAndMobile(); }
-async function submitMobile() { /* merged into submitRoomAndMobile */ }
-async function resendOtp() { if (myTeam && myAuction) await sendOtpToMobile(document.getElementById('mobileInput').value.trim(), myTeam.name); }
-
-async function verifyOtp(){
-  const entered=document.getElementById('otpInput').value.trim();
-  const errEl=document.getElementById('otpErr');const btn=document.getElementById('otpBtn');
-  if(entered.length!==6){errEl.textContent='Enter 6-digit OTP';return;}
-  btn.textContent='Verifying...';btn.disabled=true;
-
-  // If MSG91 was used — verify via MSG91 API
-  if (_bidderMsg91ReqId && MSG91_CONFIGURED && !currentOtp) {
-    try {
-      const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          widgetId: MSG91_WIDGET_ID,
-          tokenAuth: MSG91_AUTHKEY,
-          reqId: _bidderMsg91ReqId,
-          otp: entered
-        })
-      });
-      const result = await res.json();
-      if (result.type !== 'success') {
-        errEl.textContent = 'Invalid OTP. Try again.';
-        btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
-      }
-      // MSG91 verified — proceed to enter bidding app
-    } catch(e) {
-      errEl.textContent = 'Verification failed. Try again.';
-      btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
-    }
-  } else {
-    // Local OTP verification (fallback/dev mode)
-    if(entered!==currentOtp){
-      const mobile=document.getElementById('mobileInput').value.trim();
-      const{data}=await sb.from('otp_verifications').select('*').eq('mobile',mobile).eq('team_code',myTeam.team_code).eq('otp',entered).eq('verified',false).gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(1).single();
-      if(!data){errEl.textContent='Invalid or expired OTP.';btn.textContent='Verify & Enter →';btn.disabled=false;return;}
-      await sb.from('otp_verifications').update({verified:true}).eq('id',data.id);
-    }
+  // Guard: ensure MSG91 widget script has loaded
+  if (typeof window.sendOtp !== 'function') {
+    errEl.textContent = 'OTP service loading — please try again in a moment.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false; return;
   }
 
-  // Create session — invalidate any previous session for this team
-  await sb.from('bidder_sessions').delete().eq('team_id',myTeam.id).eq('auction_id',myAuction.id);
-  mySessionToken=Math.random().toString(36).substring(2)+Date.now().toString(36);
-  const{data:newSess}=await sb.from('bidder_sessions').insert({
-    team_id:myTeam.id,auction_id:myAuction.id,session_token:mySessionToken
+  // Trigger MSG91 popup — it handles send + resend + verify internally
+  // On success: window._msg91Success() is called automatically
+  window.sendOtp(
+    '91' + mobile,
+    function() {
+      // OTP sent — widget popup is now open, nothing more to do here
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
+    },
+    function(error) {
+      console.error('sendOtp error:', error);
+      errEl.textContent = 'Could not send OTP. Please try again.';
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
+    }
+  );
+}
+
+// ── STEP 2: Called after MSG91 confirms OTP — create session ─────────
+async function _createSessionAndEnter(mobile) {
+  // Invalidate any previous session for this team
+  await sb.from('bidder_sessions').delete().eq('team_id', myTeam.id).eq('auction_id', myAuction.id);
+
+  mySessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const { data: newSess } = await sb.from('bidder_sessions').insert({
+    team_id: myTeam.id,
+    auction_id: myAuction.id,
+    session_token: mySessionToken
   }).select().single();
-  if(newSess){
-    localStorage.setItem(SESSION_KEY,JSON.stringify({sessionId:newSess.id,token:mySessionToken}));
+
+  if (newSess) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId: newSess.id, token: mySessionToken }));
   }
-  btn.textContent='Verify & Enter →';btn.disabled=false;
+
+  _pendingMobile = null;
   enterBiddingApp(newSess?.id);
 }
+
+// Keep legacy stubs so nothing else breaks
+async function submitTeamCode() { await submitRoomAndMobile(); }
+async function submitMobile()   { /* merged into submitRoomAndMobile */ }
+async function resendOtp()      { await submitRoomAndMobile(); }
+async function verifyOtp()      { /* handled by MSG91 widget */ }
 
 async function enterBiddingApp(sessionId){
   document.querySelectorAll('.screen').forEach(s=>{
@@ -547,10 +500,10 @@ async function enterBiddingApp(sessionId){
   startBidderHeartbeat();
 }
 
-// ── BIDDER HEARTBEAT — tells organiser we're online ──────
+// ── BIDDER HEARTBEAT ──────────────────────────────────────
 function startBidderHeartbeat() {
-  sendHeartbeat(); // immediate
-  setInterval(sendHeartbeat, 15000); // every 15s
+  sendHeartbeat();
+  setInterval(sendHeartbeat, 15000);
 }
 async function sendHeartbeat() {
   if (!myTeam?.id || !myAuction?.id) return;
@@ -586,7 +539,6 @@ async function loadAll(){
     const{data}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
     currentBids=data||[];
   }else{currentBids=[];}
-  // Resume lobby countdown if it was active when bidder opened/reloaded
   if(aucRes.data?.lobby_countdown_at && allSales.length===0){
     handleLobbyCountdown(aucRes.data.lobby_countdown_at);
   }
@@ -610,7 +562,6 @@ async function renderLobbyStatus(){
   }).join('');
 }
 
-// ── SYSTEM MESSAGE ────────────────────────────────────────
 function showSystemMsg(msg,duration){
   const el=document.getElementById('systemMsg');
   el.style.display='block';el.textContent=msg;
@@ -620,7 +571,6 @@ function hideSystemMsg(){document.getElementById('systemMsg').style.display='non
 
 function subscribeRealtime(sessionId){
   sb.channel('bidder-'+myAuction.id+'-'+myTeam.id)
-    // current_state changes → only refresh bid UI (most frequent + most critical)
     .on('postgres_changes',{event:'*',schema:'public',table:'current_state',filter:`auction_id=eq.${myAuction.id}`},async (payload)=>{
       const{data}=await sb.from('current_state').select('*,players(*)').eq('auction_id',myAuction.id).single();
       currentState=data;
@@ -630,16 +580,13 @@ function subscribeRealtime(sessionId){
       }else{currentBids=[];}
       renderBidApp();
     })
-    // bids table → only update bid list (very frequent during active bidding)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'bids',filter:`auction_id=eq.${myAuction.id}`},async (payload)=>{
       if(!currentState?.current_player_id) return;
       const{data:bids}=await sb.from('bids').select('*,teams(name)').eq('auction_id',myAuction.id).eq('player_id',currentState.current_player_id).order('amount',{ascending:false});
       currentBids=bids||[];
       renderBidApp();
     })
-    // sales changes → full reload (infrequent — player sold)
     .on('postgres_changes',{event:'*',schema:'public',table:'sales',filter:`auction_id=eq.${myAuction.id}`},()=>loadAll())
-    // teams changes → refresh team credits only
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'teams',filter:`auction_id=eq.${myAuction.id}`},async ()=>{
       const{data}=await sb.from('teams').select('*').eq('auction_id',myAuction.id).order('name');
       allTeams=data||[];
@@ -675,56 +622,40 @@ function subscribeRealtime(sessionId){
 
 // ── LOBBY COUNTDOWN OVERLAY ───────────────────────────────
 let _lobbyCountdownInterval = null;
-let _currentLobbyTimestamp = null; // track which timestamp is currently running
+let _currentLobbyTimestamp = null;
 
 function handleLobbyCountdown(lobby_countdown_at) {
   const overlay = document.getElementById('lobbyOverlay');
-
   if (!lobby_countdown_at) {
     if (_lobbyCountdownInterval) { clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null; }
     _currentLobbyTimestamp = null;
-    overlay.style.display = 'none';
-    return;
+    overlay.style.display = 'none'; return;
   }
-
-  // If SAME timestamp already running — don't restart, let it tick
   if (lobby_countdown_at === _currentLobbyTimestamp && _lobbyCountdownInterval) return;
   _currentLobbyTimestamp = lobby_countdown_at;
-
-  // Show overlay
   overlay.style.display = 'flex';
   document.getElementById('lobbyOverlayAuction').textContent = myAuction.name || '';
   document.getElementById('lobbyOverlayMsg').textContent = '🎉 All teams are online!';
-
   if (allTeams.length) {
     document.getElementById('lobbyOverlayTeams').innerHTML = allTeams.map(t =>
       '<span style="font-size:12px;padding:4px 10px;border-radius:12px;font-weight:700;border:1px solid var(--green);color:var(--green);">✅ ' + t.name + '</span>'
     ).join('');
   }
-
   if (_lobbyCountdownInterval) { clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null; }
-
   _lobbyCountdownInterval = setInterval(() => {
     const elapsed = (Date.now() - new Date(lobby_countdown_at).getTime()) / 1000;
-    // Cap at 60 — handles clock skew between devices
     const remaining = Math.min(60, Math.max(0, Math.round(60 - elapsed)));
     const numEl = document.getElementById('lobbyOverlayNum');
     const readyEl = document.getElementById('lobbyOverlayReady');
     const subEl = document.getElementById('lobbyOverlaySubMsg');
-
     if (remaining <= 2 && remaining > 0) {
-      numEl.style.display = 'none';
-      subEl.style.display = 'none';
-      readyEl.style.display = 'block';
+      numEl.style.display = 'none'; subEl.style.display = 'none'; readyEl.style.display = 'block';
     } else if (remaining === 0) {
       clearInterval(_lobbyCountdownInterval); _lobbyCountdownInterval = null;
-      _currentLobbyTimestamp = null;
-      overlay.style.display = 'none';
+      _currentLobbyTimestamp = null; overlay.style.display = 'none';
     } else {
-      numEl.textContent = remaining;
-      numEl.style.display = 'block';
-      subEl.style.display = 'block';
-      readyEl.style.display = 'none';
+      numEl.textContent = remaining; numEl.style.display = 'block';
+      subEl.style.display = 'block'; readyEl.style.display = 'none';
       if (remaining <= 5) playSound('tick');
     }
   }, 500);
@@ -741,7 +672,6 @@ function startTimerDisplay(seconds,label,color){
   clearInterval(timerInterval);
   const box=document.getElementById('timerBox'),lbl=document.getElementById('timerLabel'),num=document.getElementById('timerNum');
   box.style.display='flex';lbl.textContent=label;num.style.color=color;
-  // Also update stage banner row background when going once/twice
   const row=document.getElementById('stageBannerRow');
   if(label==='GOING ONCE')row.style.background='rgba(234,179,8,0.15)';
   else if(label==='GOING TWICE')row.style.background='rgba(239,68,68,0.2)';
@@ -757,19 +687,13 @@ function stopTimerDisplay(){
 function renderBidApp(){
   const state=currentState;const stage=state?.stage||'waiting';const player=state?.players;
   const newPlayerId=state?.current_player_id;
-
-  // Detect player change — reset timer and play sound
   if(newPlayerId!==lastPlayerId){
     lastPlayerId=newPlayerId;
     stopTimerDisplay();
     if(newPlayerId){playSound('newplayer');hideSystemMsg();}
   }
-
-  // Stage banner
   const msgs={waiting:'⏳ Waiting for next player...',live:'🟢 BIDDING OPEN!',going_once:'🔔 GOING ONCE...',going_twice:'🔔🔔 GOING TWICE...',sold:'🔨 SOLD!'};
   const banner=document.getElementById('stageBanner');banner.textContent=msgs[stage]||'⏳';banner.className='stage-banner stage-'+stage;
-
-  // Timers — ALWAYS restart from DB timestamp (removed !timerInterval guard so it resets on every bid)
   if(stage==='going_once'&&state.going_once_at){
     const e=(Date.now()-new Date(state.going_once_at).getTime())/1000;
     const total=myAuction?.going_once_secs||20;
@@ -783,21 +707,16 @@ function renderBidApp(){
     if(r>0)startTimerDisplay(r,'GOING TWICE','var(--red)');
     else stopTimerDisplay();
   }else{stopTimerDisplay();}
-
-  // Last winner
   if(allSales.length){
     const last=allSales[0];const isMe=last.team_id===myTeam.id;
     document.getElementById('lastWinnerBox').style.display='block';
     document.getElementById('lastWinnerText').innerHTML='<b>'+last.players?.name+'</b> → <b style="color:'+(isMe?'var(--accent)':'var(--text)')+';">'+last.teams?.name+(isMe?' (YOU)':'')+'</b> ₹'+fmt(last.amount);
   }
-
   document.getElementById('soldBanner').style.display=stage==='sold'?'block':'none';
   document.getElementById('unsoldBanner').style.display='none';
   const card=document.getElementById('playerCard');
   card.className='player-card'+(stage!=='waiting'?' state-'+stage:'');
-
   if(!player){
-    // Show "next player coming" if we had a previous sale
     document.getElementById('cpWaiting').style.display='block';
     document.getElementById('cpDetails').style.display='none';
     document.getElementById('roundBidsList').style.display='none';
@@ -811,11 +730,9 @@ function renderBidApp(){
     return;
   }
   hideSystemMsg();
-
   document.getElementById('cpWaiting').style.display='none';
   document.getElementById('cpDetails').style.display='block';
   document.getElementById('cpName').textContent=player.name;
-  // Show photo if available
   const photoWrap=document.getElementById('cpPhotoWrap');
   const photoEl=document.getElementById('cpPhoto');
   if(player.photo_url){photoEl.src=player.photo_url;photoWrap.style.display='block';}
@@ -823,10 +740,8 @@ function renderBidApp(){
   const rb=document.getElementById('cpRoleBadge');rb.textContent=player.role;rb.className='player-role-center role-'+player.role;
   document.getElementById('cpBasePriceLabel').textContent=player.base_price?'Base ₹'+fmt(player.base_price):'';
   document.getElementById('cpStarLabel').textContent=player.star?'⭐ Star Player':'';
-  // Load crowd strength meter for this player
   document.getElementById('cpName')._playerId = player.id;
   loadBidderCrowdMeter(player.id);
-
   if(stage==='sold'){
     const winner=currentBids[0];
     document.getElementById('soldDetail').textContent=winner?player.name+' → '+winner.teams?.name+' for ₹'+fmt(winner.amount):player.name;
@@ -836,29 +751,22 @@ function renderBidApp(){
     document.getElementById('roundBidsList').style.display='none';
     return;
   }
-
-  // Auction paused
   if(stage==='waiting'&&state?.current_player_id){
     disableBidBtn('Auction is paused');renderQuickBids(null,null);
     document.getElementById('currentBidAmt').textContent='⏸ Paused';
     document.getElementById('currentBidTeamLabel').textContent='Organizer paused the auction';
     return;
   }
-
   const highest=currentBids[0];const amIHighest=highest?.team_id===myTeam.id;
-
-  // FIX: Show base price instead of ₹0 when no bids yet
   const increment=Number(myAuction.bid_step||myTeam.bid_increment||1000);
   const baseAmt=Number(player.base_price||0);
   const currentAmt=highest?Number(highest.amount):baseAmt;
-
   document.getElementById('currentBidAmt').textContent=highest?'₹'+fmt(highest.amount):'₹'+fmt(baseAmt)+' (Base)';
   if(highest){
     document.getElementById('currentBidTeamLabel').innerHTML=amIHighest?'<span class="winning">✅ YOU are highest bidder!</span>':'<span class="losing">❌ '+highest.teams?.name+' is leading</span>';
   }else{
     document.getElementById('currentBidTeamLabel').textContent='No bids yet — be first!';
   }
-
   if(currentBids.length){
     document.getElementById('roundBidsList').style.display='block';
     document.getElementById('roundBidsItems').innerHTML=currentBids.slice(0,6).map(b=>
@@ -867,12 +775,10 @@ function renderBidApp(){
       '<span style="color:var(--accent);font-weight:700;font-family:\'Rajdhani\',sans-serif;">'+fmt(b.amount)+'</span></div>'
     ).join('');
   }else{document.getElementById('roundBidsList').style.display='none';}
-
   const mySales=allSales.filter(s=>s.team_id===myTeam.id).length;const maxP=myTeam.min_squad||11;
   if(mySales>=maxP){disableBidBtn('Squad full ('+maxP+' max)');renderQuickBids(null,null);return;}
   if(stage!=='live'&&stage!=='going_once'&&stage!=='going_twice'){disableBidBtn('Bidding not open');renderQuickBids(null,null);return;}
   if(amIHighest){disableBidBtn("You're highest — wait for others");renderQuickBids(null,null);return;}
-
   const nextBid=currentAmt+increment;
   if(nextBid>myTeam.credits){disableBidBtn('Insufficient budget');renderQuickBids(null,null);return;}
   enableBidBtn(nextBid);renderQuickBids(currentAmt,increment);
@@ -936,8 +842,6 @@ function switchView(name){document.querySelectorAll('.view-content').forEach(v=>
 const AudioCtx=window.AudioContext||window.webkitAudioContext;
 let audioCtx=null;
 let _audioUnlocked=false;
-
-// Unlock AudioContext on first user gesture (Chrome autoplay policy)
 function unlockAudio(){
   if(_audioUnlocked)return;
   if(!audioCtx){audioCtx=new AudioCtx();}
@@ -946,7 +850,6 @@ function unlockAudio(){
 }
 document.addEventListener('click',unlockAudio,{once:false,passive:true});
 document.addEventListener('touchstart',unlockAudio,{once:false,passive:true});
-
 function getAudio(){
   if(!audioCtx){audioCtx=new AudioCtx();}
   if(audioCtx.state==='suspended'){audioCtx.resume();}
@@ -984,7 +887,6 @@ async function loadBidderCrowdMeter(playerId){
   oel.textContent=overall>0?overall.toFixed(1):'-';
   oel.style.color=overall>=4?'var(--green)':overall>=3?'var(--accent)':overall>=2?'var(--yellow)':'var(--red)';
 }
-// Subscribe to live rating changes for bidder
 function subscribeBidderRatings(){
   if(!myAuction?.id)return;
   sb.channel('bidder-ratings-'+myAuction.id)
