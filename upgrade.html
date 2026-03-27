@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-XXXXXXXXXX");</script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -538,7 +541,7 @@ async function onPaymentSuccess(planKey,amount,billing,paymentId){
       plan_payment_id:paymentId
     }).eq('id',currentUser.id);
 
-    // Show success
+    // Show success then auto-redirect
     document.getElementById('paymentProcessing').style.display='none';
     const successEl=document.getElementById('paymentSuccess');
     successEl.style.display='block';
@@ -546,14 +549,19 @@ async function onPaymentSuccess(planKey,amount,billing,paymentId){
     document.getElementById('successPlanName').textContent=plan.name+' Plan Activated!';
     document.getElementById('successPlanDetail').textContent=plan.teams+' teams · '+plan.players+' players · '+(billing==='annual'?'Annual':'Per auction');
 
+    // Auto-redirect to dashboard after 3 seconds
+    setTimeout(()=>{ window.location.href='dashboard.html'; }, 3000);
+
   }catch(err){
     console.error('Error saving payment:',err);
-    // Even if DB save fails, payment went through — show success with note
     document.getElementById('paymentProcessing').style.display='none';
     const successEl=document.getElementById('paymentSuccess');
     successEl.style.display='block';
     document.getElementById('successPlanName').textContent='Payment Received!';
     document.getElementById('successPlanDetail').textContent='Your plan will be activated shortly. Payment ID: '+paymentId;
+
+    // Still redirect even on DB error — payment went through
+    setTimeout(()=>{ window.location.href='dashboard.html'; }, 4000);
   }
 }
 
