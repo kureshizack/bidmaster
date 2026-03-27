@@ -149,8 +149,8 @@ input::placeholder{color:var(--muted);}
 
 <script>
 // ── MSG91 CONFIG ──────────────────────────────────────
-const MSG91_WIDGET_ID = '36634167535a323031353436';
-const MSG91_AUTHKEY   = '503787A7iBbM14169c65418P1';
+const MSG91_WIDGET_ID = 'YOUR_MSG91_WIDGET_ID';
+const MSG91_AUTHKEY   = 'YOUR_MSG91_AUTHKEY';
 const MSG91_OK = MSG91_WIDGET_ID !== 'YOUR_MSG91_WIDGET_ID' && MSG91_AUTHKEY !== 'YOUR_MSG91_AUTHKEY';
 // ──────────────────────────────────────────────────────
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
@@ -222,16 +222,31 @@ async function sendLoginOtp(){
   if(MSG91_OK){
     btn.textContent='Sending SMS...';
     try{
-      const r=await fetch('https://control.msg91.com/api/v5/widget/sendOtp',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({widgetId:MSG91_WIDGET_ID,tokenAuth:MSG91_AUTHKEY,identifier:'91'+mobile})});
+      // MSG91 OTP Widget API — authkey can be in body OR header
+      const payload={widgetId:MSG91_WIDGET_ID,tokenAuth:MSG91_AUTHKEY,identifier:'91'+mobile};
+      console.log('MSG91 Send OTP →',payload);
+      const r=await fetch('https://control.msg91.com/api/v5/widget/sendOtp',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','authkey':MSG91_AUTHKEY},
+        body:JSON.stringify(payload)
+      });
       const j=await r.json();
-      if(j.type==='success'||j.type==='info'){
-        _msg91ReqId=j.message||j.reqId||'';_otpMode='sms';
+      console.log('MSG91 Response ←',j);
+      if(j.type==='success'||j.type==='info'||j.type==='SUCCESS'){
+        _msg91ReqId=j.message||j.reqId||j.request_id||'';
+        _otpMode='sms';
         showOtpScreen('📱','OTP sent to <b>+91 '+mobile.substring(0,2)+'****'+mobile.substring(6)+'</b> via SMS');
         startResendTimer('resendTimer','sendLoginOtp');
         btn.textContent='Get OTP →';btn.disabled=false;return;
+      }else{
+        // Show what MSG91 returned so we can debug
+        console.error('MSG91 Error:',j);
+        showMsg('SMS failed: '+(j.message||j.msg||JSON.stringify(j))+'. Falling back to email.','info');
       }
-    }catch(e){}
+    }catch(e){
+      console.error('MSG91 Exception:',e);
+      showMsg('SMS service error. Sending to email instead.','info');
+    }
   }
 
   // Fallback: email OTP
@@ -267,10 +282,12 @@ async function verifyLoginOtp(){
 
   if(_otpMode==='sms'&&_msg91ReqId){
     try{
-      const r=await fetch('https://control.msg91.com/api/v5/widget/verifyOtp',{method:'POST',headers:{'Content-Type':'application/json'},
+      const r=await fetch('https://control.msg91.com/api/v5/widget/verifyOtp',{method:'POST',
+        headers:{'Content-Type':'application/json','authkey':MSG91_AUTHKEY},
         body:JSON.stringify({widgetId:MSG91_WIDGET_ID,tokenAuth:MSG91_AUTHKEY,reqId:_msg91ReqId,otp:token})});
       const j=await r.json();
-      if(j.type==='success'){
+      console.log('MSG91 Verify ←',j);
+      if(j.type==='success'||j.type==='SUCCESS'){
         // SMS verified → send magic link to email → poll for session
         btn.textContent='Logging in...';
         await sb.auth.signInWithOtp({email:_loginEmail});
@@ -327,11 +344,17 @@ async function doSignup(){
   if(MSG91_OK){
     btn.textContent='Sending SMS OTP...';
     try{
-      const r=await fetch('https://control.msg91.com/api/v5/widget/sendOtp',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({widgetId:MSG91_WIDGET_ID,tokenAuth:MSG91_AUTHKEY,identifier:'91'+mobile})});
+      const payload={widgetId:MSG91_WIDGET_ID,tokenAuth:MSG91_AUTHKEY,identifier:'91'+mobile};
+      console.log('MSG91 Signup Send →',payload);
+      const r=await fetch('https://control.msg91.com/api/v5/widget/sendOtp',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','authkey':MSG91_AUTHKEY},
+        body:JSON.stringify(payload)
+      });
       const j=await r.json();
-      if(j.type==='success'||j.type==='info'){
-        _suMsg91Req=j.message||j.reqId||'';_suOtpMode='sms';
+      console.log('MSG91 Signup Response ←',j);
+      if(j.type==='success'||j.type==='info'||j.type==='SUCCESS'){
+        _suMsg91Req=j.message||j.reqId||j.request_id||'';_suOtpMode='sms';
         document.getElementById('signupOtpIcon').textContent='📱';
         document.getElementById('signupOtpDesc').innerHTML='OTP sent to <b>+91 '+mobile.substring(0,2)+'****'+mobile.substring(6)+'</b>';
         document.getElementById('signupStep1').style.display='none';
@@ -339,8 +362,10 @@ async function doSignup(){
         document.getElementById('signupOtp').focus();
         startResendTimer('signupResendTimer','doSignup');
         btn.textContent='Create Account →';btn.disabled=false;return;
+      }else{
+        console.error('MSG91 Signup Error:',j);
       }
-    }catch(e){}
+    }catch(e){console.error('MSG91 Signup Exception:',e);}
   }
 
   // Fallback: email
