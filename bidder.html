@@ -337,6 +337,10 @@ async function submitRoomAndMobile() {
     const { data } = await sb.from('auctions').select('*').eq('id', _urlAuctionId).single();
     if (data) myAuction = data;
   }
+  if (!myAuction && _urlRoomCode) {
+    const { data } = await sb.from('auctions').select('*').eq('room_code', _urlRoomCode.toUpperCase()).single();
+    if (data) myAuction = data;
+  }
   if (!myAuction) {
     const rc = document.getElementById('roomCodeInput').value.trim().toUpperCase();
     if (rc.length !== 6) { errEl.textContent = 'Enter a valid 6-character room code'; btn.textContent = 'Send OTP →'; btn.disabled = false; return; }
