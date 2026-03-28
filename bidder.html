@@ -11,7 +11,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- MSG91 otp-provider.js loaded dynamically in JS after team validation -->
+<!-- ── MSG91 OTP WIDGET ───────────────────────────────────
+     Configuration must be defined BEFORE otp-provider.js loads.
+     exposeMethods:false  → MSG91 shows its own popup UI (no 401 errors,
+     no API calls from frontend, no OTP on screen).
+──────────────────────────────────────────────────────── -->
+<script>
+var configuration = {
+  widgetId:      "36634167535a323031353436",
+  tokenAuth:     "503787TQBkbvNmN69c681b4P1",
+  exposeMethods: true,
+  success: function(data) {
+    // Called when verifyOtp() succeeds — hand off to our session flow
+    if (typeof window._msg91Success === 'function') window._msg91Success(data);
+  },
+  failure: function(error) {
+    console.error("MSG91 failure:", error);
+    if (typeof window._msg91Failure === 'function') window._msg91Failure(error);
+  }
+};
+</script>
+<script type="text/javascript"
+  src="https://verify.msg91.com/otp-provider.js"
+  onload="initSendOTP(configuration)">
+</script>
 
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
@@ -150,21 +173,23 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 <!-- SCREEN 2: unused placeholder -->
 <div class="screen" id="screen2" style="display:none;"></div>
 
-<!-- SCREEN 3: OTP entry on our own screen -->
+<!-- SCREEN 3: Our own OTP input — MSG91 sends SMS, we collect code here -->
 <div class="screen" id="screen3">
   <div class="logo">🏏 captainXI.com</div>
   <div class="screen-title">Verify Your Number</div>
   <div class="screen-sub" id="otpSentTo">OTP sent to your number</div>
+
   <div id="smsStatusBox" style="background:rgba(96,165,250,0.1);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;margin:0 0 16px;width:100%;text-align:center;display:none;">
-    <div style="font-size:13px;font-weight:600;" id="smsStatusText"></div>
+    <div style="font-size:13px;font-weight:600;" id="smsStatusText">📱 Sending OTP...</div>
   </div>
+
   <span class="input-label">Enter 6-digit OTP</span>
   <input class="big-input" type="tel" id="otpInput" maxlength="6" placeholder="000000"
-    oninput="this.value=this.value.replace(/\D/g,'')"
-    onkeydown="if(event.key==='Enter')verifyOtpScreen()">
+    oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+    onkeydown="if(event.key==='Enter')doVerifyOtp()">
   <div class="err-msg" id="otpErr"></div>
-  <button class="primary-btn" onclick="verifyOtpScreen()" id="otpBtn">Verify &amp; Enter →</button>
-  <button class="ghost-btn" onclick="resendOtpScreen()">Resend OTP</button>
+  <button class="primary-btn" onclick="doVerifyOtp()" id="otpBtn">Verify &amp; Enter →</button>
+  <button class="ghost-btn" onclick="doResendOtp()" id="resendBtn">Resend OTP</button>
   <button class="ghost-btn" onclick="showScreen(1)">← Back</button>
 </div>
 
@@ -317,8 +342,30 @@ const _urlRoomCode  = _params.get('room');
 // ── SESSION KEY ───────────────────────────────────────────
 const SESSION_KEY='captainxi_bidder_session';
 
-// ── OTP state ─────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// MSG91 WIDGET — OTP FLOW
+// ══════════════════════════════════════════════════════════
+
+// Holds the mobile number while MSG91 popup is open
 let _pendingMobile = null;
+
+// Called by MSG91 widget on successful OTP verification
+window._msg91Success = async function(data) {
+  console.log("MSG91 OTP verified ✅", data);
+  if (!_pendingMobile || !myTeam) {
+    document.getElementById('codeErr').textContent = 'Session lost — please reload and try again.';
+    return;
+  }
+  await _createSessionAndEnter(_pendingMobile);
+};
+
+// Called by MSG91 widget on failure
+window._msg91Failure = function(error) {
+  console.error("MSG91 OTP failed ❌", error);
+  document.getElementById('codeErr').textContent = 'OTP verification failed. Please try again.';
+  document.getElementById('codeBtn').textContent = 'Send OTP →';
+  document.getElementById('codeBtn').disabled = false;
+};
 
 // ── INIT ─────────────────────────────────────────────────
 (async()=>{
@@ -366,31 +413,26 @@ function showScreen(n){
   target.classList.add('active');
 }
 
-// ── STEP 1: Validate mobile + auction, then load MSG91 and trigger OTP ─
-let _msg91ScriptLoaded = false;
+// ── MSG91 callbacks (exposeMethods:true) ─────────────────
+let _pendingMobile = null;
 
-function _loadMsg91Script(callback) {
-  if (_msg91ScriptLoaded) { callback(); return; }
-  // Load otp-provider.js dynamically — only after team is validated
-  var s = document.createElement('script');
-  s.src = 'https://verify.msg91.com/otp-provider.js';
-  s.async = true;
-  s.onload = function() {
-    _msg91ScriptLoaded = true;
-    callback();
-  };
-  s.onerror = function() {
-    // Try fallback URL
-    var s2 = document.createElement('script');
-    s2.src = 'https://verify.phone91.com/otp-provider.js';
-    s2.async = true;
-    s2.onload = function() { _msg91ScriptLoaded = true; callback(); };
-    s2.onerror = function() { callback(new Error('script_load_failed')); };
-    document.head.appendChild(s2);
-  };
-  document.head.appendChild(s);
-}
+window._msg91Success = async function(data) {
+  console.log('MSG91 verified ✅', data);
+  if (!_pendingMobile || !myTeam) return;
+  document.getElementById('otpBtn').textContent = 'Entering auction...';
+  document.getElementById('otpBtn').disabled = true;
+  await _createSessionAndEnter(_pendingMobile);
+};
 
+window._msg91Failure = function(error) {
+  console.error('MSG91 failure:', error);
+  const errEl = document.getElementById('otpErr');
+  if (errEl) errEl.textContent = 'Incorrect OTP. Please try again.';
+  const btn = document.getElementById('otpBtn');
+  if (btn) { btn.textContent = 'Verify & Enter →'; btn.disabled = false; }
+};
+
+// ── STEP 1: Validate team in Supabase, then send OTP via MSG91 ────────
 async function submitRoomAndMobile() {
   const mobile = document.getElementById('mobileInput').value.trim();
   const errEl  = document.getElementById('codeErr');
@@ -401,7 +443,7 @@ async function submitRoomAndMobile() {
   }
   btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
 
-  // Resolve auction from URL param or room code input
+  // Resolve auction from URL param or room code
   if (!myAuction) {
     const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
     if (roomCode.length !== 6) {
@@ -420,7 +462,7 @@ async function submitRoomAndMobile() {
     myAuction = auctionData;
   }
 
-  // Verify this mobile belongs to a registered captain in this auction
+  // Find captain's team in this auction
   const { data: teamData, error: tErr } = await sb.from('teams')
     .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
   if (tErr || !teamData) {
@@ -432,14 +474,21 @@ async function submitRoomAndMobile() {
 
   myTeam        = { ...teamData };
   _pendingMobile = mobile;
-  btn.textContent = 'Sending OTP...';
 
-  // Show OTP screen immediately so user knows something is happening
-  document.getElementById('otpSentTo').textContent = teamData.name + ' · +91 ' + mobile;
+  // Guard: MSG91 must be initialised (script loads in <head>)
+  if (typeof window.sendOtp !== 'function') {
+    errEl.textContent = 'OTP service loading — please wait a moment and try again.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false; return;
+  }
+
+  // Show our OTP screen
+  document.getElementById('otpSentTo').textContent = teamData.name + '  ·  +91 ' + mobile;
   document.getElementById('otpInput').value = '';
   document.getElementById('otpErr').textContent = '';
-  document.getElementById('otpBtn').disabled = false;
   document.getElementById('otpBtn').textContent = 'Verify & Enter →';
+  document.getElementById('otpBtn').disabled = false;
+  document.getElementById('resendBtn').textContent = 'Resend OTP';
+  document.getElementById('resendBtn').disabled = false;
   const smsBox = document.getElementById('smsStatusBox');
   const smsTxt = document.getElementById('smsStatusText');
   smsBox.style.display = 'block';
@@ -448,120 +497,82 @@ async function submitRoomAndMobile() {
   showScreen(3);
   btn.textContent = 'Send OTP →'; btn.disabled = false;
 
-  // Load MSG91 script (if not already loaded) then init and send OTP
-  _loadMsg91Script(function(err) {
-    if (err) {
+  // Send OTP — with exposeMethods:true this is a silent SMS, no popup
+  window.sendOtp(
+    '91' + mobile,
+    function() {
+      smsTxt.style.color = 'var(--green)';
+      smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
+    },
+    function(err) {
+      console.error('sendOtp err:', err);
       smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '⚠️ OTP service unavailable. Please try again.';
-      return;
+      smsTxt.textContent = '⚠️ Could not send SMS. Tap Resend to try again.';
     }
-
-    // Build configuration fresh every time so identifier is set correctly
-    var cfg = {
-      widgetId:      '36634167535a323031353436',
-      tokenAuth:     '503787TQBkbvNmN69c681b4P1',
-      identifier:    '91' + mobile,
-      exposeMethods: false,   // use MSG91 popup for actual OTP entry
-      success: function(data) {
-        console.log('MSG91 verified ✅', data);
-        if (_pendingMobile && myTeam) _createSessionAndEnter(_pendingMobile);
-      },
-      failure: function(error) {
-        console.error('MSG91 failure:', error);
-        smsTxt.style.color = 'var(--red)';
-        smsTxt.textContent = '⚠️ OTP verification failed. Tap Resend to try again.';
-      }
-    };
-
-    if (typeof window.initSendOTP === 'function') {
-      window.initSendOTP(cfg);
-      // With identifier pre-set, MSG91 sends SMS immediately on init.
-      // The widget popup appears when user taps "Verify & Enter" via sendOtp().
-      if (typeof window.sendOtp === 'function') {
-        window.sendOtp(
-          '91' + mobile,
-          function() {
-            smsTxt.style.color = 'var(--green)';
-            smsTxt.textContent = '✅ OTP sent to +91 ' + mobile + ' via SMS';
-          },
-          function(e) {
-            console.error('sendOtp err:', e);
-            smsTxt.style.color = 'var(--red)';
-            smsTxt.textContent = '⚠️ Could not send OTP. Tap Resend to try again.';
-          }
-        );
-      }
-    } else {
-      smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '⚠️ OTP service not ready. Please refresh the page.';
-    }
-  });
+  );
 }
 
-// ── STEP 2: User taps "Verify & Enter" — open MSG91 popup ────────────
-// With exposeMethods:false, the MSG91 popup handles OTP entry & verify.
-// We just need to trigger sendOtp() again to open it.
-async function verifyOtpScreen() {
-  if (!_pendingMobile) { showScreen(1); return; }
-  if (typeof window.sendOtp === 'function') {
-    window.sendOtp(
-      '91' + _pendingMobile,
-      function() { /* popup now open */ },
-      function(e) {
-        document.getElementById('otpErr').textContent = 'Could not open verification. Tap Resend.';
-      }
-    );
-  } else {
-    document.getElementById('otpErr').textContent = 'OTP service not ready. Please go back and retry.';
+// ── STEP 2: Captain types OTP in our input and taps Verify ────────────
+function doVerifyOtp() {
+  const code = document.getElementById('otpInput').value.trim();
+  const errEl = document.getElementById('otpErr');
+  const btn   = document.getElementById('otpBtn');
+
+  if (code.length !== 6) { errEl.textContent = 'Enter the 6-digit OTP'; return; }
+  btn.textContent = 'Verifying...'; btn.disabled = true; errEl.textContent = '';
+
+  if (typeof window.verifyOtp !== 'function') {
+    errEl.textContent = 'OTP service not ready. Please go back and retry.';
+    btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
   }
+
+  // verifyOtp fires _msg91Success on correct code, _msg91Failure on wrong code
+  window.verifyOtp(
+    code,
+    function() { /* success handled by _msg91Success */ },
+    function(err) {
+      console.error('verifyOtp err:', err);
+      errEl.textContent = 'Incorrect OTP. Please try again.';
+      btn.textContent = 'Verify & Enter →'; btn.disabled = false;
+    }
+  );
 }
 
 // ── Resend OTP ────────────────────────────────────────────
-async function resendOtpScreen() {
+function doResendOtp() {
   if (!_pendingMobile) { showScreen(1); return; }
-  const smsTxt = document.getElementById('smsStatusText');
   const smsBox = document.getElementById('smsStatusBox');
+  const smsTxt = document.getElementById('smsStatusText');
+  const resendBtn = document.getElementById('resendBtn');
   smsBox.style.display = 'block';
   smsTxt.style.color   = 'var(--blue)';
   smsTxt.textContent   = '📱 Resending OTP...';
+  resendBtn.disabled   = true;
+  resendBtn.textContent = 'Sending...';
+
+  const onSuccess = function() {
+    smsTxt.style.color = 'var(--green)';
+    smsTxt.textContent = '✅ OTP resent to +91 ' + _pendingMobile;
+    resendBtn.disabled  = false;
+    resendBtn.textContent = 'Resend OTP';
+  };
+  const onFail = function() {
+    smsTxt.style.color = 'var(--red)';
+    smsTxt.textContent = '⚠️ Resend failed. Go back and try again.';
+    resendBtn.disabled  = false;
+    resendBtn.textContent = 'Resend OTP';
+  };
 
   if (typeof window.retryOtp === 'function') {
-    window.retryOtp(null,
-      function() {
-        smsTxt.style.color = 'var(--green)';
-        smsTxt.textContent = '✅ OTP resent to +91 ' + _pendingMobile;
-      },
-      function() {
-        // retryOtp failed — fallback to re-sending via sendOtp
-        if (typeof window.sendOtp === 'function') {
-          window.sendOtp('91' + _pendingMobile,
-            function() {
-              smsTxt.style.color = 'var(--green)';
-              smsTxt.textContent = '✅ OTP resent to +91 ' + _pendingMobile;
-            },
-            function() {
-              smsTxt.style.color = 'var(--red)';
-              smsTxt.textContent = '⚠️ Resend failed. Go back and try again.';
-            }
-          );
-        }
-      }
-    );
+    window.retryOtp(null, onSuccess, onFail);
   } else if (typeof window.sendOtp === 'function') {
-    window.sendOtp('91' + _pendingMobile,
-      function() {
-        smsTxt.style.color = 'var(--green)';
-        smsTxt.textContent = '✅ OTP resent to +91 ' + _pendingMobile;
-      },
-      function() {
-        smsTxt.style.color = 'var(--red)';
-        smsTxt.textContent = '⚠️ Resend failed. Go back and try again.';
-      }
-    );
+    window.sendOtp('91' + _pendingMobile, onSuccess, onFail);
+  } else {
+    onFail();
   }
 }
 
-// ── STEP 3: After MSG91 popup confirms OTP — create session ───────────
+// ── STEP 3: MSG91 verified — create Supabase bidder session ───────────
 async function _createSessionAndEnter(mobile) {
   await sb.from('bidder_sessions').delete().eq('team_id', myTeam.id).eq('auction_id', myAuction.id);
 
@@ -582,8 +593,8 @@ async function _createSessionAndEnter(mobile) {
 // Legacy stubs
 async function submitTeamCode() { await submitRoomAndMobile(); }
 async function submitMobile()   { /* merged */ }
-async function resendOtp()      { await resendOtpScreen(); }
-async function verifyOtp()      { await verifyOtpScreen(); }
+async function resendOtp()      { doResendOtp(); }
+async function verifyOtp()      { doVerifyOtp(); }
 
 async function enterBiddingApp(sessionId){
   document.querySelectorAll('.screen').forEach(s=>{
