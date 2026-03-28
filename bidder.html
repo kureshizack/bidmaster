@@ -303,9 +303,9 @@ const DEV_MODE = false;
 // When false: real SMS via MSG91, plan limits enforced
 // ══════════════════════════════════════════════════════════
 
-// ── MSG91 OTP CONFIG (via Supabase Edge Function) ────────
-// Auth key & template ID are stored as Supabase secrets (not exposed here)
-// Edge function handles: send, verify, resend
+// ── MSG91 OTP WIDGET (direct browser calls) ─────────────
+// Widget token is safe for frontend — designed for client-side use
+const MSG91_WIDGET_TOKEN = '503787TQBkbvNmN69c681b4P1';
 // ════════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -435,25 +435,22 @@ async function sendOtpToMobile(mobile, teamName) {
     return;
   }
 
-  // PRODUCTION — send OTP via MSG91 (through Supabase Edge Function)
+  // PRODUCTION — send OTP via MSG91 Widget API (direct from browser)
   smsTxt.textContent = '📱 Sending OTP via SMS...';
   smsTxt.style.color = 'var(--blue)';
   try {
-    const res = await fetch(SUPABASE_URL + '/functions/v1/msg91-otp', {
+    const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ action: 'send', mobile }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile }),
     });
     const json = await res.json();
-    if (json.success) {
+    if (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'))) {
       smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
       smsTxt.style.color = 'var(--green)';
     } else {
       smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '❌ SMS failed: ' + (json.error || json.message || 'Try again');
+      smsTxt.textContent = '❌ SMS failed: ' + (json.message || 'Try again');
     }
   } catch(e) {
     smsTxt.style.color = 'var(--red)';
@@ -480,21 +477,18 @@ async function resendOtp() {
   smsTxt.textContent = '📱 Resending OTP...';
   smsTxt.style.color = 'var(--blue)';
   try {
-    const res = await fetch(SUPABASE_URL + '/functions/v1/msg91-otp', {
+    const res = await fetch('https://control.msg91.com/api/v5/widget/retryOtp', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ action: 'resend', mobile }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile, retryType: 'text' }),
     });
     const json = await res.json();
-    if (json.success) {
+    if (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'))) {
       smsTxt.textContent = '✅ OTP resent to +91 ' + mobile;
       smsTxt.style.color = 'var(--green)';
     } else {
       smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '❌ Resend failed: ' + (json.error || json.message || 'Try again');
+      smsTxt.textContent = '❌ Resend failed: ' + (json.message || 'Try again');
     }
   } catch(e) {
     smsTxt.style.color = 'var(--red)';
@@ -526,19 +520,16 @@ async function verifyOtp(){
       }
     }
   } else {
-    // PRODUCTION — verify via MSG91 (through Supabase Edge Function)
+    // PRODUCTION — verify via MSG91 Widget API (direct from browser)
     try {
       const mobile = document.getElementById('mobileInput').value.trim();
-      const res = await fetch(SUPABASE_URL + '/functions/v1/msg91-otp', {
+      const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ action: 'verify', mobile, otp: entered }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile, otp: entered }),
       });
       const json = await res.json();
-      verified = json.success;
+      verified = (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success')));
       if (!verified) {
         errEl.textContent = json.message || 'Invalid or expired OTP.';
       }
