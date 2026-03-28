@@ -7,6 +7,7 @@
 <title>captainXI.com — Live Bidding</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://verify.msg91.com/otp-provider.js"></script>
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -303,9 +304,31 @@ const DEV_MODE = false;
 // When false: real SMS via MSG91, plan limits enforced
 // ══════════════════════════════════════════════════════════
 
-// ── MSG91 OTP WIDGET (direct browser calls) ─────────────
-// Widget token is safe for frontend — designed for client-side use
-const MSG91_WIDGET_TOKEN = '503787TQBkbvNmN69c681b4P1';
+// ── MSG91 OTP WIDGET (official SDK) ──────────────────────
+const MSG91_WIDGET_ID = '36634167535a32303135343436';
+const MSG91_TOKEN_AUTH = '503787TQBkbvNmN69c681b4P1';
+let msg91Initialized = false;
+let _msg91Send = null, _msg91Verify = null, _msg91Retry = null;
+
+function ensureMsg91() {
+  if (msg91Initialized) return;
+  if (typeof initSendOTP !== 'function') { console.warn('MSG91 SDK not loaded yet'); return; }
+  // Save our own functions before MSG91 overwrites them
+  const _ourVerify = window.verifyOtp;
+  const config = {
+    widgetId: MSG91_WIDGET_ID,
+    tokenAuth: MSG91_TOKEN_AUTH,
+    exposeMethods: true,
+  };
+  initSendOTP(config);
+  // Capture MSG91's exposed methods
+  _msg91Send = window.sendOtp;
+  _msg91Verify = window.verifyOtp;
+  _msg91Retry = window.retryOtp;
+  // Restore our own verifyOtp (prevent collision)
+  window.verifyOtp = _ourVerify;
+  msg91Initialized = true;
+}
 // ════════════════════════════════════════════════════════════
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -435,26 +458,25 @@ async function sendOtpToMobile(mobile, teamName) {
     return;
   }
 
-  // PRODUCTION — send OTP via MSG91 Widget API (direct from browser)
+  // PRODUCTION — send OTP via MSG91 Widget SDK
   smsTxt.textContent = '📱 Sending OTP via SMS...';
   smsTxt.style.color = 'var(--blue)';
   try {
-    const res = await fetch('https://control.msg91.com/api/v5/widget/sendOtp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile }),
-    });
-    const json = await res.json();
-    if (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'))) {
-      smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
-      smsTxt.style.color = 'var(--green)';
-    } else {
-      smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '❌ SMS failed: ' + (json.message || 'Try again');
-    }
+    ensureMsg91();
+    if (!_msg91Send) { throw new Error('MSG91 SDK not loaded'); }
+    _msg91Send('91' + mobile,
+      (data) => {
+        smsTxt.textContent = '✅ OTP sent to +91 ' + mobile;
+        smsTxt.style.color = 'var(--green)';
+      },
+      (error) => {
+        smsTxt.style.color = 'var(--red)';
+        smsTxt.textContent = '❌ SMS failed: ' + (error?.message || error || 'Try again');
+      }
+    );
   } catch(e) {
     smsTxt.style.color = 'var(--red)';
-    smsTxt.textContent = '❌ Network error. Check connection and try again.';
+    smsTxt.textContent = '❌ Error: ' + e.message;
   }
 }
 
@@ -477,22 +499,21 @@ async function resendOtp() {
   smsTxt.textContent = '📱 Resending OTP...';
   smsTxt.style.color = 'var(--blue)';
   try {
-    const res = await fetch('https://control.msg91.com/api/v5/widget/retryOtp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile, retryType: 'text' }),
-    });
-    const json = await res.json();
-    if (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'))) {
-      smsTxt.textContent = '✅ OTP resent to +91 ' + mobile;
-      smsTxt.style.color = 'var(--green)';
-    } else {
-      smsTxt.style.color = 'var(--red)';
-      smsTxt.textContent = '❌ Resend failed: ' + (json.message || 'Try again');
-    }
+    ensureMsg91();
+    if (!_msg91Retry) { throw new Error('MSG91 SDK not loaded'); }
+    _msg91Retry('text',
+      (data) => {
+        smsTxt.textContent = '✅ OTP resent to +91 ' + mobile;
+        smsTxt.style.color = 'var(--green)';
+      },
+      (error) => {
+        smsTxt.style.color = 'var(--red)';
+        smsTxt.textContent = '❌ Resend failed: ' + (error?.message || error || 'Try again');
+      }
+    );
   } catch(e) {
     smsTxt.style.color = 'var(--red)';
-    smsTxt.textContent = '❌ Network error. Try again.';
+    smsTxt.textContent = '❌ Error: ' + e.message;
   }
 }
 
@@ -520,21 +541,22 @@ async function verifyOtp(){
       }
     }
   } else {
-    // PRODUCTION — verify via MSG91 Widget API (direct from browser)
+    // PRODUCTION — verify via MSG91 Widget SDK
     try {
-      const mobile = document.getElementById('mobileInput').value.trim();
-      const res = await fetch('https://control.msg91.com/api/v5/widget/verifyOtp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenAuth: MSG91_WIDGET_TOKEN, identifier: '91' + mobile, otp: entered }),
+      ensureMsg91();
+      if (!_msg91Verify) { throw new Error('MSG91 SDK not loaded'); }
+      const result = await new Promise((resolve) => {
+        _msg91Verify(entered,
+          (data) => resolve({ ok: true, data }),
+          (error) => resolve({ ok: false, error })
+        );
       });
-      const json = await res.json();
-      verified = (json.type === 'success' || (json.message && json.message.toLowerCase().includes('success')));
+      verified = result.ok;
       if (!verified) {
-        errEl.textContent = json.message || 'Invalid or expired OTP.';
+        errEl.textContent = result.error?.message || result.error || 'Invalid or expired OTP.';
       }
     } catch(e) {
-      errEl.textContent = 'Network error. Try again.';
+      errEl.textContent = 'Error: ' + e.message;
     }
   }
 
