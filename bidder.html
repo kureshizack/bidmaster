@@ -12,28 +12,47 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- ── MSG91 OTP WIDGET ───────────────────────────────────
-     Configuration must be defined BEFORE otp-provider.js loads.
-     exposeMethods:false  → MSG91 shows its own popup UI (no 401 errors,
-     no API calls from frontend, no OTP on screen).
+     Using MSG91's recommended Web SDK pattern with fallback URL.
+     configuration object must be defined before the script loads.
 ──────────────────────────────────────────────────────── -->
-<script>
+<script type="text/javascript">
 var configuration = {
-  widgetId:      "36634167535a323031353436",
-  tokenAuth:     "503787TQBkbvNmN69c681b4P1",
-  exposeMethods: false,
+  widgetId:  "36634167535a323031353436",
+  tokenAuth: "503787TQBkbvNmN69c681b4P1",
+  identifier: "",          // set dynamically before calling sendOtp()
+  exposeMethods: false,    // false = MSG91 shows its own popup UI
   success: function(data) {
-    // MSG91 verified the OTP successfully — hand off to our login flow
     if (typeof window._msg91Success === 'function') window._msg91Success(data);
   },
   failure: function(error) {
-    console.error("MSG91 failure:", error);
+    console.error("MSG91 OTP failure:", error);
     if (typeof window._msg91Failure === 'function') window._msg91Failure(error);
-  }
+  },
 };
 </script>
-<script type="text/javascript"
-  src="https://verify.msg91.com/otp-provider.js"
-  onload="initSendOTP(configuration)">
+<script type="text/javascript">
+(function loadOtpScript(urls) {
+  var i = 0;
+  function attempt() {
+    var s = document.createElement('script');
+    s.src = urls[i];
+    s.async = true;
+    s.onload = function() {
+      if (typeof window.initSendOTP === 'function') {
+        window.initSendOTP(configuration);
+      }
+    };
+    s.onerror = function() {
+      i++;
+      if (i < urls.length) attempt();
+    };
+    document.head.appendChild(s);
+  }
+  attempt();
+})([
+  'https://verify.msg91.com/otp-provider.js',
+  'https://verify.phone91.com/otp-provider.js'
+]);
 </script>
 
 <style>
@@ -445,12 +464,18 @@ async function submitRoomAndMobile() {
     btn.textContent = 'Send OTP →'; btn.disabled = false; return;
   }
 
-  // Trigger MSG91 popup — it handles send + resend + verify internally
-  // On success: window._msg91Success() is called automatically
+  // Pre-fill the mobile number in the widget configuration so the
+  // MSG91 popup already knows which number to send OTP to.
+  if (typeof configuration !== 'undefined') {
+    configuration.identifier = '91' + mobile;
+  }
+
+  // Trigger MSG91 popup — handles send + resend + verify internally.
+  // On success: window._msg91Success() fires automatically via configuration.success
   window.sendOtp(
     '91' + mobile,
     function() {
-      // OTP sent — widget popup is now open, nothing more to do here
+      // Popup is now open — restore button so user can retry if needed
       btn.textContent = 'Send OTP →'; btn.disabled = false;
     },
     function(error) {
