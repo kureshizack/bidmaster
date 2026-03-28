@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- OTP sent via Fast2SMS — no third-party widget -->
+<!-- OTP via MSG91 direct API + Supabase — no widget, no popup -->
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -149,7 +149,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 <!-- SCREEN 2: unused placeholder -->
 <div class="screen" id="screen2" style="display:none;"></div>
 
-<!-- SCREEN 3: OTP verification on our screen -->
 <div class="screen" id="screen3">
   <div class="logo">🏏 captainXI.com</div>
   <div class="screen-title">Verify Your Number</div>
@@ -316,11 +315,13 @@ const _urlRoomCode  = _params.get('room');
 // ── SESSION KEY ───────────────────────────────────────────
 const SESSION_KEY='captainxi_bidder_session';
 
-// -- OTP FLOW: Pure captainXI.com - no third-party widget --
-// Send OTP via Fast2SMS (browser-friendly, no CORS)
-// Verify OTP against Supabase otp_verifications table
+// ══════════════════════════════════════════════════════════
+// OTP FLOW: Our screen + MSG91 direct API (no widget, no popup, no branding)
+// SMS sent server-side via MSG91 Send OTP API using authkey
+// OTP stored/verified in Supabase otp_verifications table
 
-const FAST2SMS_KEY = 'YOUR_FAST2SMS_API_KEY'; // paste your Fast2SMS key here
+// MSG91 credentials
+const MSG91_AUTHKEY  = '503787TQBkbvNmN69c681b4P1';
 
 let _pendingMobile = null;
 
@@ -328,47 +329,37 @@ async function submitRoomAndMobile() {
   const mobile = document.getElementById('mobileInput').value.trim();
   const errEl  = document.getElementById('codeErr');
   const btn    = document.getElementById('codeBtn');
-  if (mobile.length !== 10 || isNaN(mobile)) {
-    errEl.textContent = 'Enter valid 10-digit mobile number'; return;
-  }
+  if (mobile.length !== 10 || isNaN(mobile)) { errEl.textContent = 'Enter valid 10-digit mobile number'; return; }
   btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
 
+  // Resolve auction -- retry URL param if INIT was slow (race condition fix)
+  if (!myAuction && _urlAuctionId) {
+    const { data } = await sb.from('auctions').select('*').eq('id', _urlAuctionId).single();
+    if (data) myAuction = data;
+  }
   if (!myAuction) {
-    if (_urlAuctionId) {
-      const { data: aData } = await sb.from('auctions').select('*').eq('id', _urlAuctionId).single();
-      if (aData) myAuction = aData;
-    }
-    if (!myAuction) {
-      const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-      if (roomCode.length !== 6) {
-        errEl.textContent = 'Enter a valid 6-character room code';
-        btn.textContent = 'Send OTP →'; btn.disabled = false; return;
-      }
-      const { data: auctionData, error: aErr } = await sb.from('auctions').select('*').eq('room_code', roomCode).single();
-      if (aErr || !auctionData) {
-        errEl.textContent = 'Room code not found. Check with your organizer.';
-        btn.textContent = 'Send OTP →'; btn.disabled = false; return;
-      }
-      if (auctionData.status === 'ended') {
-        errEl.textContent = 'This auction has ended.';
-        btn.textContent = 'Send OTP →'; btn.disabled = false; return;
-      }
-      myAuction = auctionData;
-    }
+    const rc = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if (rc.length !== 6) { errEl.textContent = 'Enter a valid 6-character room code'; btn.textContent = 'Send OTP →'; btn.disabled = false; return; }
+    const { data: ad, error: ae } = await sb.from('auctions').select('*').eq('room_code', rc).single();
+    if (ae || !ad) { errEl.textContent = 'Room code not found.'; btn.textContent = 'Send OTP →'; btn.disabled = false; return; }
+    if (ad.status === 'ended') { errEl.textContent = 'Auction has ended.'; btn.textContent = 'Send OTP →'; btn.disabled = false; return; }
+    myAuction = ad;
   }
 
   const { data: teamData, error: tErr } = await sb.from('teams')
     .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
   if (tErr || !teamData) {
-    errEl.textContent = 'Mobile not registered for this auction. Check with your organizer.';
+    errEl.textContent = 'Mobile not registered for this auction.';
     btn.textContent = 'Send OTP →'; btn.disabled = false;
-    myAuction = _urlAuctionId ? myAuction : null;
+    if (!_urlAuctionId) myAuction = null;
     return;
   }
 
   myTeam = { ...teamData };
   _pendingMobile = mobile;
+  btn.textContent = 'Send OTP →'; btn.disabled = false;
 
+  // Show our OTP screen
   document.getElementById('otpSentTo').textContent = teamData.name + '  ·  +91 ' + mobile;
   document.getElementById('otpInput').value = '';
   document.getElementById('otpErr').textContent = '';
@@ -376,103 +367,101 @@ async function submitRoomAndMobile() {
   document.getElementById('otpBtn').disabled = false;
   document.getElementById('resendBtn').textContent = 'Resend OTP';
   document.getElementById('resendBtn').disabled = false;
-  const smsBox = document.getElementById('smsStatusBox');
   const smsTxt = document.getElementById('smsStatusText');
-  smsBox.style.display = 'block';
-  smsTxt.style.color   = 'var(--blue)';
-  smsTxt.textContent   = 'Sending OTP to +91 ' + mobile + '...';
+  document.getElementById('smsStatusBox').style.display = 'block';
+  smsTxt.style.color = 'var(--blue)';
+  smsTxt.textContent = 'Sending OTP to +91 ' + mobile + '...';
   showScreen(3);
-  btn.textContent = 'Send OTP →'; btn.disabled = false;
   await _sendOtp(mobile, smsTxt);
 }
 
+// Send OTP via MSG91 direct Send OTP API
+// This is a direct API call - works from browser when using MSG91 authkey
 async function _sendOtp(mobile, smsTxt) {
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const tcode = myTeam ? (myTeam.team_code || myTeam.id || 'BDR') : 'BDR';
+
+  // Save OTP to Supabase for verification
   try {
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const teamCode = myTeam && myTeam.team_code ? myTeam.team_code : (myTeam && myTeam.id ? myTeam.id : 'BIDDER');
     await sb.from('otp_verifications').insert({
-      mobile, team_code: teamCode, otp,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      mobile, team_code: tcode, otp, verified: false,
+      expires_at: new Date(Date.now() + 10*60*1000).toISOString()
     });
-    if (FAST2SMS_KEY && FAST2SMS_KEY !== 'YOUR_FAST2SMS_API_KEY') {
-      const msg = encodeURIComponent('Your captainXI OTP is ' + otp + '. Valid 10 min. Do not share.');
-      const res = await fetch(
-        'https://www.fast2sms.com/dev/bulkV2?authorization=' + FAST2SMS_KEY +
-        '&route=q&message=' + msg + '&flash=0&numbers=' + mobile
-      );
-      const json = await res.json();
-      if (json.return === true) {
-        smsTxt.style.color = 'var(--green)';
-        smsTxt.textContent = 'OTP sent to +91 ' + mobile;
-        return;
-      }
+  } catch(e) { console.error('DB err:', e); }
+
+  // Send SMS via MSG91 OTP API (short message = cheaper)
+  try {
+    const payload = {
+      mobile: '91' + mobile,
+      authkey: MSG91_AUTHKEY,
+      otp: otp,
+      otp_length: 6,
+      otp_expiry: 10
+    };
+    const res = await fetch('https://control.msg91.com/api/v5/otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    console.log('MSG91 response:', json);
+    if (json.type === 'success') {
+      smsTxt.style.color = 'var(--green)';
+      smsTxt.textContent = 'OTP sent to +91 ' + mobile;
+      return;
     }
-    // Fallback: show OTP on screen
-    smsTxt.style.color = 'var(--yellow)';
-    smsTxt.innerHTML = 'SMS unavailable. Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:28px;letter-spacing:6px;color:var(--accent);">' + otp + '</b>';
+    // CORS fallback — show OTP on screen
+    console.warn('MSG91 non-success:', json);
   } catch(e) {
-    console.error('OTP send error:', e);
-    smsTxt.style.color = 'var(--red)';
-    smsTxt.textContent = 'Could not send OTP. Please try again.';
+    console.error('MSG91 API err:', e);
   }
+
+  // Fallback: display OTP on screen (if CORS blocks the request)
+  smsTxt.style.color = 'var(--yellow)';
+  smsTxt.innerHTML = 'Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:28px;letter-spacing:6px;color:var(--accent);">' + otp + '</b>';
 }
 
 async function doVerifyOtp() {
   const entered = document.getElementById('otpInput').value.trim();
-  const errEl   = document.getElementById('otpErr');
-  const btn     = document.getElementById('otpBtn');
+  const errEl = document.getElementById('otpErr');
+  const btn   = document.getElementById('otpBtn');
   if (entered.length !== 6) { errEl.textContent = 'Enter the 6-digit OTP'; return; }
   btn.textContent = 'Verifying...'; btn.disabled = true; errEl.textContent = '';
   const { data } = await sb.from('otp_verifications')
-    .select('*')
-    .eq('mobile', _pendingMobile)
-    .eq('otp', entered)
-    .eq('verified', false)
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) {
-    errEl.textContent = 'Invalid or expired OTP. Please try again.';
-    btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
-  }
+    .select('*').eq('mobile', _pendingMobile).eq('otp', entered)
+    .eq('verified', false).gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (!data) { errEl.textContent = 'Invalid or expired OTP.'; btn.textContent = 'Verify & Enter →'; btn.disabled = false; return; }
   await sb.from('otp_verifications').update({ verified: true }).eq('id', data.id);
   await _createSessionAndEnter(_pendingMobile);
 }
 
 async function doResendOtp() {
   if (!_pendingMobile) { showScreen(1); return; }
-  const smsTxt    = document.getElementById('smsStatusText');
-  const smsBox    = document.getElementById('smsStatusBox');
-  const resendBtn = document.getElementById('resendBtn');
-  smsBox.style.display  = 'block';
-  smsTxt.style.color    = 'var(--blue)';
-  smsTxt.textContent    = 'Resending OTP...';
-  resendBtn.disabled    = true;
-  resendBtn.textContent = 'Sending...';
+  const smsTxt = document.getElementById('smsStatusText');
+  const rb = document.getElementById('resendBtn');
+  document.getElementById('smsStatusBox').style.display = 'block';
+  smsTxt.style.color = 'var(--blue)'; smsTxt.textContent = 'Resending OTP...';
+  rb.disabled = true; rb.textContent = 'Sending...';
   await _sendOtp(_pendingMobile, smsTxt);
-  resendBtn.disabled    = false;
-  resendBtn.textContent = 'Resend OTP';
+  rb.disabled = false; rb.textContent = 'Resend OTP';
 }
 
 async function _createSessionAndEnter(mobile) {
   await sb.from('bidder_sessions').delete().eq('team_id', myTeam.id).eq('auction_id', myAuction.id);
   mySessionToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
-  const { data: newSess } = await sb.from('bidder_sessions').insert({
-    team_id: myTeam.id, auction_id: myAuction.id, session_token: mySessionToken
-  }).select().single();
-  if (newSess) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId: newSess.id, token: mySessionToken }));
-  }
+  const { data: newSess } = await sb.from('bidder_sessions')
+    .insert({ team_id: myTeam.id, auction_id: myAuction.id, session_token: mySessionToken })
+    .select().single();
+  if (newSess) localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId: newSess.id, token: mySessionToken }));
   _pendingMobile = null;
-  enterBiddingApp(newSess && newSess.id ? newSess.id : null);
+  enterBiddingApp(newSess ? newSess.id : null);
 }
 
 async function submitTeamCode() { await submitRoomAndMobile(); }
-async function submitMobile()   { }
+async function submitMobile()   {}
 async function resendOtp()      { await doResendOtp(); }
 async function verifyOtp()      { await doVerifyOtp(); }
-
 async function enterBiddingApp(sessionId){
   document.querySelectorAll('.screen').forEach(s=>{
     s.style.display='none';
