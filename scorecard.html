@@ -194,7 +194,6 @@ let matchId=null;
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
 
 (async()=>{
-  // Support both ?match=UUID and ?code=SHARECODE
   const _p=new URLSearchParams(window.location.search);
   matchId=_p.get('match');
   if(!matchId){
@@ -207,14 +206,15 @@ let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
   if(!matchId){document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">No match specified.</div>';return;}
   await loadAll();
   subscribeRealtime();
+  // Polling fallback every 5 seconds in case realtime fails
+  setInterval(loadAll, 5000);
 })();
 
 async function loadAll(){
   const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
-  if(!m){document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">Match not found.</div>';return;}
+  if(!m){return;}
   matchData=m;
 
-  // Load current innings — use maybeSingle to avoid 406 when no innings yet
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number',{ascending:false}).limit(1).maybeSingle();
   inningsData=inn;
 
@@ -245,21 +245,16 @@ function subscribeRealtime(){
 }
 
 function renderAll(){
-  // Always render match header even without innings
-  if(matchData){
-    const hTeamA=document.getElementById('hTeamA');
-    const hTeamB=document.getElementById('hTeamB');
-    if(hTeamA) hTeamA.textContent=matchData.team_a||'Team A';
-    if(hTeamB) hTeamB.textContent=matchData.team_b||'Team B';
-    document.getElementById('loadingScreen').style.display='none';
-    document.getElementById('scoreScreen').style.display='block';
-  }
+  if(!matchData)return;
+  // Show match even before innings
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('scoreScreen').style.display='block';
   if(!inningsData){
-    // No innings yet — show match about to start
-    const sc=document.getElementById('hScore');
-    if(sc) sc.textContent='0';
-    const wk=document.getElementById('hWickets');
-    if(wk) wk.textContent='0';
+    // No innings yet — show 0/0 with team names
+    const ta=document.getElementById('hTeamA');
+    const tb=document.getElementById('hTeamB');
+    if(ta)ta.textContent=matchData.team_a||'Team A';
+    if(tb)tb.textContent=matchData.team_b||'Team B';
     return;
   }
   const inn=inningsData;
