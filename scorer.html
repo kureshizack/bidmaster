@@ -190,6 +190,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <!-- Score header -->
   <div class="score-header">
     <div style="display:flex;justify-content:flex-end;padding:4px 10px 0;gap:8px;">
+      <a href="upgrade.html" id="scorerPlanBadge" style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;font-family:'Rajdhani',sans-serif;color:var(--muted);text-decoration:none;letter-spacing:0.5px;transition:all 0.2s;">FREE</a>
       <button class="theme-btn" onclick="toggleScorerTheme()" id="scorerThemeBtn">☀️</button>
     </div>
     <div class="score-teams">
@@ -395,6 +396,22 @@ let allPlayerNames = []; // flat list of all player names
 // INIT — Load teams if auction context exists
 // ══════════════════════════════════════════════════════════
 (async()=>{
+  // Update plan badge if logged in
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){
+      const{data:_p}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
+      const _pb=document.getElementById('scorerPlanBadge');
+      if(_pb&&_p){
+        const tm={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+        _pb.textContent=tm[_p.plan]||'FREE';
+        if(_p.plan==='club'||_p.plan==='pro'||_p.plan==='district'||_p.plan==='national'){
+          _pb.style.color='var(--accent)';_pb.style.borderColor='var(--accent)';
+        }
+      }
+    }
+  }catch(e){}
+
   if(auctionId){
     const{data:teams}=await sb.from('teams').select('name').eq('auction_id',auctionId).order('name');
     const dl=document.getElementById('teamSuggestions');

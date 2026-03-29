@@ -127,6 +127,7 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="nav-right">
     <button class="nav-icon-btn" id="bidderLinkBtn" style="display:none;color:var(--accent);border-color:var(--accent);" onclick="copyBidderLinks()" title="Copy bidder link">🏏</button>
     <button class="nav-icon-btn" onclick="copyViewerLink()" title="Copy viewer link">🔗</button>
+    <button class="nav-icon-btn" id="planBadgeBtn" onclick="window.location.href='upgrade.html'" title="Upgrade plan" style="font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:0.5px;color:var(--muted);">FREE</button>
     <button class="nav-icon-btn" onclick="window.location.href='setup.html?auction='+auctionId" title="Setup">⚙️</button>
     <button class="nav-icon-btn" onclick="window.location.href='dashboard.html'" title="Dashboard">🏠</button>
   </div>
@@ -394,6 +395,20 @@ let acPlayerIdx = -1, acTeamIdx = -1;
 
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
+
+  // Update plan badge
+  const{data:_prof}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
+  const _plan=_prof?.plan||'free';
+  const _pb=document.getElementById('planBadgeBtn');
+  if(_pb){
+    const tm={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+    _pb.textContent=tm[_plan]||'FREE';
+    if(_plan==='club'||_plan==='pro'||_plan==='district'||_plan==='national'){
+      _pb.style.color='var(--accent)';_pb.style.borderColor='var(--accent)';
+      _pb.title='Manage plan';
+    }
+  }
+
   await loadAll();
   subscribeRealtime();
   setTimeout(() => {

@@ -27,6 +27,12 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .nav-link{color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;}
 .nav-link:hover{color:var(--accent);}
 .user-name{font-size:13px;color:var(--muted);font-weight:600;}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;}
+.plan-badge:hover{border-color:var(--accent);color:var(--accent);}
+.plan-badge.free{color:var(--muted);}
+.plan-badge.paid{color:var(--accent);border-color:var(--accent);}
+.upgrade-link{font-size:12px;color:var(--accent);text-decoration:none;font-weight:700;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:6px;transition:all .2s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;}
+.upgrade-link:hover{background:rgba(245,158,11,0.1);border-color:var(--accent);}
 .btn{padding:8px 16px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;transition:all 0.2s;}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
@@ -120,6 +126,8 @@ select.form-input option{background:var(--surface2);}
   <div class="nav-right">
     <a href="dashboard.html" class="nav-link">📋 Dashboard</a>
     <span class="user-name" id="userName"></span>
+    <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
+    <a href="upgrade.html" class="upgrade-link" id="upgradeLink">⚡ Upgrade</a>
     <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -305,8 +313,23 @@ let tossDecision = null;
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'login.html'; return; }
   currentUser = session.user;
-  const { data: profile } = await sb.from('profiles').select('name').eq('id', currentUser.id).single();
+  const { data: profile } = await sb.from('profiles').select('name, plan').eq('id', currentUser.id).single();
   document.getElementById('userName').textContent = profile?.name || currentUser.email;
+
+  // Update plan badge
+  const planBadge = document.getElementById('planBadge');
+  const upgradeLink = document.getElementById('upgradeLink');
+  if (planBadge && upgradeLink) {
+    const plan = profile?.plan || 'free';
+    const tierMap = {free:'FREE', gully:'FREE', club:'CLUB', pro:'PRO'};
+    planBadge.textContent = tierMap[plan] || 'FREE';
+    if (plan === 'club' || plan === 'pro') {
+      planBadge.className = 'plan-badge paid';
+      upgradeLink.textContent = '⚙ Manage Plan';
+    } else {
+      planBadge.className = 'plan-badge free';
+    }
+  }
 
   await Promise.all([loadMatches(), loadAuctions()]);
 })();

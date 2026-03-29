@@ -24,6 +24,12 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .nav-sep{color:var(--border);font-size:18px;}
 .auction-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:600;color:var(--text);}
 .nav-right{margin-left:auto;display:flex;gap:10px;align-items:center;}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;}
+.plan-badge:hover{border-color:var(--accent);color:var(--accent);}
+.plan-badge.free{color:var(--muted);}
+.plan-badge.paid{color:var(--accent);border-color:var(--accent);}
+.upgrade-link{font-size:12px;color:var(--accent);text-decoration:none;font-weight:700;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:6px;transition:all .2s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;}
+.upgrade-link:hover{background:rgba(245,158,11,0.1);border-color:var(--accent);}
 .btn{padding:8px 18px;border-radius:6px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;transition:all 0.15s;white-space:nowrap;}
 .btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:#fbbf24;}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);}
@@ -79,6 +85,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <div class="nav-sep">/</div>
   <div class="auction-title" id="navAuctionName">Loading...</div>
   <div class="nav-right">
+    <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
+    <a href="upgrade.html" class="upgrade-link" id="upgradeLink">⚡ Upgrade</a>
     <button class="btn btn-ghost btn-sm" onclick="window.location.href='dashboard.html'">← Dashboard</button>
   </div>
 </nav>
@@ -493,6 +501,24 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const { data: _profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
   window._userPlan = _profile?.plan || 'free';
   window._isSuperAdmin = _profile?.is_superadmin === true || _profile?.is_admin === true;
+
+  // Update nav plan badge
+  const planBadge = document.getElementById('planBadge');
+  const upgradeLink = document.getElementById('upgradeLink');
+  if (planBadge && upgradeLink) {
+    const tierMap = {free:'FREE', gully:'FREE', club:'CLUB', pro:'PRO', district:'PRO', national:'PRO'};
+    planBadge.textContent = window._isSuperAdmin ? '🛡 ADMIN' : (tierMap[window._userPlan] || 'FREE');
+    if (window._isSuperAdmin) {
+      planBadge.className = 'plan-badge paid';
+      upgradeLink.textContent = '🛡 Admin Console';
+      upgradeLink.href = 'admin.html';
+    } else if (window._userPlan === 'club' || window._userPlan === 'pro' || window._userPlan === 'district' || window._userPlan === 'national') {
+      planBadge.className = 'plan-badge paid';
+      upgradeLink.textContent = '⚙ Manage Plan';
+    } else {
+      planBadge.className = 'plan-badge free';
+    }
+  }
 
   // ── PLAN ENFORCEMENT ─────────────────────────────────────
   // Plan tiers: gully(free) < club < district < national

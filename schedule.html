@@ -20,6 +20,12 @@ nav{padding:14px 24px;display:flex;align-items:center;justify-content:space-betw
 .logo span{color:var(--text);}
 .nav-back{color:var(--muted);text-decoration:none;font-size:13px;font-family:'Rajdhani',sans-serif;font-weight:700;transition:color .2s;}
 .nav-back:hover{color:var(--accent);}
+.plan-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Rajdhani',sans-serif;}
+.plan-badge:hover{border-color:var(--accent);color:var(--accent);}
+.plan-badge.free{color:var(--muted);}
+.plan-badge.paid{color:var(--accent);border-color:var(--accent);}
+.upgrade-link{font-size:12px;color:var(--accent);text-decoration:none;font-weight:700;padding:4px 10px;border:1px solid rgba(245,158,11,0.3);border-radius:6px;transition:all .2s;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;}
+.upgrade-link:hover{background:rgba(245,158,11,0.1);border-color:var(--accent);}
 .container{max-width:960px;margin:0 auto;padding:28px 20px 80px;}
 .page-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;text-align:center;margin-bottom:4px;}
 .page-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:28px;}
@@ -83,7 +89,11 @@ footer a{color:var(--accent);text-decoration:none;}
 
 <nav>
   <a href="index.html" class="logo">captain<span>XI</span>.com</a>
-  <a href="dashboard.html" class="nav-back">← Dashboard</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
+    <a href="upgrade.html" class="upgrade-link" id="upgradeLink">⚡ Upgrade</a>
+    <a href="dashboard.html" class="nav-back">← Dashboard</a>
+  </div>
 </nav>
 
 <div class="container">
@@ -146,6 +156,19 @@ let matches=[];
   if(!auctionId){document.getElementById('auctionInfo').textContent='No auction specified.';return;}
   const{data:{session}}=await sb.auth.getSession();
   if(!session){window.location.href='login.html';return;}
+
+  // Update plan badge
+  const{data:_prof}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
+  const _plan=_prof?.plan||'free';
+  const planBadge=document.getElementById('planBadge');
+  const upgradeLink=document.getElementById('upgradeLink');
+  if(planBadge&&upgradeLink){
+    const tierMap={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+    planBadge.textContent=tierMap[_plan]||'FREE';
+    if(_plan==='club'||_plan==='pro'||_plan==='district'||_plan==='national'){
+      planBadge.className='plan-badge paid';upgradeLink.textContent='⚙ Manage Plan';
+    } else { planBadge.className='plan-badge free'; }
+  }
 
   const{data}=await sb.from('auctions').select('*').eq('id',auctionId).single();
   if(!data){document.getElementById('auctionInfo').textContent='Auction not found.';return;}
