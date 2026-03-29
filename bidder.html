@@ -335,26 +335,47 @@ let _pendingMobile = null;
 // Called by MSG91 widget on successful OTP verification
 window._msg91Success = async function(data) {
   console.log("MSG91 OTP verified ✅", data);
+  console.log("_pendingMobile:", _pendingMobile);
+  console.log("mobileInput value:", document.getElementById('mobileInput')?.value);
+  console.log("localStorage mobile:", localStorage.getItem('_captxi_pendingMobile'));
 
-  // Read mobile from the input field directly (DOM always survives)
-  const mobile = document.getElementById('mobileInput').value.trim();
+  // Get mobile: try every possible source
+  let mobile = _pendingMobile
+    || document.getElementById('mobileInput')?.value?.trim()
+    || localStorage.getItem('_captxi_pendingMobile')
+    || '';
+
+  // If still empty, try to extract from MSG91 data (identifier field)
+  if ((!mobile || mobile.length !== 10) && data) {
+    const raw = data.identifier || data.mobile || data.phone || '';
+    // MSG91 sends as "91XXXXXXXXXX", strip country code
+    if (typeof raw === 'string' && raw.length >= 10) {
+      mobile = raw.replace(/^91/, '').replace(/^\+91/, '').slice(-10);
+    }
+  }
+
+  console.log("Final mobile:", mobile);
+
   if (!mobile || mobile.length !== 10) {
-    document.getElementById('codeErr').textContent = 'Could not read mobile number. Please reload and try again.';
+    document.getElementById('codeErr').textContent = 'Could not identify your number. Please enter your details and try again.';
     showScreen(1);
     return;
   }
 
-  // If myTeam/myAuction were lost, re-query from Supabase
+  // Restore auction from localStorage if lost
   if (!myAuction) {
-    // Try from URL param first
+    try { myAuction = JSON.parse(localStorage.getItem('_captxi_pendingAuction')); } catch(e) {}
+  }
+  // If still no auction, re-query from Supabase
+  if (!myAuction) {
     if (_urlAuctionId) {
       const { data: ad } = await sb.from('auctions').select('*').eq('id', _urlAuctionId).single();
       if (ad) myAuction = ad;
     }
-    // Try from room code input
     if (!myAuction) {
-      const rc = document.getElementById('roomCodeInput')?.value?.trim()?.toUpperCase();
-      if (rc && rc.length === 6) {
+      const rc = document.getElementById('roomCodeInput')?.value?.trim()?.toUpperCase()
+        || localStorage.getItem('_captxi_pendingRoom') || '';
+      if (rc.length === 6) {
         const { data: ad } = await sb.from('auctions').select('*').eq('room_code', rc).single();
         if (ad) myAuction = ad;
       }
@@ -362,11 +383,16 @@ window._msg91Success = async function(data) {
   }
 
   if (!myAuction) {
-    document.getElementById('codeErr').textContent = 'Could not find auction. Please reload and try again.';
+    document.getElementById('codeErr').textContent = 'Could not find auction. Please enter your details and try again.';
     showScreen(1);
     return;
   }
 
+  // Restore team from localStorage if lost
+  if (!myTeam) {
+    try { myTeam = JSON.parse(localStorage.getItem('_captxi_pendingTeam')); } catch(e) {}
+  }
+  // If still no team, re-query from Supabase
   if (!myTeam) {
     const { data: td } = await sb.from('teams')
       .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
@@ -374,7 +400,7 @@ window._msg91Success = async function(data) {
   }
 
   if (!myTeam) {
-    document.getElementById('codeErr').textContent = 'Could not find your team. Please reload and try again.';
+    document.getElementById('codeErr').textContent = 'Mobile not registered for this auction. Please check with your organizer.';
     showScreen(1);
     return;
   }
@@ -479,6 +505,13 @@ async function submitRoomAndMobile() {
   myTeam = { ...teamData };
   _pendingMobile = mobile;
 
+  // Persist everything in localStorage — survives popup navigation, tab switches, etc.
+  localStorage.setItem('_captxi_pendingMobile', mobile);
+  localStorage.setItem('_captxi_pendingTeam', JSON.stringify(myTeam));
+  localStorage.setItem('_captxi_pendingAuction', JSON.stringify(myAuction));
+  const rc = document.getElementById('roomCodeInput')?.value?.trim()?.toUpperCase();
+  if (rc) localStorage.setItem('_captxi_pendingRoom', rc);
+
   // Guard: ensure MSG91 widget script has loaded
   if (typeof window.sendOtp !== 'function') {
     // Wait up to 3 seconds for SDK to load
@@ -537,6 +570,10 @@ async function _createSessionAndEnter(mobile) {
 
     // Clean up pending state
     _pendingMobile = null;
+    localStorage.removeItem('_captxi_pendingMobile');
+    localStorage.removeItem('_captxi_pendingTeam');
+    localStorage.removeItem('_captxi_pendingAuction');
+    localStorage.removeItem('_captxi_pendingRoom');
 
     enterBiddingApp(newSess?.id);
   } catch(e) {
