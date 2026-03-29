@@ -404,15 +404,10 @@ let allPlayerNames = []; // flat list of all player names
       });
     }
   }
-  // If match ID in URL, resume that match directly
-  if(matchId){
-    await resumeMatch(matchId);
-  } else {
-    // Auto-resume from localStorage (no confirm dialog — just resume silently)
-    const savedMatchId = localStorage.getItem('captainxi_active_match');
-    if(savedMatchId){
-      await resumeMatch(savedMatchId);
-    }
+  // Resume match: from URL param or localStorage — always silent, no dialog
+  const resumeId = matchId || localStorage.getItem('captainxi_active_match');
+  if(resumeId){
+    await resumeMatch(resumeId);
   }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
@@ -1226,29 +1221,20 @@ function renderScoreUI(){
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
   const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
-  if(!m){alert('Match not found');return;}
+  if(!m){return;} // silently fail, stay on setup
   match=m;
-  // Always save match ID so refresh stays on scorer
-  localStorage.setItem('captainxi_active_match', id);
+  localStorage.setItem('captainxi_active_match', id); // save immediately
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
   if(!inn){
-    // Scheduled match — pre-fill setup form and stay there
-    if(m.team_a) document.getElementById('sTeamA').value = m.team_a;
-    if(m.team_b) document.getElementById('sTeamB').value = m.team_b;
-    if(m.overs_per_side) document.getElementById('sOvers').value = m.overs_per_side;
-    if(m.venue && document.getElementById('sVenue')) document.getElementById('sVenue').value = m.venue;
-    if(m.toss_winner){ updateTossDropdown(); document.getElementById('sTossWinner').value = m.toss_winner; }
-    if(m.toss_decision){ tossDecision=m.toss_decision; setToss(m.toss_decision); }
-    // Pre-fill player name hints from match_players
-    const{data:players}=await sb.from('match_players').select('*').eq('match_id',id).order('batting_order');
-    if(players&&players.length){
-      const batting = m.toss_decision==='bat' ? m.toss_winner : (m.toss_winner===m.team_a ? m.team_b : m.team_a);
-      const batters = players.filter(p=>p.team_name===batting).map(p=>p.player_name);
-      if(batters[0]&&document.getElementById('sStriker')) document.getElementById('sStriker').placeholder=batters[0];
-      if(batters[1]&&document.getElementById('sNonStriker')) document.getElementById('sNonStriker').placeholder=batters[1];
-    }
-    return;
+    // No innings yet — pre-fill setup form from match data
+    if(m.team_a) document.getElementById('sTeamA').value=m.team_a;
+    if(m.team_b) document.getElementById('sTeamB').value=m.team_b;
+    if(m.overs_per_side) document.getElementById('sOvers').value=m.overs_per_side;
+    if(m.venue && document.getElementById('sVenue')) document.getElementById('sVenue').value=m.venue;
+    if(m.toss_winner){updateTossDropdown();document.getElementById('sTossWinner').value=m.toss_winner;}
+    if(m.toss_decision){tossDecision=m.toss_decision;setToss(m.toss_decision);}
+    return; // stay on setup screen, form is pre-filled
   }
   currentInnings=inn;
 
