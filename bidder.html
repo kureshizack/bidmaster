@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <!-- GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-XXXXXXXXXX");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -31,7 +31,10 @@ var configuration = {
   }
 };
 </script>
-<script type="text/javascript" src="https://verify.msg91.com/otp-provider.js"></script>
+<script type="text/javascript"
+  src="https://verify.msg91.com/otp-provider.js"
+  onload="initSendOTP(configuration)">
+</script>
 
 <style>
 :root{--bg:#111827;--surface:#1f2937;--surface2:#27364b;--surface3:#2e3f56;--border:#3d5068;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--yellow:#eab308;--purple:#a78bfa;}
@@ -354,17 +357,15 @@ window._msg91Failure = function(error) {
   if(saved){
     try{
       const s=JSON.parse(saved);
-      if(s.token && s.team && s.auction && s.auction.status !== 'ended'){
-        myTeam=s.team; myAuction=s.auction; mySessionToken=s.token;
-        sb.from('bidder_sessions').select('id')
-          .eq('team_id',s.team.id).eq('session_token',s.token).single()
-          .then(({data,error})=>{
-            if(error||!data){ localStorage.removeItem(SESSION_KEY); location.reload(); }
-            else sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',data.id);
-          });
-        enterBiddingApp(s.sessionId||null); return;
+      const{data:sess,error}=await sb.from('bidder_sessions')
+        .select('*,teams(*,auctions(*))')
+        .eq('id',s.sessionId).eq('session_token',s.token).single();
+      if(!error&&sess&&sess.teams?.auctions?.status!=='ended'){
+        myTeam=sess.teams; myAuction=sess.teams.auctions; mySessionToken=s.token;
+        await sb.from('bidder_sessions').update({last_seen:new Date().toISOString()}).eq('id',s.sessionId);
+        enterBiddingApp(s.sessionId); return;
       }
-    }catch(e){ console.error('Session restore:',e); }
+    }catch(e){}
     localStorage.removeItem(SESSION_KEY);
   }
 
@@ -406,15 +407,7 @@ async function submitRoomAndMobile() {
   }
   btn.textContent = 'Checking...'; btn.disabled = true; errEl.textContent = '';
 
-  // Resolve auction — URL auction ID, URL room code, or manual room code input
-  if (!myAuction && _urlAuctionId) {
-    const{data}=await sb.from('auctions').select('*').eq('id',_urlAuctionId).single();
-    if(data) myAuction=data;
-  }
-  if (!myAuction && _urlRoomCode) {
-    const{data}=await sb.from('auctions').select('*').eq('room_code',_urlRoomCode.toUpperCase()).single();
-    if(data) myAuction=data;
-  }
+  // Resolve auction — pre-loaded from URL, or look up by room code
   if (!myAuction) {
     const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
     if (roomCode.length !== 6) {
@@ -445,16 +438,27 @@ async function submitRoomAndMobile() {
 
   myTeam = { ...teamData };
   _pendingMobile = mobile;
-  btn.textContent = 'Send OTP →'; btn.disabled = false;
 
-  // Re-init MSG91 widget with this mobile number as identifier.
-  // This triggers the popup at exactly the right time (after team validated).
-  if (typeof window.initSendOTP === 'function') {
-    configuration.identifier = '91' + mobile;
-    window.initSendOTP(configuration);
-  } else {
-    errEl.textContent = 'OTP service not loaded. Please refresh the page and try again.';
+  // Guard: ensure MSG91 widget script has loaded
+  if (typeof window.sendOtp !== 'function') {
+    errEl.textContent = 'OTP service loading — please try again in a moment.';
+    btn.textContent = 'Send OTP →'; btn.disabled = false; return;
   }
+
+  // Trigger MSG91 popup — it handles send + resend + verify internally
+  // On success: window._msg91Success() is called automatically
+  window.sendOtp(
+    '91' + mobile,
+    function() {
+      // OTP sent — widget popup is now open, nothing more to do here
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
+    },
+    function(error) {
+      console.error('sendOtp error:', error);
+      errEl.textContent = 'Could not send OTP. Please try again.';
+      btn.textContent = 'Send OTP →'; btn.disabled = false;
+    }
+  );
 }
 
 // ── STEP 2: Called after MSG91 confirms OTP — create session ─────────
@@ -469,15 +473,12 @@ async function _createSessionAndEnter(mobile) {
     session_token: mySessionToken
   }).select().single();
 
-  localStorage.setItem(SESSION_KEY, JSON.stringify({
-    sessionId: newSess ? newSess.id : null,
-    token: mySessionToken,
-    team: myTeam,
-    auction: myAuction
-  }));
+  if (newSess) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId: newSess.id, token: mySessionToken }));
+  }
 
   _pendingMobile = null;
-  enterBiddingApp(newSess ? newSess.id : null);
+  enterBiddingApp(newSess?.id);
 }
 
 // Keep legacy stubs so nothing else breaks
