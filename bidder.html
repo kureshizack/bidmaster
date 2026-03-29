@@ -323,6 +323,7 @@ const SESSION_KEY='captainxi_bidder_session';
 
 const MSG91_WIDGET_ID = '36634167535a323031353436';
 const MSG91_TOKEN = '503787TQBkbvNmN69c681b4P1';
+let _msg91ReqId = null;
 async function msg91Call(endpoint, extra) {
   const res = await fetch('https://control.msg91.com/api/v5/widget/' + endpoint, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -407,6 +408,8 @@ async function submitRoomAndMobile() {
       errEl.textContent = 'OTP failed: ' + (json.message || 'Try again');
       btn.textContent = 'Send OTP →'; btn.disabled = false; return;
     }
+    _msg91ReqId = json.reqId || json.request_id || null;
+    console.log('OTP sent, reqId:', _msg91ReqId);
   } catch(e) {
     errEl.textContent = 'Network error. Check connection and try again.';
     btn.textContent = 'Send OTP →'; btn.disabled = false; return;
@@ -434,7 +437,9 @@ async function verifyOtp() {
   btn.textContent = 'Verifying...'; btn.disabled = true; errEl.textContent = '';
 
   try {
-    const json = await msg91Call('verifyOtp', { identifier: '91' + mobile, otp: otp });
+    const verifyBody = { identifier: '91' + mobile, otp: otp };
+    if (_msg91ReqId) verifyBody.reqId = _msg91ReqId;
+    const json = await msg91Call('verifyOtp', verifyBody);
     const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
     if (!ok) {
       errEl.textContent = json.message || 'Invalid or expired OTP. Try again.';
