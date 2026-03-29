@@ -83,7 +83,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
 
 /* MODALS */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,36,0.92);z-index:500;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(5,10,20,0.96);z-index:500;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;}
 .modal h3{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;}
@@ -404,9 +404,21 @@ let allPlayerNames = []; // flat list of all player names
       });
     }
   }
-  // Auto-resume from URL param or localStorage — no confirm dialog
-  const resumeId = matchId || localStorage.getItem('captainxi_active_match');
-  if(resumeId){ await resumeMatch(resumeId); }
+  // If match ID passed, resume scoring
+  if(matchId){
+    await resumeMatch(matchId);
+  } else {
+    // Check localStorage for active match
+    const savedMatchId = localStorage.getItem('captainxi_active_match');
+    if(savedMatchId){
+      const resume = confirm('You have an active match in progress. Resume scoring?');
+      if(resume){
+        await resumeMatch(savedMatchId);
+      } else {
+        localStorage.removeItem('captainxi_active_match');
+      }
+    }
+  }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
     document.getElementById(id).addEventListener('input',updateTossDropdown);
@@ -498,28 +510,17 @@ async function startMatch(){
     else{bowlingFirst=tossWinner;battingFirst=tossWinner===teamA?teamB:teamA;}
   }
 
-  let m, mErr2;
-  if(match && match.id){
-    // Existing match from matches.html — just update status to live
-    const{data:upd,error:upErr}=await sb.from('matches').update({
-      team_a:teamA,team_b:teamB,overs_per_side:overs,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      venue:venue||null,status:'live',current_innings:1
-    }).eq('id',match.id).select().single();
-    m=upd; mErr2=upErr;
-  } else {
-    // Brand new match from scorer directly
-    const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
-    const{data:ins,error:insErr}=await sb.from('matches').insert({
-      auction_id:auctionId||null,team_a:teamA,team_b:teamB,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      overs_per_side:overs,venue:venue||null,
-      match_date:new Date().toISOString().split('T')[0],
-      status:'live',current_innings:1,share_code:shareCode
-    }).select().single();
-    m=ins; mErr2=insErr;
-  }
-  if(mErr2){msg.style.color='var(--red)';msg.textContent='Error: '+mErr2.message;return;}
+  // Generate share code
+  const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+
+  // Create match
+  const{data:m,error:mErr}=await sb.from('matches').insert({
+    auction_id:auctionId||null,team_a:teamA,team_b:teamB,
+    toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+    overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
+    status:'live',current_innings:1,share_code:shareCode
+  }).select().single();
+  if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
   match=m;
   localStorage.setItem('captainxi_active_match', m.id);
 
@@ -1229,22 +1230,12 @@ function renderScoreUI(){
 // RESUME MATCH (if page reloaded)
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
-  const{data:m}=await sb.from('matches').select('*').eq('id',id).maybeSingle();
-  if(!m){return;}
+  const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
+  if(!m){alert('Match not found');return;}
   match=m;
-  localStorage.setItem('captainxi_active_match',id);
 
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
-  if(!inn){
-    // No innings yet — pre-fill setup form
-    if(m.team_a)document.getElementById('sTeamA').value=m.team_a;
-    if(m.team_b)document.getElementById('sTeamB').value=m.team_b;
-    if(m.overs_per_side)document.getElementById('sOvers').value=m.overs_per_side;
-    if(m.venue&&document.getElementById('sVenue'))document.getElementById('sVenue').value=m.venue;
-    if(m.toss_winner){updateTossDropdown();document.getElementById('sTossWinner').value=m.toss_winner;}
-    if(m.toss_decision){tossDecision=m.toss_decision;setToss(m.toss_decision);}
-    return;
-  }
+  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
+  if(!inn){alert('No active innings');return;}
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
