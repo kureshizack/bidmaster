@@ -91,12 +91,12 @@ input::placeholder{color:var(--muted);}
       <div class="alt-link" style="margin-top:14px;"><a onclick="showMobileLogin()">← Back to mobile login</a></div>
     </div>
 
-    <!-- Step 2: OTP -->
+    <!-- Step 2: OTP (shared by mobile + email login) -->
     <div id="loginStep2" style="display:none;">
       <div class="otp-sent-box">
-        <div class="otp-sent-icon">📧</div>
+        <div class="otp-sent-icon" id="otpSentIcon">📱</div>
         <div class="otp-sent-title">OTP Sent!</div>
-        <div class="otp-sent-desc" id="otpSentDesc">Check your email</div>
+        <div class="otp-sent-desc" id="otpSentDesc">Check your phone</div>
       </div>
       <div class="form-group">
         <label>Enter 6-digit OTP</label>
@@ -155,7 +155,21 @@ const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+// ── MSG91 Widget API (same method as bidder.html) ────────
+const MSG91_WIDGET_ID = '36634167535a323031353436';
+const MSG91_TOKEN = '503787TQBkbvNmN69c681b4P1';
+let _msg91ReqId = null;
+
+async function msg91Call(endpoint, extra) {
+  const res = await fetch('https://control.msg91.com/api/v5/widget/' + endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ widgetId: MSG91_WIDGET_ID, tokenAuth: MSG91_TOKEN, ...extra })
+  });
+  return res.json();
+}
+
 let _loginEmail='';
+let _loginMode='mobile'; // 'mobile' or 'email'
 let _resendInterval=null;
 
 function getRedirectUrl(){
@@ -202,7 +216,7 @@ function startResendTimer(id,fnName){
 function clearResendTimer(){if(_resendInterval){clearInterval(_resendInterval);_resendInterval=null;}}
 
 // ═══════════════════════════════════════════════════════
-// ── LOGIN: MOBILE → find email → send email OTP
+// ── LOGIN: MOBILE → MSG91 SMS OTP
 // ═══════════════════════════════════════════════════════
 async function sendLoginOtp(){
   const mobile=document.getElementById('loginMobile').value.trim();
@@ -210,7 +224,7 @@ async function sendLoginOtp(){
   const btn=document.getElementById('loginOtpBtn');
   btn.textContent='Looking up...';btn.disabled=true;hideMsg();
 
-  // Find email linked to this mobile
+  // Check if account exists with this mobile
   const{data:profile}=await sb.from('profiles').select('email,name').eq('mobile',mobile).maybeSingle();
   if(!profile||!profile.email){
     showMsg('No account found with this mobile number. Please sign up first.','error');
@@ -218,20 +232,28 @@ async function sendLoginOtp(){
   }
 
   _loginEmail=profile.email;
+  _loginMode='mobile';
   btn.textContent='Sending OTP...';
 
-  // Send Supabase email OTP
-  const{error}=await sb.auth.signInWithOtp({email:_loginEmail});
-  if(error){
-    showMsg('Failed to send OTP: '+error.message,'error');
+  // Send OTP via MSG91
+  try {
+    const json = await msg91Call('sendOtp', { identifier: '91' + mobile });
+    const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
+    if (!ok) {
+      showMsg('OTP failed: ' + (json.message || 'Try again'), 'error');
+      btn.textContent='Get OTP →';btn.disabled=false;return;
+    }
+    if (json.message && json.type === 'success') _msg91ReqId = json.message;
+  } catch(e) {
+    showMsg('Network error. Check connection and try again.', 'error');
     btn.textContent='Get OTP →';btn.disabled=false;return;
   }
 
-  // Show OTP screen
-  const masked=_loginEmail.replace(/(.{2})(.*)(@.*)/,'$1***$3');
-  document.getElementById('otpSentDesc').innerHTML=
-    'We found your account! OTP sent to<br><b>'+masked+'</b><br>'+
-    '<span style="font-size:11px;color:var(--muted);">Check inbox & spam folder</span>';
+  // Show OTP screen with mobile-style messaging
+  document.getElementById('otpSentIcon').textContent = '📱';
+  document.getElementById('otpSentDesc').innerHTML =
+    'OTP sent to <b>+91 ' + mobile + '</b>' +
+    (profile.name ? '<br>Welcome back, ' + profile.name + '!' : '');
   document.getElementById('loginStep1').style.display='none';
   document.getElementById('loginEmailStep').style.display='none';
   document.getElementById('loginStep2').style.display='block';
@@ -241,18 +263,20 @@ async function sendLoginOtp(){
   btn.textContent='Get OTP →';btn.disabled=false;
 }
 
-// ── LOGIN: EMAIL DIRECT ──────────────────────────────
+// ── LOGIN: EMAIL DIRECT (Supabase email OTP — unchanged) ─
 async function sendEmailOtp(){
   const email=document.getElementById('loginEmail').value.trim();
   if(!email){showMsg('Enter your email address','error');return;}
   const btn=document.getElementById('emailOtpBtn');
   btn.textContent='Sending...';btn.disabled=true;hideMsg();
   _loginEmail=email;
+  _loginMode='email';
 
   const{error}=await sb.auth.signInWithOtp({email});
   if(error){showMsg(error.message,'error');btn.textContent='Send OTP →';btn.disabled=false;return;}
 
   const masked=email.replace(/(.{2})(.*)(@.*)/,'$1***$3');
+  document.getElementById('otpSentIcon').textContent = '📧';
   document.getElementById('otpSentDesc').innerHTML='OTP sent to <b>'+masked+'</b>. Check inbox.';
   document.getElementById('loginStep1').style.display='none';
   document.getElementById('loginEmailStep').style.display='none';
@@ -263,18 +287,68 @@ async function sendEmailOtp(){
   btn.textContent='Send OTP →';btn.disabled=false;
 }
 
-// ── LOGIN: VERIFY ────────────────────────────────────
+// ── LOGIN: VERIFY (handles both mobile + email) ─────
 async function verifyLoginOtp(){
   const token=document.getElementById('loginOtp').value.trim();
   if(token.length!==6){showMsg('Enter the 6-digit OTP','error');return;}
   const btn=document.getElementById('verifyBtn');
   btn.textContent='Verifying...';btn.disabled=true;hideMsg();
 
-  const{data,error}=await sb.auth.verifyOtp({email:_loginEmail,token,type:'email'});
-  if(error){
-    showMsg('Invalid or expired OTP. Please try again.','error');
-    btn.textContent='Verify & Login →';btn.disabled=false;return;
+  if (_loginMode === 'mobile') {
+    // ── MOBILE: Verify via MSG91, then create Supabase session via edge function
+    const mobile = document.getElementById('loginMobile').value.trim();
+
+    // Step 1: Verify OTP with MSG91
+    try {
+      const verifyBody = { identifier: '91' + mobile, otp: token };
+      if (_msg91ReqId) verifyBody.reqId = _msg91ReqId;
+      const json = await msg91Call('verifyOtp', verifyBody);
+      const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
+      if (!ok) {
+        showMsg(json.message || 'Invalid or expired OTP. Please try again.', 'error');
+        btn.textContent='Verify & Login →';btn.disabled=false;return;
+      }
+    } catch(e) {
+      showMsg('Network error. Try again.', 'error');
+      btn.textContent='Verify & Login →';btn.disabled=false;return;
+    }
+
+    // Step 2: Get Supabase auth token via edge function
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/mobile-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: JSON.stringify({ mobile })
+      });
+      const authData = await res.json();
+      if (!authData.success || !authData.token_hash) {
+        showMsg(authData.error || 'Could not create session. Try email login.', 'error');
+        btn.textContent='Verify & Login →';btn.disabled=false;return;
+      }
+
+      // Step 3: Create Supabase session with the token
+      const { error: sessErr } = await sb.auth.verifyOtp({
+        token_hash: authData.token_hash,
+        type: 'magiclink'
+      });
+      if (sessErr) {
+        showMsg('Session error: ' + sessErr.message, 'error');
+        btn.textContent='Verify & Login →';btn.disabled=false;return;
+      }
+    } catch(e) {
+      showMsg('Auth error: ' + e.message, 'error');
+      btn.textContent='Verify & Login →';btn.disabled=false;return;
+    }
+
+  } else {
+    // ── EMAIL: Verify via Supabase (unchanged)
+    const{error}=await sb.auth.verifyOtp({email:_loginEmail,token,type:'email'});
+    if(error){
+      showMsg('Invalid or expired OTP. Please try again.','error');
+      btn.textContent='Verify & Login →';btn.disabled=false;return;
+    }
   }
+
   clearResendTimer();
   window.location.href=getRedirectUrl();
 }
