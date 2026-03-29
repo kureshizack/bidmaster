@@ -321,8 +321,15 @@ const SESSION_KEY='captainxi_bidder_session';
 // No SDK loaded. No popup. Our UI. Our control.
 // ══════════════════════════════════════════════════════════
 
-const OTP_URL = SUPABASE_URL + '/functions/v1/msg91-otp';
-const OTP_HEADERS = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY };
+const MSG91_WIDGET_ID = '36634167535a323031353436';
+const MSG91_TOKEN = '503787TQBkbvNmN69c681b4P1';
+async function msg91Call(endpoint, extra) {
+  const res = await fetch('https://control.msg91.com/api/v5/widget/' + endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ widgetId: MSG91_WIDGET_ID, tokenAuth: MSG91_TOKEN, ...extra })
+  });
+  return res.json();
+}
 
 // ── INIT ─────────────────────────────────────────────────
 (async()=>{
@@ -391,13 +398,13 @@ async function submitRoomAndMobile() {
   }
   myTeam = { ...td };
 
-  // Send OTP via edge function
+  // Send OTP via MSG91 Widget API
   btn.textContent = 'Sending OTP...';
   try {
-    const res = await fetch(OTP_URL, { method: 'POST', headers: OTP_HEADERS, body: JSON.stringify({ action: 'send', mobile }) });
-    const json = await res.json();
-    if (!json.success) {
-      errEl.textContent = 'OTP failed: ' + (json.message || json.error || 'Try again');
+    const json = await msg91Call('sendOtp', { identifier: '91' + mobile });
+    const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
+    if (!ok) {
+      errEl.textContent = 'OTP failed: ' + (json.message || 'Try again');
       btn.textContent = 'Send OTP →'; btn.disabled = false; return;
     }
   } catch(e) {
@@ -427,9 +434,9 @@ async function verifyOtp() {
   btn.textContent = 'Verifying...'; btn.disabled = true; errEl.textContent = '';
 
   try {
-    const res = await fetch(OTP_URL, { method: 'POST', headers: OTP_HEADERS, body: JSON.stringify({ action: 'verify', mobile, otp }) });
-    const json = await res.json();
-    if (!json.success) {
+    const json = await msg91Call('verifyOtp', { identifier: '91' + mobile, otp: otp });
+    const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
+    if (!ok) {
       errEl.textContent = json.message || 'Invalid or expired OTP. Try again.';
       btn.textContent = 'Verify & Enter →'; btn.disabled = false; return;
     }
@@ -463,9 +470,9 @@ async function resendOtp() {
   const smsTxt = document.getElementById('smsStatusText');
   smsTxt.textContent = '📱 Resending...'; smsTxt.style.color = 'var(--blue)';
   try {
-    const res = await fetch(OTP_URL, { method: 'POST', headers: OTP_HEADERS, body: JSON.stringify({ action: 'resend', mobile }) });
-    const json = await res.json();
-    if (json.success) { smsTxt.textContent = '✅ OTP resent to +91 ' + mobile; smsTxt.style.color = 'var(--green)'; }
+    const json = await msg91Call('retryOtp', { identifier: '91' + mobile, retryType: 'text' });
+    const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
+    if (ok) { smsTxt.textContent = '✅ OTP resent to +91 ' + mobile; smsTxt.style.color = 'var(--green)'; }
     else { smsTxt.textContent = '❌ ' + (json.message || 'Resend failed. Go back and try again.'); smsTxt.style.color = 'var(--red)'; }
   } catch(e) { smsTxt.textContent = '❌ Network error. Try again.'; smsTxt.style.color = 'var(--red)'; }
 }
