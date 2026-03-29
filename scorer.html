@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <!-- GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-XXXXXXXXXX");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Live Scorer — captainXI.com</title>
@@ -1235,7 +1235,24 @@ async function resumeMatch(id){
   match=m;
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
-  if(!inn){alert('No active innings');return;}
+  if(!inn){
+    // No active innings — this is a scheduled match. Pre-fill setup form from match data.
+    if(m.team_a) document.getElementById('sTeamA').value = m.team_a;
+    if(m.team_b) document.getElementById('sTeamB').value = m.team_b;
+    if(m.overs_per_side) document.getElementById('sOvers').value = m.overs_per_side;
+    if(m.venue) document.getElementById('sVenue') && (document.getElementById('sVenue').value = m.venue);
+    if(m.toss_winner){ updateTossDropdown(); document.getElementById('sTossWinner').value = m.toss_winner; }
+    if(m.toss_decision){ tossDecision = m.toss_decision; setToss(m.toss_decision); }
+    // Pre-fill players from match_players table
+    const{data:players}=await sb.from('match_players').select('*').eq('match_id',id).order('batting_order');
+    if(players && players.length){
+      const aPlayers = players.filter(p=>p.team_name===m.team_a).map(p=>p.player_name);
+      const bPlayers = players.filter(p=>p.team_name===m.team_b).map(p=>p.player_name);
+      if(aPlayers.length && document.getElementById('sStriker')) document.getElementById('sStriker').placeholder = aPlayers[0] || 'Striker name';
+      if(aPlayers.length > 1 && document.getElementById('sNonStriker')) document.getElementById('sNonStriker').placeholder = aPlayers[1] || 'Non-striker name';
+    }
+    return; // stay on setup screen with pre-filled data
+  }
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
