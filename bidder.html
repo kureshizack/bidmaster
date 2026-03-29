@@ -431,8 +431,9 @@ async function submitRoomAndMobile() {
       errEl.textContent = 'OTP failed: ' + (json.message || 'Try again');
       btn.textContent = 'Send OTP →'; btn.disabled = false; return;
     }
-    // Update reqId if returned
-    if (json.reqId) _msg91ReqId = json.reqId;
+    // Update reqId — MSG91 returns it in the 'message' field of sendOtp
+    if (json.message && json.type === 'success') _msg91ReqId = json.message;
+    console.log('reqId for verify:', _msg91ReqId);
   } catch(e) {
     errEl.textContent = 'Network error. Check connection and try again.';
     btn.textContent = 'Send OTP →'; btn.disabled = false; return;
