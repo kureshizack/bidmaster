@@ -348,10 +348,24 @@ window._msg91Success = async function(data) {
   // If still empty, try to extract from MSG91 data (identifier field)
   if ((!mobile || mobile.length !== 10) && data) {
     const raw = data.identifier || data.mobile || data.phone || '';
-    // MSG91 sends as "91XXXXXXXXXX", strip country code
     if (typeof raw === 'string' && raw.length >= 10) {
       mobile = raw.replace(/^91/, '').replace(/^\+91/, '').slice(-10);
     }
+  }
+
+  // If still empty, decode the JWT token from MSG91 to get the identifier
+  if ((!mobile || mobile.length !== 10) && data?.message && typeof data.message === 'string') {
+    try {
+      const parts = data.message.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        console.log("JWT payload:", payload);
+        const jwtMobile = payload.identifier || payload.sub || payload.mobile || payload.phone_number || payload.phone || '';
+        if (typeof jwtMobile === 'string' && jwtMobile.length >= 10) {
+          mobile = jwtMobile.replace(/^\+?91/, '').slice(-10);
+        }
+      }
+    } catch(e) { console.log("JWT decode failed:", e); }
   }
 
   console.log("Final mobile:", mobile);
