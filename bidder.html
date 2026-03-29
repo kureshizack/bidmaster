@@ -324,12 +324,30 @@ const SESSION_KEY='captainxi_bidder_session';
 const MSG91_WIDGET_ID = '36634167535a323031353436';
 const MSG91_TOKEN = '503787TQBkbvNmN69c681b4P1';
 let _msg91ReqId = null;
+
 async function msg91Call(endpoint, extra) {
   const res = await fetch('https://control.msg91.com/api/v5/widget/' + endpoint, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ widgetId: MSG91_WIDGET_ID, tokenAuth: MSG91_TOKEN, ...extra })
   });
   return res.json();
+}
+
+// Initialize widget session to get reqId
+async function msg91Init() {
+  try {
+    const res = await fetch(
+      'https://control.msg91.com/api/v5/widget/getWidgetProcess?widgetId=' + MSG91_WIDGET_ID + '&tokenAuth=' + MSG91_TOKEN
+    );
+    const json = await res.json();
+    console.log('MSG91 init response:', json);
+    _msg91ReqId = json.reqId || json.data?.reqId || null;
+    console.log('Got reqId:', _msg91ReqId);
+    return _msg91ReqId;
+  } catch(e) {
+    console.error('MSG91 init error:', e);
+    return null;
+  }
 }
 
 // ── INIT ─────────────────────────────────────────────────
@@ -402,14 +420,19 @@ async function submitRoomAndMobile() {
   // Send OTP via MSG91 Widget API
   btn.textContent = 'Sending OTP...';
   try {
-    const json = await msg91Call('sendOtp', { identifier: '91' + mobile });
+    // Get widget session reqId if not already set
+    if (!_msg91ReqId) await msg91Init();
+    const sendBody = { identifier: '91' + mobile };
+    if (_msg91ReqId) sendBody.reqId = _msg91ReqId;
+    const json = await msg91Call('sendOtp', sendBody);
+    console.log('sendOtp response:', json);
     const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
     if (!ok) {
       errEl.textContent = 'OTP failed: ' + (json.message || 'Try again');
       btn.textContent = 'Send OTP →'; btn.disabled = false; return;
     }
-    _msg91ReqId = json.reqId || json.request_id || null;
-    console.log('OTP sent, reqId:', _msg91ReqId);
+    // Update reqId if returned
+    if (json.reqId) _msg91ReqId = json.reqId;
   } catch(e) {
     errEl.textContent = 'Network error. Check connection and try again.';
     btn.textContent = 'Send OTP →'; btn.disabled = false; return;
