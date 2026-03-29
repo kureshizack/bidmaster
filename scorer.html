@@ -357,7 +357,6 @@ const matchId=params.get('match');
 // STATE
 // ══════════════════════════════════════════════════════════
 let match=null;
-let _existingMatchId=null; // set when coming from matches.html
 let currentInnings=null;
 let battingCard=[];  // all batsmen this innings
 let bowlingCard=[];  // all bowlers this innings
@@ -405,21 +404,9 @@ let allPlayerNames = []; // flat list of all player names
       });
     }
   }
-  // If match ID passed, resume scoring
-  if(matchId){
-    await resumeMatch(matchId);
-  } else {
-    // Check localStorage for active match
-    const savedMatchId = localStorage.getItem('captainxi_active_match');
-    if(savedMatchId){
-      const resume = confirm('You have an active match in progress. Resume scoring?');
-      if(resume){
-        await resumeMatch(savedMatchId);
-      } else {
-        localStorage.removeItem('captainxi_active_match');
-      }
-    }
-  }
+  // Auto-resume from URL param or localStorage — no confirm dialog
+  const resumeId = matchId || localStorage.getItem('captainxi_active_match');
+  if(resumeId){ await resumeMatch(resumeId); }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
     document.getElementById(id).addEventListener('input',updateTossDropdown);
@@ -512,29 +499,26 @@ async function startMatch(){
   }
 
   let m, mErr2;
-
-  if(_existingMatchId){
-    // Coming from matches.html — UPDATE the existing match to live status
-    const{data:updated,error:updateErr}=await sb.from('matches').update({
-      team_a:teamA,team_b:teamB,
+  if(match && match.id){
+    // Existing match from matches.html — just update status to live
+    const{data:upd,error:upErr}=await sb.from('matches').update({
+      team_a:teamA,team_b:teamB,overs_per_side:overs,
       toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      overs_per_side:overs,venue:venue||null,
-      status:'live',current_innings:1
-    }).eq('id',_existingMatchId).select().single();
-    m=updated; mErr2=updateErr;
-    _existingMatchId=null;
+      venue:venue||null,status:'live',current_innings:1
+    }).eq('id',match.id).select().single();
+    m=upd; mErr2=upErr;
   } else {
-    // Fresh match from scorer directly
+    // Brand new match from scorer directly
     const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
-    const{data:inserted,error:insertErr}=await sb.from('matches').insert({
+    const{data:ins,error:insErr}=await sb.from('matches').insert({
       auction_id:auctionId||null,team_a:teamA,team_b:teamB,
       toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
+      overs_per_side:overs,venue:venue||null,
+      match_date:new Date().toISOString().split('T')[0],
       status:'live',current_innings:1,share_code:shareCode
     }).select().single();
-    m=inserted; mErr2=insertErr;
+    m=ins; mErr2=insErr;
   }
-
   if(mErr2){msg.style.color='var(--red)';msg.textContent='Error: '+mErr2.message;return;}
   match=m;
   localStorage.setItem('captainxi_active_match', m.id);
@@ -1245,12 +1229,22 @@ function renderScoreUI(){
 // RESUME MATCH (if page reloaded)
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
-  const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
-  if(!m){alert('Match not found');return;}
+  const{data:m}=await sb.from('matches').select('*').eq('id',id).maybeSingle();
+  if(!m){return;}
   match=m;
+  localStorage.setItem('captainxi_active_match',id);
 
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
-  if(!inn){alert('No active innings');return;}
+  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
+  if(!inn){
+    // No innings yet — pre-fill setup form
+    if(m.team_a)document.getElementById('sTeamA').value=m.team_a;
+    if(m.team_b)document.getElementById('sTeamB').value=m.team_b;
+    if(m.overs_per_side)document.getElementById('sOvers').value=m.overs_per_side;
+    if(m.venue&&document.getElementById('sVenue'))document.getElementById('sVenue').value=m.venue;
+    if(m.toss_winner){updateTossDropdown();document.getElementById('sTossWinner').value=m.toss_winner;}
+    if(m.toss_decision){tossDecision=m.toss_decision;setToss(m.toss_decision);}
+    return;
+  }
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
