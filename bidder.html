@@ -336,21 +336,50 @@ let _pendingMobile = null;
 window._msg91Success = async function(data) {
   console.log("MSG91 OTP verified ✅", data);
 
-  // Restore from sessionStorage if memory vars were lost
-  if (!_pendingMobile) _pendingMobile = sessionStorage.getItem('_captxi_pendingMobile');
-  if (!myTeam) {
-    try { myTeam = JSON.parse(sessionStorage.getItem('_captxi_pendingTeam')); } catch(e) {}
-  }
-  if (!myAuction) {
-    try { myAuction = JSON.parse(sessionStorage.getItem('_captxi_pendingAuction')); } catch(e) {}
-  }
-
-  if (!_pendingMobile || !myTeam || !myAuction) {
-    document.getElementById('codeErr').textContent = 'Session expired — please enter your details and try again.';
+  // Read mobile from the input field directly (DOM always survives)
+  const mobile = document.getElementById('mobileInput').value.trim();
+  if (!mobile || mobile.length !== 10) {
+    document.getElementById('codeErr').textContent = 'Could not read mobile number. Please reload and try again.';
     showScreen(1);
     return;
   }
-  await _createSessionAndEnter(_pendingMobile);
+
+  // If myTeam/myAuction were lost, re-query from Supabase
+  if (!myAuction) {
+    // Try from URL param first
+    if (_urlAuctionId) {
+      const { data: ad } = await sb.from('auctions').select('*').eq('id', _urlAuctionId).single();
+      if (ad) myAuction = ad;
+    }
+    // Try from room code input
+    if (!myAuction) {
+      const rc = document.getElementById('roomCodeInput')?.value?.trim()?.toUpperCase();
+      if (rc && rc.length === 6) {
+        const { data: ad } = await sb.from('auctions').select('*').eq('room_code', rc).single();
+        if (ad) myAuction = ad;
+      }
+    }
+  }
+
+  if (!myAuction) {
+    document.getElementById('codeErr').textContent = 'Could not find auction. Please reload and try again.';
+    showScreen(1);
+    return;
+  }
+
+  if (!myTeam) {
+    const { data: td } = await sb.from('teams')
+      .select('*').eq('auction_id', myAuction.id).eq('captain_mobile', mobile).single();
+    if (td) myTeam = { ...td };
+  }
+
+  if (!myTeam) {
+    document.getElementById('codeErr').textContent = 'Could not find your team. Please reload and try again.';
+    showScreen(1);
+    return;
+  }
+
+  await _createSessionAndEnter(mobile);
 };
 
 // Called by MSG91 widget on failure
@@ -450,11 +479,6 @@ async function submitRoomAndMobile() {
   myTeam = { ...teamData };
   _pendingMobile = mobile;
 
-  // Persist in sessionStorage so MSG91 callback can restore if needed
-  sessionStorage.setItem('_captxi_pendingMobile', mobile);
-  sessionStorage.setItem('_captxi_pendingTeam', JSON.stringify(myTeam));
-  sessionStorage.setItem('_captxi_pendingAuction', JSON.stringify(myAuction));
-
   // Guard: ensure MSG91 widget script has loaded
   if (typeof window.sendOtp !== 'function') {
     // Wait up to 3 seconds for SDK to load
@@ -513,9 +537,6 @@ async function _createSessionAndEnter(mobile) {
 
     // Clean up pending state
     _pendingMobile = null;
-    sessionStorage.removeItem('_captxi_pendingMobile');
-    sessionStorage.removeItem('_captxi_pendingTeam');
-    sessionStorage.removeItem('_captxi_pendingAuction');
 
     enterBiddingApp(newSess?.id);
   } catch(e) {
