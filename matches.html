@@ -225,6 +225,38 @@ select.form-input option{background:var(--surface2);}
         </div>
       </div>
 
+      <div class="section-divider">Team Logos (Optional)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Team A Logo URL</label>
+          <input class="form-input" id="fLogoA" type="url" placeholder="https://...image.png">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team B Logo URL</label>
+          <input class="form-input" id="fLogoB" type="url" placeholder="https://...image.png">
+        </div>
+      </div>
+
+      <div class="section-divider">Sponsor / Branding (Optional)</div>
+      <div class="form-group">
+        <label class="form-label">Branding Text (shown on scorecard header)</label>
+        <input class="form-input" id="fBranding" type="text" placeholder="e.g. Presented by XYZ Cricket Club" maxlength="80">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sponsor Name (on banner)</label>
+          <input class="form-input" id="fSponsorName" type="text" placeholder="e.g. Star Sports" maxlength="40">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ad Text (footer)</label>
+          <input class="form-input" id="fAdText" type="text" placeholder="Visit our website" maxlength="60">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ad Link URL (optional)</label>
+        <input class="form-input" id="fAdUrl" type="url" placeholder="https://...">
+      </div>
+
       <div class="section-divider">Playing XI</div>
 
       <div class="form-group">
@@ -392,6 +424,12 @@ function openCreateModal() {
   document.getElementById('fTossWinner').value = '';
   document.getElementById('fPlayersA').value = '';
   document.getElementById('fPlayersB').value = '';
+  document.getElementById('fLogoA').value = '';
+  document.getElementById('fLogoB').value = '';
+  document.getElementById('fBranding').value = '';
+  document.getElementById('fSponsorName').value = '';
+  document.getElementById('fAdText').value = '';
+  document.getElementById('fAdUrl').value = '';
   document.getElementById('modalErr').textContent = '';
   document.getElementById('tossDecisionGroup').style.display = 'none';
   document.getElementById('tBat').classList.remove('selected');
@@ -462,7 +500,13 @@ async function saveMatch() {
     status: 'scheduled',
     share_code: shareCode,
     auction_id: auctionId,
-    created_by: currentUser.id
+    created_by: currentUser.id,
+    team_a_logo: document.getElementById('fLogoA').value.trim() || null,
+    team_b_logo: document.getElementById('fLogoB').value.trim() || null,
+    branding_text: document.getElementById('fBranding').value.trim() || null,
+    sponsor_name: document.getElementById('fSponsorName').value.trim() || null,
+    ad_text: document.getElementById('fAdText').value.trim() || null,
+    ad_url: document.getElementById('fAdUrl').value.trim() || null,
   };
 
   const { data: match, error } = await sb.from('matches')

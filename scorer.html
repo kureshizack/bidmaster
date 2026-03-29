@@ -12,6 +12,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--surface3:#2e3f5a;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
+[data-theme="light"]{--bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf3;--surface3:#dce4ee;--border:#c8d5e2;--accent:#d97706;--text:#1a2535;--muted:#64748b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--yellow:#ca8a04;--purple:#7c3aed;}
+body{transition:background 0.25s,color 0.25s;}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:18px;cursor:pointer;line-height:1;transition:all 0.2s;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
 body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;}
 
@@ -175,8 +178,20 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 <!-- ══════════════════════════════════════════════════════ -->
 <div id="scoringScreen" style="display:none;">
 
+  <!-- Sponsor banner — shown on boundary/wicket -->
+  <div id="sponsorBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:900;padding:10px 16px;text-align:center;background:linear-gradient(90deg,#d97706,#b45309);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideDown 0.3s ease;">
+    <span id="sponsorBannerText">🏏 Powered by captainXI.com</span>
+  </div>
+  <style>
+  @keyframes slideDown{from{transform:translateY(-100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  @keyframes slideUp{from{transform:translateY(0);opacity:1;}to{transform:translateY(-100%);opacity:0;}}
+  </style>
+
   <!-- Score header -->
   <div class="score-header">
+    <div style="display:flex;justify-content:flex-end;padding:4px 10px 0;gap:8px;">
+      <button class="theme-btn" onclick="toggleScorerTheme()" id="scorerThemeBtn">☀️</button>
+    </div>
     <div class="score-teams">
       <div class="score-team batting" id="hBattingTeam">Team A</div>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -404,9 +419,21 @@ let allPlayerNames = []; // flat list of all player names
       });
     }
   }
-  // Auto-resume from URL param or localStorage — no confirm dialog
-  const resumeId = matchId || localStorage.getItem('captainxi_active_match');
-  if(resumeId){ await resumeMatch(resumeId); }
+  // If match ID passed, resume scoring
+  if(matchId){
+    await resumeMatch(matchId);
+  } else {
+    // Check localStorage for active match
+    const savedMatchId = localStorage.getItem('captainxi_active_match');
+    if(savedMatchId){
+      const resume = confirm('You have an active match in progress. Resume scoring?');
+      if(resume){
+        await resumeMatch(savedMatchId);
+      } else {
+        localStorage.removeItem('captainxi_active_match');
+      }
+    }
+  }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
     document.getElementById(id).addEventListener('input',updateTossDropdown);
@@ -498,28 +525,17 @@ async function startMatch(){
     else{bowlingFirst=tossWinner;battingFirst=tossWinner===teamA?teamB:teamA;}
   }
 
-  let m, mErr2;
-  if(match && match.id){
-    // Came from matches.html — UPDATE the existing match to live
-    const{data:upd,error:upErr}=await sb.from('matches').update({
-      team_a:teamA,team_b:teamB,overs_per_side:overs,venue:venue||null,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      status:'live',current_innings:1
-    }).eq('id',match.id).select().single();
-    m=upd; mErr2=upErr;
-  } else {
-    // Fresh match started directly from scorer
-    const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
-    const{data:ins,error:insErr}=await sb.from('matches').insert({
-      auction_id:auctionId||null,team_a:teamA,team_b:teamB,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-      overs_per_side:overs,venue:venue||null,
-      match_date:new Date().toISOString().split('T')[0],
-      status:'live',current_innings:1,share_code:shareCode
-    }).select().single();
-    m=ins; mErr2=insErr;
-  }
-  if(mErr2){msg.style.color='var(--red)';msg.textContent='Error: '+mErr2.message;return;}
+  // Generate share code
+  const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+
+  // Create match
+  const{data:m,error:mErr}=await sb.from('matches').insert({
+    auction_id:auctionId||null,team_a:teamA,team_b:teamB,
+    toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+    overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
+    status:'live',current_innings:1,share_code:shareCode
+  }).select().single();
+  if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
   match=m;
   localStorage.setItem('captainxi_active_match', m.id);
 
@@ -815,6 +831,7 @@ async function finalizeWicket(){
   outPlayer.fielder_name=fielder||null;
   outPlayer.dismissal_text=dismissalText;
   outPlayer.balls_faced+=isRunOut&&pendingRunOutWho==='nonstriker'?0:1;
+  showSponsorBanner('wicket');
   await sb.from('batting_card').update({is_out:true,is_on_crease:false,dismissal_type:pendingWicketType,bowler_name:bowler.player_name,fielder_name:fielder||null,dismissal_text:dismissalText,balls_faced:outPlayer.balls_faced,is_striker:false}).eq('id',outPlayer.id);
 
   // Update bowler (run out doesn't count as bowler's wicket)
@@ -1139,8 +1156,8 @@ function generateCommentary(outcome,runs){
   if(outcome==='1')return bName+' to '+name+', pushed for a single.';
   if(outcome==='2')return bName+' to '+name+', taken 2 runs.';
   if(outcome==='3')return bName+' to '+name+', excellent running! 3 runs.';
-  if(outcome==='4')return '🏏 FOUR! '+name+' finds the boundary! '+bName+' expensive.';
-  if(outcome==='6')return '💥 SIX! '+name+' smashes it out of the park!';
+  if(outcome==='4'){setTimeout(()=>showSponsorBanner('four'),100);return '🏏 FOUR! '+name+' finds the boundary! '+bName+' expensive.';}
+  if(outcome==='6'){setTimeout(()=>showSponsorBanner('six'),100);return '💥 SIX! '+name+' smashes it out of the park!';}
   return bName+' to '+name+', '+runs+' run'+(runs>1?'s':'')+'.';
 }
 
@@ -1229,22 +1246,12 @@ function renderScoreUI(){
 // RESUME MATCH (if page reloaded)
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
-  const{data:m}=await sb.from('matches').select('*').eq('id',id).maybeSingle();
-  if(!m){return;}
+  const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
+  if(!m){alert('Match not found');return;}
   match=m;
-  localStorage.setItem('captainxi_active_match',id);
 
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
-  if(!inn){
-    // No innings yet — pre-fill setup form from match data
-    if(m.team_a) document.getElementById('sTeamA').value=m.team_a;
-    if(m.team_b) document.getElementById('sTeamB').value=m.team_b;
-    if(m.overs_per_side) document.getElementById('sOvers').value=m.overs_per_side;
-    if(m.venue&&document.getElementById('sVenue')) document.getElementById('sVenue').value=m.venue;
-    if(m.toss_winner){updateTossDropdown();document.getElementById('sTossWinner').value=m.toss_winner;}
-    if(m.toss_decision){tossDecision=m.toss_decision;setToss(m.toss_decision);}
-    return; // stay on setup screen, ready to fill opener names
-  }
+  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
+  if(!inn){alert('No active innings');return;}
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
@@ -1266,6 +1273,36 @@ async function resumeMatch(id){
   document.getElementById('scoringScreen').style.display='block';
   renderScoreUI();
   addCommentary('📱 Scoring resumed.');
+}
+
+// ── THEME ────────────────────────────────────────────────────────────
+(function(){
+  const t=localStorage.getItem('cxi_scorer_theme')||'dark';
+  if(t==='light'){ document.documentElement.setAttribute('data-theme','light'); document.getElementById('scorerThemeBtn').textContent='🌙'; }
+})();
+function toggleScorerTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('cxi_scorer_theme',next);
+  document.getElementById('scorerThemeBtn').textContent=next==='light'?'🌙':'☀️';
+}
+
+// ── SPONSOR BANNER ────────────────────────────────────────────────────
+function showSponsorBanner(event){
+  const banner=document.getElementById('sponsorBanner');
+  const txt=document.getElementById('sponsorBannerText');
+  const sponsorName=(match&&match.sponsor_name)||'captainXI.com';
+  if(event==='four') txt.textContent='🏏 FOUR! Brought to you by '+sponsorName;
+  else if(event==='six') txt.textContent='💥 SIX! Powered by '+sponsorName;
+  else if(event==='wicket') txt.textContent='🎯 WICKET! Presented by '+sponsorName;
+  banner.style.display='block';
+  banner.style.animation='slideDown 0.3s ease';
+  clearTimeout(window._sponsorTimer);
+  window._sponsorTimer=setTimeout(()=>{
+    banner.style.animation='slideUp 0.3s ease forwards';
+    setTimeout(()=>{ banner.style.display='none'; },300);
+  },3000);
 }
 </script>
 </body>
