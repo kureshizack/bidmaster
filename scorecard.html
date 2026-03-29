@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <!-- GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-XXXXXXXXXX");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Scorecard — captainXI.com</title>
@@ -190,11 +190,20 @@ footer a{color:var(--accent);text-decoration:none;}
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const matchId=new URLSearchParams(window.location.search).get('match');
-
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
+let matchId=null; // hoisted so loadAll() can use it
 
 (async()=>{
+  // Support both ?match=UUID and ?code=SHARECODE
+  const _p=new URLSearchParams(window.location.search);
+  matchId=_p.get('match');
+  if(!matchId){
+    const code=_p.get('code');
+    if(code){
+      const{data:_m}=await sb.from('matches').select('id').eq('share_code',code).single();
+      if(_m) matchId=_m.id;
+    }
+  }
   if(!matchId){document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">No match specified.</div>';return;}
   await loadAll();
   subscribeRealtime();
