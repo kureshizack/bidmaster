@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <!-- GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-XXXXXXXXXX");</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Scorecard — captainXI.com</title>
@@ -194,6 +194,7 @@ let matchId=null;
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
 
 (async()=>{
+  // Support ?match=UUID (from scorer share) and ?code=SHARECODE (from matches.html)
   const _p=new URLSearchParams(window.location.search);
   matchId=_p.get('match');
   if(!matchId){
@@ -203,16 +204,20 @@ let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
       if(_m) matchId=_m.id;
     }
   }
-  if(!matchId){document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">No match specified.</div>';return;}
+  if(!matchId){
+    document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">No match specified.</div>';
+    return;
+  }
   await loadAll();
   subscribeRealtime();
-  // Polling fallback every 5 seconds in case realtime fails
-  setInterval(loadAll, 5000);
+  // Poll every 4 seconds — guarantees updates even if realtime websocket fails
+  setInterval(loadAll, 4000);
 })();
 
 async function loadAll(){
+  if(!matchId) return;
   const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
-  if(!m){return;}
+  if(!m) return;
   matchData=m;
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number',{ascending:false}).limit(1).maybeSingle();
@@ -245,18 +250,15 @@ function subscribeRealtime(){
 }
 
 function renderAll(){
-  if(!matchData)return;
-  // Show match even before innings
+  if(!matchData) return;
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('scoreScreen').style.display='block';
-  if(!inningsData){
-    // No innings yet — show 0/0 with team names
-    const ta=document.getElementById('hTeamA');
-    const tb=document.getElementById('hTeamB');
-    if(ta)ta.textContent=matchData.team_a||'Team A';
-    if(tb)tb.textContent=matchData.team_b||'Team B';
-    return;
-  }
+  // Always show team names
+  const elA=document.getElementById('hTeamA');
+  const elB=document.getElementById('hTeamB');
+  if(elA) elA.textContent=matchData.team_a||'Team A';
+  if(elB) elB.textContent=matchData.team_b||'Team B';
+  if(!inningsData) return; // waiting for first ball
   const inn=inningsData;
 
   // Status
