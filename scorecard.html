@@ -190,8 +190,8 @@ footer a{color:var(--accent);text-decoration:none;}
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let matchId=null;
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
-let matchId=null; // hoisted so loadAll() can use it
 
 (async()=>{
   // Support both ?match=UUID and ?code=SHARECODE
@@ -200,7 +200,7 @@ let matchId=null; // hoisted so loadAll() can use it
   if(!matchId){
     const code=_p.get('code');
     if(code){
-      const{data:_m}=await sb.from('matches').select('id').eq('share_code',code).single();
+      const{data:_m}=await sb.from('matches').select('id').eq('share_code',code).maybeSingle();
       if(_m) matchId=_m.id;
     }
   }
@@ -210,12 +210,12 @@ let matchId=null; // hoisted so loadAll() can use it
 })();
 
 async function loadAll(){
-  const{data:m}=await sb.from('matches').select('*').eq('id',matchId).single();
+  const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
   if(!m){document.getElementById('loadingScreen').innerHTML='<div style="color:var(--red);padding:40px;text-align:center;">Match not found.</div>';return;}
   matchData=m;
 
-  // Load current innings (or latest)
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number',{ascending:false}).limit(1).single();
+  // Load current innings — use maybeSingle to avoid 406 when no innings yet
+  const{data:inn}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number',{ascending:false}).limit(1).maybeSingle();
   inningsData=inn;
 
   if(inn){
@@ -245,7 +245,23 @@ function subscribeRealtime(){
 }
 
 function renderAll(){
-  if(!inningsData)return;
+  // Always render match header even without innings
+  if(matchData){
+    const hTeamA=document.getElementById('hTeamA');
+    const hTeamB=document.getElementById('hTeamB');
+    if(hTeamA) hTeamA.textContent=matchData.team_a||'Team A';
+    if(hTeamB) hTeamB.textContent=matchData.team_b||'Team B';
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('scoreScreen').style.display='block';
+  }
+  if(!inningsData){
+    // No innings yet — show match about to start
+    const sc=document.getElementById('hScore');
+    if(sc) sc.textContent='0';
+    const wk=document.getElementById('hWickets');
+    if(wk) wk.textContent='0';
+    return;
+  }
   const inn=inningsData;
 
   // Status
