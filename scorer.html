@@ -357,6 +357,7 @@ const matchId=params.get('match');
 // STATE
 // ══════════════════════════════════════════════════════════
 let match=null;
+let _existingMatchId=null; // set when coming from matches.html
 let currentInnings=null;
 let battingCard=[];  // all batsmen this innings
 let bowlingCard=[];  // all bowlers this innings
@@ -404,10 +405,20 @@ let allPlayerNames = []; // flat list of all player names
       });
     }
   }
-  // Resume match: from URL param or localStorage — always silent, no dialog
-  const resumeId = matchId || localStorage.getItem('captainxi_active_match');
-  if(resumeId){
-    await resumeMatch(resumeId);
+  // If match ID passed, resume scoring
+  if(matchId){
+    await resumeMatch(matchId);
+  } else {
+    // Check localStorage for active match
+    const savedMatchId = localStorage.getItem('captainxi_active_match');
+    if(savedMatchId){
+      const resume = confirm('You have an active match in progress. Resume scoring?');
+      if(resume){
+        await resumeMatch(savedMatchId);
+      } else {
+        localStorage.removeItem('captainxi_active_match');
+      }
+    }
   }
   // Update toss dropdown when teams entered
   ['sTeamA','sTeamB'].forEach(id=>{
@@ -500,17 +511,31 @@ async function startMatch(){
     else{bowlingFirst=tossWinner;battingFirst=tossWinner===teamA?teamB:teamA;}
   }
 
-  // Generate share code
-  const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+  let m, mErr2;
 
-  // Create match
-  const{data:m,error:mErr}=await sb.from('matches').insert({
-    auction_id:auctionId||null,team_a:teamA,team_b:teamB,
-    toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-    overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
-    status:'live',current_innings:1,share_code:shareCode
-  }).select().single();
-  if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
+  if(_existingMatchId){
+    // Coming from matches.html — UPDATE the existing match to live status
+    const{data:updated,error:updateErr}=await sb.from('matches').update({
+      team_a:teamA,team_b:teamB,
+      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      overs_per_side:overs,venue:venue||null,
+      status:'live',current_innings:1
+    }).eq('id',_existingMatchId).select().single();
+    m=updated; mErr2=updateErr;
+    _existingMatchId=null;
+  } else {
+    // Fresh match from scorer directly
+    const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+    const{data:inserted,error:insertErr}=await sb.from('matches').insert({
+      auction_id:auctionId||null,team_a:teamA,team_b:teamB,
+      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
+      status:'live',current_innings:1,share_code:shareCode
+    }).select().single();
+    m=inserted; mErr2=insertErr;
+  }
+
+  if(mErr2){msg.style.color='var(--red)';msg.textContent='Error: '+mErr2.message;return;}
   match=m;
   localStorage.setItem('captainxi_active_match', m.id);
 
@@ -1221,21 +1246,11 @@ function renderScoreUI(){
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
   const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
-  if(!m){return;} // silently fail, stay on setup
+  if(!m){alert('Match not found');return;}
   match=m;
-  localStorage.setItem('captainxi_active_match', id); // save immediately
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
-  if(!inn){
-    // No innings yet — pre-fill setup form from match data
-    if(m.team_a) document.getElementById('sTeamA').value=m.team_a;
-    if(m.team_b) document.getElementById('sTeamB').value=m.team_b;
-    if(m.overs_per_side) document.getElementById('sOvers').value=m.overs_per_side;
-    if(m.venue && document.getElementById('sVenue')) document.getElementById('sVenue').value=m.venue;
-    if(m.toss_winner){updateTossDropdown();document.getElementById('sTossWinner').value=m.toss_winner;}
-    if(m.toss_decision){tossDecision=m.toss_decision;setToss(m.toss_decision);}
-    return; // stay on setup screen, form is pre-filled
-  }
+  if(!inn){alert('No active innings');return;}
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
