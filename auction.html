@@ -1524,7 +1524,7 @@ async function sendSaleAlertToAllCaptains(player, winningTeam, amount) {
     const msg = isWinner
       ? '🔨 *' + player.name + '* SOLD to *' + team.name + '* for ₹' + Number(amount).toLocaleString('en-IN') + '!\nRemaining: ₹' + Number(team.credits - amount).toLocaleString('en-IN')
       : '🔨 *' + player.name + '* sold to ' + winningTeam.name + ' for ₹' + Number(amount).toLocaleString('en-IN') + '.\nYour budget: ₹' + Number(team.credits).toLocaleString('en-IN');
-    // Log (actual SMS/WhatsApp sending via Fast2SMS happens separately)
+    // Log alert for WhatsApp notification
     await sb.from('whatsapp_alerts').insert({
       auction_id: auctionId,
       alert_type: 'player_sold',

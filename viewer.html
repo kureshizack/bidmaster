@@ -325,16 +325,7 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// 🔧 DEV MODE — flip to false before going live
-const DEV_MODE = false;
-// ══════════════════════════════════════════════════════════
-
-// ── FAST2SMS CONFIG ──────────────────────────────────────
-const FAST2SMS_API_KEY  = 'YOUR_FAST2SMS_API_KEY';
-const FAST2SMS_SENDER   = 'AUCTNX';
-const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';
-// ════════════════════════════════════════════════════════════
+// ── SUPABASE CONFIG ──────────────────────────────────────
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -431,31 +422,9 @@ async function sendViewerOtp() {
 
   statusBox.style.display = 'block';
 
-  if (DEV_MODE || FAST2SMS_API_KEY === 'YOUR_FAST2SMS_API_KEY' || !FAST2SMS_API_KEY) {
-    // No SMS configured — show OTP directly on screen
-    statusTxt.style.color = 'var(--accent)';
-    statusTxt.innerHTML = '🔑 Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:30px;letter-spacing:8px;color:var(--accent);display:block;margin-top:4px;">' + _viewerOtp + '</b><span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Enter this code above to join</span>';
-    btn.textContent = 'Send OTP →'; btn.disabled = false;
-    return;
-  }
-
-  // PRODUCTION — send real SMS
-  statusTxt.textContent = '📱 Sending OTP...';
-  try {
-    const smsMsg = encodeURIComponent('Your captainXI.com viewer OTP is: ' + _viewerOtp + '. Valid 10 min. Do not share.');
-    const res = await fetch('https://www.fast2sms.com/dev/bulkV2?authorization=' + FAST2SMS_API_KEY + '&route=dlt&sender_id=' + FAST2SMS_SENDER + '&message=' + smsMsg + '&template_id=' + FAST2SMS_TMPL_ID + '&flash=0&numbers=' + mobile);
-    const json = await res.json();
-    if (json.return === true) {
-      statusTxt.textContent = '✅ OTP sent to +91 ' + mobile;
-      statusTxt.style.color = 'var(--green)';
-    } else {
-      statusTxt.style.color = 'var(--yellow)';
-      statusTxt.innerHTML = '⚠️ SMS failed — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + _viewerOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
-    }
-  } catch(e) {
-    statusTxt.style.color = 'var(--yellow)';
-    statusTxt.innerHTML = '⚠️ SMS unavailable — your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:22px;letter-spacing:4px;color:var(--accent);">' + _viewerOtp + '</b><br><span style="font-size:11px;color:var(--muted);">Screenshot this and enter above</span>';
-  }
+  // Show OTP directly on screen
+  statusTxt.style.color = 'var(--accent)';
+  statusTxt.innerHTML = '🔑 Your OTP: <b style="font-family:\'Rajdhani\',sans-serif;font-size:30px;letter-spacing:8px;color:var(--accent);display:block;margin-top:4px;">' + _viewerOtp + '</b><span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">Enter this code above to join</span>';
   btn.textContent = 'Send OTP →'; btn.disabled = false;
 }
 

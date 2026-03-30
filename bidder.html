@@ -295,11 +295,6 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 </div>
 
 <script>
-// ══════════════════════════════════════════════════════════
-// 🔧 DEV MODE — flip to false before going live
-const DEV_MODE = false;
-// ══════════════════════════════════════════════════════════
-
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
@@ -340,12 +335,9 @@ async function msg91Init() {
       'https://control.msg91.com/api/v5/widget/getWidgetProcess?widgetId=' + MSG91_WIDGET_ID + '&tokenAuth=' + MSG91_TOKEN
     );
     const json = await res.json();
-    console.log('MSG91 init response:', json);
     _msg91ReqId = json.reqId || json.data?.reqId || null;
-    console.log('Got reqId:', _msg91ReqId);
     return _msg91ReqId;
   } catch(e) {
-    console.error('MSG91 init error:', e);
     return null;
   }
 }
@@ -425,7 +417,6 @@ async function submitRoomAndMobile() {
     const sendBody = { identifier: '91' + mobile };
     if (_msg91ReqId) sendBody.reqId = _msg91ReqId;
     const json = await msg91Call('sendOtp', sendBody);
-    console.log('sendOtp response:', json);
     const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
     if (!ok) {
       errEl.textContent = 'OTP failed: ' + (json.message || 'Try again');
@@ -433,7 +424,6 @@ async function submitRoomAndMobile() {
     }
     // Update reqId — MSG91 returns it in the 'message' field of sendOtp
     if (json.message && json.type === 'success') _msg91ReqId = json.message;
-    console.log('reqId for verify:', _msg91ReqId);
   } catch(e) {
     errEl.textContent = 'Network error. Check connection and try again.';
     btn.textContent = 'Send OTP →'; btn.disabled = false; return;

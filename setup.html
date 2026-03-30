@@ -430,21 +430,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 
     <div id="registeredPlayersList" style="display:none;margin-top:4px;"></div>
 
-    <!-- SMS blast -->
+    <!-- Share viewer link -->
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📲 Send viewer link to ALL registered players via SMS:</div>
-      <button class="btn btn-primary btn-sm" onclick="sendSMSToAll()" id="smsBtn" style="width:100%;">🚀 Send Viewer Link via SMS</button>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">📲 Share viewer link with registered players:</div>
+      <button class="btn btn-primary btn-sm" onclick="sendSMSToAll()" id="smsBtn" style="width:100%;">📋 Copy Viewer Link for WhatsApp</button>
       <div id="smsMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
-      <!-- Fast2SMS test — DEV only -->
-      <div id="smsTestPanel" style="display:none;margin-top:10px;background:rgba(107,33,168,0.1);border:1px solid #a78bfa;border-radius:8px;padding:10px;">
-        <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:6px;">🔧 Dev — Test SMS Delivery</div>
-        <div style="display:flex;gap:6px;">
-          <input type="tel" id="smsTestMobile" placeholder="Test mobile number" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'')"
-            style="flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:13px;outline:none;">
-          <button onclick="testSMS()" style="padding:6px 12px;background:#6b21a8;color:#fff;border:none;border-radius:5px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">Send Test</button>
-        </div>
-        <div id="smsTestResult" style="font-size:12px;margin-top:6px;min-height:14px;"></div>
-      </div>
     </div>
   </div>
 
@@ -576,34 +566,7 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   startBidderTracking();
 })();
 
-async function testSMS() {
-  const mobile = document.getElementById('smsTestMobile').value.trim();
-  const resultEl = document.getElementById('smsTestResult');
-  if (!mobile || mobile.length !== 10) {
-    resultEl.style.color = 'var(--red)'; resultEl.textContent = '❌ Enter valid 10-digit mobile'; return;
-  }
-  if (FAST2SMS_KEY === 'YOUR_FAST2SMS_API_KEY' || !FAST2SMS_KEY) {
-    resultEl.style.color = 'var(--red)';
-    resultEl.textContent = '❌ Fast2SMS key not set — replace YOUR_FAST2SMS_API_KEY in setup.html, bidder.html, viewer.html';
-    return;
-  }
-  resultEl.style.color = 'var(--accent)'; resultEl.textContent = '⏳ Sending test SMS...';
-  try {
-    const msg = encodeURIComponent('captainXI.com test SMS. If you got this, Fast2SMS is working! ✅');
-    const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${msg}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${mobile}`);
-    const json = await res.json();
-    if (json.return === true) {
-      resultEl.style.color = 'var(--green)';
-      resultEl.textContent = '✅ SMS sent! Fast2SMS is working. Check +91 ' + mobile;
-    } else {
-      resultEl.style.color = 'var(--red)';
-      resultEl.textContent = '❌ Fast2SMS error: ' + (json.message || JSON.stringify(json));
-    }
-  } catch(e) {
-    resultEl.style.color = 'var(--red)';
-    resultEl.textContent = '❌ Network error: ' + e.message;
-  }
-}
+
 
 async function loadAuction() {
   const { data } = await sb.from('auctions').select('*').eq('id', auctionId).single();
@@ -1828,11 +1791,6 @@ function autofillCaptainMobile() {
 }
 
 // ── REGISTRATION PORTAL ───────────────────────────────────
-// ── FAST2SMS CONFIG — fill these in before going live ─────
-const FAST2SMS_KEY      = 'YOUR_FAST2SMS_API_KEY';   // API key from fast2sms.com
-const FAST2SMS_SENDER   = 'AUCTNX';                   // 6-char DLT Sender ID
-const FAST2SMS_TMPL_ID  = 'YOUR_TEMPLATE_ID';          // DLT Template ID
-// ──────────────────────────────────────────────────────────
 
 async function initRegPortal() {
   if (!auctionId) return;
@@ -2126,60 +2084,24 @@ async function importAllPlayers() {
 
 async function sendSMSToAll() {
   if (!auction?.room_code) { alert('Go Live first to get the viewer link.'); return; }
-  const btn = document.getElementById('smsBtn');
   const msgEl = document.getElementById('smsMsg');
   const viewerUrl = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
 
-  // Check if Fast2SMS is configured
-  const smsConfigured = FAST2SMS_KEY && FAST2SMS_KEY !== 'YOUR_FAST2SMS_API_KEY';
-
-  if (!smsConfigured) {
-    // Fallback — copy WhatsApp message with viewer link for all players
-    const { data: players } = await sb.from('player_registrations')
-      .select('name,mobile').eq('auction_id', auctionId);
-    const count = players?.length || 0;
-    const msg = '🏏 *' + (auction.name || 'Auction') + '* is LIVE!\n\n' +
-      '📺 Watch the auction live:\n' + viewerUrl + '\n\n' +
-      'Enter your registered mobile number + OTP to join.\n\n' +
-      'Powered by captainXI.com 🏏';
-    try {
-      await navigator.clipboard.writeText(msg);
-      msgEl.style.color = 'var(--green)';
-      msgEl.innerHTML = '✅ WhatsApp message copied! Paste in your players WhatsApp group (' + count + ' registered).' +
-        '<br><span style="font-size:11px;color:var(--muted);">SMS not configured — <a href="https://www.fast2sms.com" target="_blank" style="color:var(--blue);">Setup Fast2SMS</a> for auto-sending to each player.</span>';
-    } catch(e) {
-      msgEl.style.color = 'var(--accent)';
-      msgEl.innerHTML = '📋 Copy this viewer link and share on WhatsApp:<br><span style="font-family:monospace;font-size:11px;color:var(--accent);word-break:break-all;">' + viewerUrl + '</span>';
-    }
-    return;
-  }
-
-  btn.textContent = 'Sending...'; btn.disabled = true;
   const { data: players } = await sb.from('player_registrations')
-    .select('*').eq('auction_id', auctionId).eq('sms_sent', false);
-  if (!players?.length) {
-    msgEl.style.color = 'var(--muted)';
-    msgEl.textContent = 'All players already notified, or none registered yet.';
-    btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
-    return;
+    .select('name,mobile').eq('auction_id', auctionId);
+  const count = players?.length || 0;
+  const msg = '🏏 *' + (auction.name || 'Auction') + '* is LIVE!\n\n' +
+    '📺 Watch the auction live:\n' + viewerUrl + '\n\n' +
+    'Enter your registered mobile number + OTP to join.\n\n' +
+    'Powered by captainXI.com 🏏';
+  try {
+    await navigator.clipboard.writeText(msg);
+    msgEl.style.color = 'var(--green)';
+    msgEl.textContent = '✅ WhatsApp message copied! Paste in your players WhatsApp group (' + count + ' registered).';
+  } catch(e) {
+    msgEl.style.color = 'var(--accent)';
+    msgEl.innerHTML = '📋 Copy this viewer link and share on WhatsApp:<br><span style="font-family:monospace;font-size:11px;color:var(--accent);word-break:break-all;">' + viewerUrl + '</span>';
   }
-
-  // PRODUCTION — send real SMS
-  const smsText = `🏏 ${auction.name} is LIVE! Watch the auction now: ${viewerUrl}`;
-  let sent = 0, failed = 0;
-  for (const player of players) {
-    try {
-      const res = await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_KEY}&route=dlt&sender_id=${FAST2SMS_SENDER}&message=${encodeURIComponent(smsText)}&template_id=${FAST2SMS_TMPL_ID}&flash=0&numbers=${player.mobile}`);
-      const json = await res.json();
-      if (json.return === true) {
-        await sb.from('player_registrations').update({ sms_sent: true, sms_sent_at: new Date().toISOString() }).eq('id', player.id);
-        sent++;
-      } else { failed++; }
-    } catch(e) { failed++; }
-  }
-  msgEl.style.color = sent > 0 ? 'var(--green)' : 'var(--red)';
-  msgEl.textContent = `✅ Sent to ${sent}${failed > 0 ? ` · ${failed} failed` : ''}.`;
-  btn.textContent = '🚀 Send Viewer Link via SMS'; btn.disabled = false;
 }
 
 // ── EXPORT FUNCTIONS ─────────────────────────────────────
