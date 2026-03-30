@@ -1009,30 +1009,64 @@ async function markUnsold() {
   scheduleNextPlayer();
 }
 
-// ── RANDOM NEXT PLAYER (after 7s) ─────────────────────────
+// ── NEXT PLAYER (respects auction mode + delay) ──────────
 function scheduleNextPlayer() {
   const soldIds = new Set(sales.map(s => s.player_id));
   const unsoldIds = new Set(players.filter(p => p.unsold).map(p => p.id));
   const available = players.filter(p => !soldIds.has(p.id) && !unsoldIds.has(p.id));
-  if (!available.length) return;
+  if (!available.length) { showMsg('saleMsg', '🏁 All players done! Auction complete.', 'success'); return; }
 
-  // Broadcast "next player coming" to bidders via current_state message field
+  const mode = auction?.auction_mode || 'random';
+  const delay = (auction?.auto_advance_delay || 10) * 1000;
+
+  // Broadcast waiting state
   sb.from('current_state').update({
     current_player_id: null, stage: 'waiting',
     current_bid: 0, current_bid_team_id: null,
     updated_at: new Date().toISOString()
   }).eq('auction_id', auctionId);
 
-  showMsg('saleMsg', '⏳ Next player coming up in 7 seconds...', 'success');
+  if (mode === 'manual') {
+    // Manual mode — organizer picks, show prompt
+    showMsg('saleMsg', '✋ Select the next player from the list above.', 'success');
+    setTimeout(() => document.getElementById('playerInput').focus(), 100);
+    return;
+  }
+
+  // Random or Custom mode — auto-advance with countdown
+  let remaining = Math.round(delay / 1000);
+  const countdownEl = document.getElementById('saleMsg');
+  
+  const countdownTimer = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      showMsg('saleMsg', '⏳ Next player in ' + remaining + 's...', 'success');
+    }
+  }, 1000);
+
+  showMsg('saleMsg', '⏳ Next player in ' + remaining + 's...', 'success');
+
   setTimeout(async () => {
+    clearInterval(countdownTimer);
     const { data: freshPlayers } = await sb.from('players').select('*').eq('auction_id', auctionId);
-    const freshSales = sales.map(s => s.player_id);
-    const freshAvail = (freshPlayers || []).filter(p => !freshSales.includes(p.id) && !p.unsold);
+    const freshSoldIds = new Set(sales.map(s => s.player_id));
+    const freshAvail = (freshPlayers || []).filter(p => !freshSoldIds.has(p.id) && !p.unsold);
     if (!freshAvail.length) { showMsg('saleMsg', '🏁 All players done!', 'success'); return; }
-    const next = freshAvail[Math.floor(Math.random() * freshAvail.length)];
+
+    let next;
+    if (mode === 'custom') {
+      // Custom order — pick by auction_order (lowest first)
+      const ordered = freshAvail.filter(p => p.auction_order != null).sort((a, b) => a.auction_order - b.auction_order);
+      next = ordered.length ? ordered[0] : freshAvail[0];
+    } else {
+      // Random — pick randomly
+      next = freshAvail[Math.floor(Math.random() * freshAvail.length)];
+    }
+
     document.getElementById('playerInput').value = next.name;
     selectPlayerById(next.id, next);
-  }, 7000);
+    showMsg('saleMsg', '🏏 ' + next.name + ' is up!', 'success');
+  }, delay);
 }
 
 function selectPlayerById(id, p) {

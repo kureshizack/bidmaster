@@ -193,6 +193,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
               <span style="color:var(--muted);">📍</span> <span style="color:var(--text);font-size:12px;" id="infoLocation">—</span>
               <span style="color:var(--muted);margin-left:10px;">📅</span> <span style="color:var(--text);font-size:12px;" id="infoDate">—</span>
             </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;">
+              <span style="color:var(--muted);">🎲 Mode:</span> <span style="color:var(--accent);font-weight:700;" id="infoAuctionMode">Random</span>
+            </div>
+            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;">
+              <span style="color:var(--muted);">⏱ Auto:</span> <span style="color:var(--text);font-weight:700;" id="infoAutoDelay">10s</span>
+            </div>
           </div>
         </div>
         <!-- EDIT MODE (hidden by default) -->
@@ -249,6 +255,20 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
             <div>
               <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Going Twice (seconds)</label>
               <input type="number" id="editGoingTwiceSecs" placeholder="10" min="5" max="30" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">🎲 Player Pick Mode</label>
+              <select id="editAuctionMode" onchange="checkAuctionModeGate(this.value)" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;">
+                <option value="random">🎲 Random (auto-pick)</option>
+                <option value="manual">✋ Manual (organizer picks)</option>
+                <option value="custom">📋 Custom Order (Club+)</option>
+              </select>
+              <div id="auctionModeGateMsg" style="font-size:10px;margin-top:2px;min-height:14px;"></div>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">⏱ Auto-Advance Delay (sec)</label>
+              <input type="number" id="editAutoAdvanceDelay" placeholder="10" min="3" max="30" style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;font-size:14px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+              <div style="font-size:10px;color:var(--muted);margin-top:2px;">Seconds before next player auto-appears (Random/Custom mode)</div>
             </div>
             <div>
               <label style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">Release % Refund</label>
@@ -654,6 +674,20 @@ function updateSettingsView(data) {
   document.getElementById('infoCaptainFee').textContent = '₹' + Number(data.captain_fee || 2500).toLocaleString('en-IN');
   document.getElementById('infoLocation').textContent = data.location || 'Not set';
   document.getElementById('infoDate').textContent = data.tournament_date ? new Date(data.tournament_date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) : 'Not set';
+  const modeLabels = {random:'🎲 Random',manual:'✋ Manual',custom:'📋 Custom Order'};
+  document.getElementById('infoAuctionMode').textContent = modeLabels[data.auction_mode] || '🎲 Random';
+  document.getElementById('infoAutoDelay').textContent = (data.auto_advance_delay || 10) + 's';
+}
+
+function checkAuctionModeGate(mode) {
+  const msg = document.getElementById('auctionModeGateMsg');
+  if (mode === 'custom' && !window.hasPlan('club')) {
+    msg.style.color = 'var(--accent)';
+    msg.innerHTML = '🔒 Custom order requires <a href="upgrade.html" style="color:var(--accent);font-weight:700;">Club plan</a> or above.';
+    document.getElementById('editAuctionMode').value = auction.auction_mode || 'random';
+  } else {
+    msg.textContent = '';
+  }
 }
 
 function editAuctionSettings() {
@@ -669,6 +703,8 @@ function editAuctionSettings() {
   document.getElementById('editCaptainFee').value = auction.captain_fee || 2500;
   document.getElementById('editGoingOnceSecs').value = auction.going_once_secs || 20;
   document.getElementById('editGoingTwiceSecs').value = auction.going_twice_secs || 10;
+  document.getElementById('editAuctionMode').value = auction.auction_mode || 'random';
+  document.getElementById('editAutoAdvanceDelay').value = auction.auto_advance_delay || 10;
   document.getElementById('editReleasePct').value = auction.release_pct ?? 50;
   document.getElementById('editLocation').value = auction.location || '';
   document.getElementById('editTournamentDate').value = auction.tournament_date || '';
@@ -697,6 +733,8 @@ async function saveAuctionSettings() {
   const captainFee = parseInt(document.getElementById('editCaptainFee').value) || 2500;
   const goingOnceSecs = parseInt(document.getElementById('editGoingOnceSecs').value) || 20;
   const goingTwiceSecs = parseInt(document.getElementById('editGoingTwiceSecs').value) || 10;
+  const auctionMode = document.getElementById('editAuctionMode').value || 'random';
+  const autoAdvanceDelay = parseInt(document.getElementById('editAutoAdvanceDelay').value) || 10;
   const releasePct = parseInt(document.getElementById('editReleasePct').value) ?? 50;
   const location = document.getElementById('editLocation').value.trim();
   const tournamentDate = document.getElementById('editTournamentDate').value || null;
@@ -724,6 +762,8 @@ async function saveAuctionSettings() {
       captain_fee: captainFee,
       going_once_secs: goingOnceSecs,
       going_twice_secs: goingTwiceSecs,
+      auction_mode: auctionMode,
+      auto_advance_delay: autoAdvanceDelay,
       release_pct: releasePct,
       location: location || null,
       tournament_date: tournamentDate
