@@ -596,8 +596,32 @@ async function deleteAuction(id, e) {
 
 // ── MODAL ─────────────────────────────────────────────────
 function openCreateModal() {
+  // Check plan limit BEFORE opening the form
+  const planLimits = {
+    'gully':{auctions:1},'free':{auctions:1},
+    'club':{auctions:5},'paid':{auctions:5},
+    'pro':{auctions:12},'district':{auctions:12},'national':{auctions:12}
+  };
+  const userPlan = userProfile?.plan || 'gully';
+  const isSuperAdmin = userProfile?.is_superadmin === true || userProfile?.is_admin === true;
+  const limit = (planLimits[userPlan] || planLimits['gully']).auctions;
+
+  if (!DEV_MODE && !isSuperAdmin) {
+    sb.from('auctions').select('*', { count: 'exact', head: true }).eq('owner_id', currentUser.id).then(({count}) => {
+      if (count >= limit) {
+        // Show upgrade prompt instead of opening form
+        alert('You\'ve reached your ' + limit + ' auction limit. Upgrade your plan to create more.');
+        window.location.href = 'upgrade.html';
+        return;
+      }
+      _showCreateModal();
+    });
+  } else {
+    _showCreateModal();
+  }
+}
+function _showCreateModal() {
   document.getElementById('createModal').classList.add('open');
-  // Set today as default date
   document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
   setTimeout(() => document.getElementById('newName').focus(), 100);
 }
