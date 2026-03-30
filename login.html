@@ -201,6 +201,30 @@ input::placeholder{color:var(--muted);}
     </div>
   </div>
 
+  <!-- ══ SET NEW PASSWORD (shown after clicking reset link from email) ══ -->
+  <div id="resetPasswordForm" style="display:none;">
+    <div class="otp-sent-box">
+      <div class="otp-sent-icon">🔐</div>
+      <div class="otp-sent-title">Set New Password</div>
+      <div class="otp-sent-desc">Choose a new password for your account</div>
+    </div>
+    <div class="form-group">
+      <label>🔒 New Password <span style="color:var(--muted);font-size:10px;font-weight:400;">(min 6 characters)</span></label>
+      <div class="pw-wrap">
+        <input type="password" id="resetNewPw" placeholder="New password" onkeydown="if(event.key==='Enter')document.getElementById('resetConfirmPw').focus()">
+        <button class="pw-toggle" onclick="togglePw('resetNewPw',this)" type="button">👁</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>🔒 Confirm Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="resetConfirmPw" placeholder="Re-enter password" onkeydown="if(event.key==='Enter')submitNewPassword()">
+        <button class="pw-toggle" onclick="togglePw('resetConfirmPw',this)" type="button">👁</button>
+      </div>
+    </div>
+    <button class="btn" onclick="submitNewPassword()" id="resetPwBtn">Update Password →</button>
+  </div>
+
   <a href="index.html" class="back-link">← Back to home</a>
 </div>
 
@@ -235,9 +259,28 @@ function getRedirectUrl(){
 }
 
 // ── AUTO-REDIRECT IF ALREADY LOGGED IN ──────────────────
+let _isRecoveryMode = false;
+
+// Listen for PASSWORD_RECOVERY event from Supabase
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    _isRecoveryMode = true;
+    // Hide all forms, show reset password form
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('signupForm').style.display = 'none';
+    document.querySelectorAll('.tabs,.free-badge').forEach(el => el.style.display = 'none');
+    document.getElementById('resetPasswordForm').style.display = 'block';
+    hideMsg();
+  }
+});
+
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
-  if(session) window.location.href=getRedirectUrl();
+  // Don't redirect if we're in recovery mode or reset=true in URL
+  const params = new URLSearchParams(window.location.search);
+  if(session && !_isRecoveryMode && params.get('reset') !== 'true') {
+    window.location.href=getRedirectUrl();
+  }
   if(window.location.hash==='#signup') switchTab('signup');
 })();
 
@@ -265,6 +308,7 @@ function showLoginMode(mode){
   document.getElementById('loginEmailOtp').style.display=mode==='email'?'block':'none';
   document.getElementById('loginOtpVerify').style.display='none';
   document.getElementById('forgotPasswordForm').style.display='none';
+  document.getElementById('resetPasswordForm').style.display='none';
   clearResendTimer();hideMsg();
 }
 
@@ -482,24 +526,34 @@ async function sendPasswordReset(){
   btn.textContent='Send Reset Link →';btn.disabled=false;
 }
 
-// ── HANDLE PASSWORD RESET CALLBACK ─────────────────────
-(async()=>{
-  const params=new URLSearchParams(window.location.search);
-  if(params.get('reset')==='true'){
-    // User clicked the reset link — show set new password form
-    const{data:{session}}=await sb.auth.getSession();
-    if(session){
-      const newPw=prompt('Enter your new password (min 6 characters):');
-      if(newPw&&newPw.length>=6){
-        const{error}=await sb.auth.updateUser({password:newPw});
-        if(error) alert('Error: '+error.message);
-        else { alert('Password updated! You can now login with your new password.'); window.location.href='login.html'; }
-      } else if(newPw) {
-        alert('Password must be at least 6 characters.');
-      }
-    }
+// ── SUBMIT NEW PASSWORD (from reset form) ──────────────
+async function submitNewPassword(){
+  const newPw = document.getElementById('resetNewPw').value;
+  const confirmPw = document.getElementById('resetConfirmPw').value;
+  const btn = document.getElementById('resetPwBtn');
+
+  if(!newPw || newPw.length < 6){showMsg('Password must be at least 6 characters','error');return;}
+  if(newPw !== confirmPw){showMsg('Passwords do not match','error');return;}
+
+  btn.textContent='Updating...';btn.disabled=true;hideMsg();
+
+  const{error}=await sb.auth.updateUser({password:newPw});
+  if(error){
+    showMsg('Error: ' + error.message,'error');
+    btn.textContent='Update Password →';btn.disabled=false;return;
   }
-})();
+
+  // Sign out so user can test their new password
+  await sb.auth.signOut();
+  _isRecoveryMode = false;
+
+  // Show login form with success message
+  document.getElementById('resetPasswordForm').style.display='none';
+  document.getElementById('loginForm').style.display='block';
+  document.querySelectorAll('.tabs,.free-badge').forEach(el => el.style.display = '');
+  showLoginMode('password');
+  showMsg('Password updated successfully! Login with your new password.','success');
+}
 
 // ═══════════════════════════════════════════════════════
 // ── SIGNUP ───────────────────────────────────────────
