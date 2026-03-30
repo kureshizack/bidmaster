@@ -42,14 +42,23 @@ input::placeholder{color:var(--muted);}
 .otp-sent-title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--gold);margin-bottom:4px;}
 .otp-sent-desc{font-size:12px;color:var(--muted);line-height:1.6;}
 .otp-input{font-size:24px!important;letter-spacing:8px;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;}
-.alt-link{text-align:center;margin-top:16px;}
+.alt-link{text-align:center;margin-top:14px;}
 .alt-link a{color:var(--muted);font-size:13px;text-decoration:none;border-bottom:1px dashed var(--border);cursor:pointer;transition:color 0.2s;}
 .alt-link a:hover{color:var(--gold);}
+.alt-links-row{display:flex;justify-content:center;gap:16px;margin-top:16px;flex-wrap:wrap;}
+.alt-links-row a{color:var(--muted);font-size:12px;text-decoration:none;cursor:pointer;transition:color 0.2s;}
+.alt-links-row a:hover{color:var(--gold);}
+.alt-links-row .sep{color:var(--border);font-size:12px;}
 .back-link{display:block;text-align:center;margin-top:20px;color:var(--muted);font-size:13px;text-decoration:none;transition:color 0.2s;}
 .back-link:hover{color:var(--gold);}
 .free-badge{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 14px;text-align:center;margin-bottom:20px;font-size:13px;color:var(--gold);}
 .resend-timer{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;}
 .resend-timer a{color:var(--gold);cursor:pointer;text-decoration:none;}
+.pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:var(--muted);background:none;border:none;padding:4px;}
+.pw-wrap{position:relative;}
+.forgot-link{text-align:right;margin-top:-8px;margin-bottom:16px;}
+.forgot-link a{color:var(--muted);font-size:12px;text-decoration:none;cursor:pointer;transition:color 0.2s;}
+.forgot-link a:hover{color:var(--gold);}
 </style>
 </head>
 <body>
@@ -67,32 +76,55 @@ input::placeholder{color:var(--muted);}
 
   <!-- ══ LOGIN ══ -->
   <div id="loginForm">
-    <!-- Step 1: Mobile -->
-    <div id="loginStep1">
+
+    <!-- Mode 1: Password Login (default) -->
+    <div id="loginPassword">
+      <div class="form-group">
+        <label>📧 Email or 📱 Mobile</label>
+        <input type="text" id="pwLoginId" placeholder="Email or 10-digit mobile" onkeydown="if(event.key==='Enter')document.getElementById('pwLoginPass').focus()">
+      </div>
+      <div class="form-group">
+        <label>🔒 Password</label>
+        <div class="pw-wrap">
+          <input type="password" id="pwLoginPass" placeholder="Your password" onkeydown="if(event.key==='Enter')doPasswordLogin()">
+          <button class="pw-toggle" onclick="togglePw('pwLoginPass',this)" type="button">👁</button>
+        </div>
+      </div>
+      <div class="forgot-link"><a onclick="showForgotPassword()">Forgot password?</a></div>
+      <button class="btn" onclick="doPasswordLogin()" id="pwLoginBtn">Login →</button>
+      <div class="alt-links-row">
+        <a onclick="showLoginMode('mobile')">📱 Login with Mobile OTP</a>
+        <span class="sep">|</span>
+        <a onclick="showLoginMode('email')">📧 Login with Email OTP</a>
+      </div>
+    </div>
+
+    <!-- Mode 2: Mobile OTP Login -->
+    <div id="loginMobileOtp" style="display:none;">
       <div class="form-group">
         <label>📱 Your Mobile Number</label>
         <div class="mobile-wrap">
           <span class="mobile-prefix">+91</span>
           <input type="tel" id="loginMobile" class="mobile-input" placeholder="98xxxxxxxx" maxlength="10"
-            oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')sendLoginOtp()">
+            oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')sendMobileOtp()">
         </div>
       </div>
-      <button class="btn" onclick="sendLoginOtp()" id="loginOtpBtn">Get OTP →</button>
-      <div class="alt-link" style="margin-top:14px;"><a onclick="showEmailLogin()">Login with email instead</a></div>
+      <button class="btn" onclick="sendMobileOtp()" id="mobileOtpBtn">Get OTP →</button>
+      <div class="alt-link"><a onclick="showLoginMode('password')">← Login with password</a></div>
     </div>
 
-    <!-- Step 1b: Email direct -->
-    <div id="loginEmailStep" style="display:none;">
+    <!-- Mode 3: Email OTP Login -->
+    <div id="loginEmailOtp" style="display:none;">
       <div class="form-group">
         <label>📧 Email Address</label>
         <input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')sendEmailOtp()">
       </div>
       <button class="btn" onclick="sendEmailOtp()" id="emailOtpBtn">Send OTP →</button>
-      <div class="alt-link" style="margin-top:14px;"><a onclick="showMobileLogin()">← Back to mobile login</a></div>
+      <div class="alt-link"><a onclick="showLoginMode('password')">← Login with password</a></div>
     </div>
 
-    <!-- Step 2: OTP (shared by mobile + email login) -->
-    <div id="loginStep2" style="display:none;">
+    <!-- OTP Verification (shared by mobile + email OTP) -->
+    <div id="loginOtpVerify" style="display:none;">
       <div class="otp-sent-box">
         <div class="otp-sent-icon" id="otpSentIcon">📱</div>
         <div class="otp-sent-title">OTP Sent!</div>
@@ -105,7 +137,22 @@ input::placeholder{color:var(--muted);}
       </div>
       <button class="btn" onclick="verifyLoginOtp()" id="verifyBtn">Verify & Login →</button>
       <div class="resend-timer" id="resendTimer"></div>
-      <div class="alt-link" style="margin-top:8px;"><a onclick="backToStep1()">← Change number</a></div>
+      <div class="alt-link" style="margin-top:8px;"><a onclick="backToLoginMode()">← Change number / email</a></div>
+    </div>
+
+    <!-- Forgot Password -->
+    <div id="forgotPasswordForm" style="display:none;">
+      <div class="otp-sent-box">
+        <div class="otp-sent-icon">🔑</div>
+        <div class="otp-sent-title">Reset Password</div>
+        <div class="otp-sent-desc">Enter your email to receive a password reset link</div>
+      </div>
+      <div class="form-group">
+        <label>📧 Email Address</label>
+        <input type="email" id="forgotEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')sendPasswordReset()">
+      </div>
+      <button class="btn" onclick="sendPasswordReset()" id="forgotBtn">Send Reset Link →</button>
+      <div class="alt-link"><a onclick="showLoginMode('password')">← Back to login</a></div>
     </div>
   </div>
 
@@ -125,8 +172,15 @@ input::placeholder{color:var(--muted);}
         </div>
       </div>
       <div class="form-group">
-        <label>📧 Email * <span style="color:var(--muted);font-size:10px;font-weight:400;">(OTP will be sent here)</span></label>
-        <input type="email" id="signupEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doSignup()">
+        <label>📧 Email *</label>
+        <input type="email" id="signupEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>🔒 Set Password * <span style="color:var(--muted);font-size:10px;font-weight:400;">(min 6 characters)</span></label>
+        <div class="pw-wrap">
+          <input type="password" id="signupPassword" placeholder="Choose a strong password" onkeydown="if(event.key==='Enter')doSignup()">
+          <button class="pw-toggle" onclick="togglePw('signupPassword',this)" type="button">👁</button>
+        </div>
       </div>
       <button class="btn" onclick="doSignup()" id="signupBtn">Create Account →</button>
     </div>
@@ -155,7 +209,7 @@ const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-// ── MSG91 Widget API (same method as bidder.html) ────────
+// ── MSG91 Widget API ────────────────────────────────────
 const MSG91_WIDGET_ID = '36634167535a323031353436';
 const MSG91_TOKEN = '503787TQBkbvNmN69c681b4P1';
 let _msg91ReqId = null;
@@ -169,7 +223,8 @@ async function msg91Call(endpoint, extra) {
 }
 
 let _loginEmail='';
-let _loginMode='mobile'; // 'mobile' or 'email'
+let _loginMode='password'; // 'password', 'mobile', 'email'
+let _otpMode=''; // tracks which OTP mode is active: 'mobile' or 'email'
 let _resendInterval=null;
 
 function getRedirectUrl(){
@@ -179,30 +234,51 @@ function getRedirectUrl(){
   return 'dashboard.html';
 }
 
+// ── AUTO-REDIRECT IF ALREADY LOGGED IN ──────────────────
 (async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session) window.location.href=getRedirectUrl();
-  // Auto-switch to signup tab if hash says so
   if(window.location.hash==='#signup') switchTab('signup');
 })();
 
-// ── UI ───────────────────────────────────────────────
+// ── UI HELPERS ──────────────────────────────────────────
 function switchTab(t){
   document.getElementById('loginTab').classList.toggle('active',t==='login');
   document.getElementById('signupTab').classList.toggle('active',t==='signup');
   document.getElementById('loginForm').style.display=t==='login'?'block':'none';
   document.getElementById('signupForm').style.display=t==='signup'?'block':'none';
   hideMsg();
+  if(t==='login') showLoginMode('password');
 }
 function showMsg(t,c){const e=document.getElementById('msgBox');e.textContent=t;e.className='msg '+c;e.style.display='block';}
 function hideMsg(){document.getElementById('msgBox').style.display='none';}
-function showEmailLogin(){document.getElementById('loginStep1').style.display='none';document.getElementById('loginEmailStep').style.display='block';hideMsg();}
-function showMobileLogin(){document.getElementById('loginEmailStep').style.display='none';document.getElementById('loginStep1').style.display='block';hideMsg();}
-function backToStep1(){
-  document.getElementById('loginStep2').style.display='none';
-  document.getElementById('loginStep1').style.display='block';
-  document.getElementById('loginEmailStep').style.display='none';
+function togglePw(id,btn){
+  const inp=document.getElementById(id);
+  if(inp.type==='password'){inp.type='text';btn.textContent='🔒';}
+  else{inp.type='password';btn.textContent='👁';}
+}
+
+function showLoginMode(mode){
+  _loginMode=mode;
+  document.getElementById('loginPassword').style.display=mode==='password'?'block':'none';
+  document.getElementById('loginMobileOtp').style.display=mode==='mobile'?'block':'none';
+  document.getElementById('loginEmailOtp').style.display=mode==='email'?'block':'none';
+  document.getElementById('loginOtpVerify').style.display='none';
+  document.getElementById('forgotPasswordForm').style.display='none';
   clearResendTimer();hideMsg();
+}
+
+function backToLoginMode(){
+  document.getElementById('loginOtpVerify').style.display='none';
+  if(_otpMode==='mobile') document.getElementById('loginMobileOtp').style.display='block';
+  else document.getElementById('loginEmailOtp').style.display='block';
+  clearResendTimer();hideMsg();
+}
+
+function showForgotPassword(){
+  document.getElementById('loginPassword').style.display='none';
+  document.getElementById('forgotPasswordForm').style.display='block';
+  hideMsg();
 }
 
 function startResendTimer(id,fnName){
@@ -216,15 +292,54 @@ function startResendTimer(id,fnName){
 function clearResendTimer(){if(_resendInterval){clearInterval(_resendInterval);_resendInterval=null;}}
 
 // ═══════════════════════════════════════════════════════
-// ── LOGIN: MOBILE → MSG91 SMS OTP
+// ── LOGIN MODE 1: PASSWORD ────────────────────────────
 // ═══════════════════════════════════════════════════════
-async function sendLoginOtp(){
+async function doPasswordLogin(){
+  let identifier=document.getElementById('pwLoginId').value.trim();
+  const password=document.getElementById('pwLoginPass').value;
+  if(!identifier){showMsg('Enter your email or mobile number','error');return;}
+  if(!password){showMsg('Enter your password','error');return;}
+
+  const btn=document.getElementById('pwLoginBtn');
+  btn.textContent='Logging in...';btn.disabled=true;hideMsg();
+
+  let email=identifier;
+
+  // If user entered mobile number, look up their email
+  if(/^\d{10}$/.test(identifier)){
+    const{data:profile}=await sb.from('profiles').select('email').eq('mobile',identifier).maybeSingle();
+    if(!profile||!profile.email){
+      showMsg('No account found with this mobile number. Please sign up first.','error');
+      btn.textContent='Login →';btn.disabled=false;return;
+    }
+    email=profile.email;
+  }
+
+  const{error}=await sb.auth.signInWithPassword({email,password});
+  if(error){
+    if(error.message.includes('Invalid login credentials')){
+      showMsg('Incorrect email/mobile or password. Try again or use OTP login.','error');
+    } else if(error.message.includes('Email not confirmed')){
+      showMsg('Email not verified yet. Please use OTP login to verify your account first.','error');
+    } else {
+      showMsg(error.message,'error');
+    }
+    btn.textContent='Login →';btn.disabled=false;return;
+  }
+
+  btn.textContent='Welcome back!';
+  window.location.href=getRedirectUrl();
+}
+
+// ═══════════════════════════════════════════════════════
+// ── LOGIN MODE 2: MOBILE OTP (MSG91) ─────────────────
+// ═══════════════════════════════════════════════════════
+async function sendMobileOtp(){
   const mobile=document.getElementById('loginMobile').value.trim();
   if(!mobile||mobile.length!==10){showMsg('Enter a valid 10-digit mobile number','error');return;}
-  const btn=document.getElementById('loginOtpBtn');
+  const btn=document.getElementById('mobileOtpBtn');
   btn.textContent='Looking up...';btn.disabled=true;hideMsg();
 
-  // Check if account exists with this mobile
   const{data:profile}=await sb.from('profiles').select('email,name').eq('mobile',mobile).maybeSingle();
   if(!profile||!profile.email){
     showMsg('No account found with this mobile number. Please sign up first.','error');
@@ -232,10 +347,9 @@ async function sendLoginOtp(){
   }
 
   _loginEmail=profile.email;
-  _loginMode='mobile';
+  _otpMode='mobile';
   btn.textContent='Sending OTP...';
 
-  // Send OTP via MSG91
   try {
     const json = await msg91Call('sendOtp', { identifier: '91' + mobile });
     const ok = json.type === 'success' || (json.message && json.message.toLowerCase().includes('success'));
@@ -249,28 +363,28 @@ async function sendLoginOtp(){
     btn.textContent='Get OTP →';btn.disabled=false;return;
   }
 
-  // Show OTP screen with mobile-style messaging
   document.getElementById('otpSentIcon').textContent = '📱';
   document.getElementById('otpSentDesc').innerHTML =
     'OTP sent to <b>+91 ' + mobile + '</b>' +
     (profile.name ? '<br>Welcome back, ' + profile.name + '!' : '');
-  document.getElementById('loginStep1').style.display='none';
-  document.getElementById('loginEmailStep').style.display='none';
-  document.getElementById('loginStep2').style.display='block';
+  document.getElementById('loginMobileOtp').style.display='none';
+  document.getElementById('loginOtpVerify').style.display='block';
   document.getElementById('loginOtp').value='';
   document.getElementById('loginOtp').focus();
-  startResendTimer('resendTimer','sendLoginOtp');
+  startResendTimer('resendTimer','sendMobileOtp');
   btn.textContent='Get OTP →';btn.disabled=false;
 }
 
-// ── LOGIN: EMAIL DIRECT (Supabase email OTP — unchanged) ─
+// ═══════════════════════════════════════════════════════
+// ── LOGIN MODE 3: EMAIL OTP (Supabase) ───────────────
+// ═══════════════════════════════════════════════════════
 async function sendEmailOtp(){
   const email=document.getElementById('loginEmail').value.trim();
   if(!email){showMsg('Enter your email address','error');return;}
   const btn=document.getElementById('emailOtpBtn');
   btn.textContent='Sending...';btn.disabled=true;hideMsg();
   _loginEmail=email;
-  _loginMode='email';
+  _otpMode='email';
 
   const{error}=await sb.auth.signInWithOtp({email});
   if(error){showMsg(error.message,'error');btn.textContent='Send OTP →';btn.disabled=false;return;}
@@ -278,27 +392,24 @@ async function sendEmailOtp(){
   const masked=email.replace(/(.{2})(.*)(@.*)/,'$1***$3');
   document.getElementById('otpSentIcon').textContent = '📧';
   document.getElementById('otpSentDesc').innerHTML='OTP sent to <b>'+masked+'</b>. Check inbox.';
-  document.getElementById('loginStep1').style.display='none';
-  document.getElementById('loginEmailStep').style.display='none';
-  document.getElementById('loginStep2').style.display='block';
+  document.getElementById('loginEmailOtp').style.display='none';
+  document.getElementById('loginOtpVerify').style.display='block';
   document.getElementById('loginOtp').value='';
   document.getElementById('loginOtp').focus();
   startResendTimer('resendTimer','sendEmailOtp');
   btn.textContent='Send OTP →';btn.disabled=false;
 }
 
-// ── LOGIN: VERIFY (handles both mobile + email) ─────
+// ── OTP VERIFY (handles both mobile + email) ─────────
 async function verifyLoginOtp(){
   const token=document.getElementById('loginOtp').value.trim();
   if(token.length!==6){showMsg('Enter the 6-digit OTP','error');return;}
   const btn=document.getElementById('verifyBtn');
   btn.textContent='Verifying...';btn.disabled=true;hideMsg();
 
-  if (_loginMode === 'mobile') {
-    // ── MOBILE: Verify via MSG91, then create Supabase session via edge function
+  if (_otpMode === 'mobile') {
+    // Verify via MSG91, then create Supabase session via edge function
     const mobile = document.getElementById('loginMobile').value.trim();
-
-    // Step 1: Verify OTP with MSG91
     try {
       const verifyBody = { identifier: '91' + mobile, otp: token };
       if (_msg91ReqId) verifyBody.reqId = _msg91ReqId;
@@ -313,7 +424,7 @@ async function verifyLoginOtp(){
       btn.textContent='Verify & Login →';btn.disabled=false;return;
     }
 
-    // Step 2: Get Supabase auth token via edge function
+    // Get Supabase auth token via edge function
     try {
       const res = await fetch(SUPABASE_URL + '/functions/v1/mobile-auth', {
         method: 'POST',
@@ -325,8 +436,6 @@ async function verifyLoginOtp(){
         showMsg(authData.error || 'Could not create session. Try email login.', 'error');
         btn.textContent='Verify & Login →';btn.disabled=false;return;
       }
-
-      // Step 3: Create Supabase session with the token
       const { error: sessErr } = await sb.auth.verifyOtp({
         token_hash: authData.token_hash,
         type: 'magiclink'
@@ -339,9 +448,8 @@ async function verifyLoginOtp(){
       showMsg('Auth error: ' + e.message, 'error');
       btn.textContent='Verify & Login →';btn.disabled=false;return;
     }
-
   } else {
-    // ── EMAIL: Verify via Supabase (unchanged)
+    // Email OTP: Verify via Supabase
     const{error}=await sb.auth.verifyOtp({email:_loginEmail,token,type:'email'});
     if(error){
       showMsg('Invalid or expired OTP. Please try again.','error');
@@ -354,15 +462,57 @@ async function verifyLoginOtp(){
 }
 
 // ═══════════════════════════════════════════════════════
+// ── FORGOT PASSWORD ──────────────────────────────────
+// ═══════════════════════════════════════════════════════
+async function sendPasswordReset(){
+  const email=document.getElementById('forgotEmail').value.trim();
+  if(!email){showMsg('Enter your email address','error');return;}
+  const btn=document.getElementById('forgotBtn');
+  btn.textContent='Sending...';btn.disabled=true;hideMsg();
+
+  const{error}=await sb.auth.resetPasswordForEmail(email,{
+    redirectTo: window.location.origin + '/login.html?reset=true'
+  });
+  if(error){
+    showMsg(error.message,'error');
+    btn.textContent='Send Reset Link →';btn.disabled=false;return;
+  }
+
+  showMsg('Password reset link sent to ' + email + '. Check your inbox.','success');
+  btn.textContent='Send Reset Link →';btn.disabled=false;
+}
+
+// ── HANDLE PASSWORD RESET CALLBACK ─────────────────────
+(async()=>{
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('reset')==='true'){
+    // User clicked the reset link — show set new password form
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){
+      const newPw=prompt('Enter your new password (min 6 characters):');
+      if(newPw&&newPw.length>=6){
+        const{error}=await sb.auth.updateUser({password:newPw});
+        if(error) alert('Error: '+error.message);
+        else { alert('Password updated! You can now login with your new password.'); window.location.href='login.html'; }
+      } else if(newPw) {
+        alert('Password must be at least 6 characters.');
+      }
+    }
+  }
+})();
+
+// ═══════════════════════════════════════════════════════
 // ── SIGNUP ───────────────────────────────────────────
 // ═══════════════════════════════════════════════════════
 async function doSignup(){
   const name=document.getElementById('signupName').value.trim();
   const mobile=document.getElementById('signupMobile').value.trim();
   const email=document.getElementById('signupEmail').value.trim();
+  const password=document.getElementById('signupPassword').value;
   if(!name){showMsg('Enter your name','error');return;}
   if(!mobile||mobile.length!==10){showMsg('Enter a valid 10-digit mobile number','error');return;}
   if(!email){showMsg('Enter your email address','error');return;}
+  if(!password||password.length<6){showMsg('Password must be at least 6 characters','error');return;}
 
   const btn=document.getElementById('signupBtn');
   btn.textContent='Creating account...';btn.disabled=true;hideMsg();
@@ -381,8 +531,8 @@ async function doSignup(){
     btn.textContent='Create Account →';btn.disabled=false;return;
   }
 
-  // Store signup data BEFORE sending OTP
-  sessionStorage.setItem('pending_signup',JSON.stringify({name,mobile,email}));
+  // Store signup data + password for after OTP verification
+  sessionStorage.setItem('pending_signup',JSON.stringify({name,mobile,email,password}));
   _loginEmail=email;
 
   // Send Supabase email OTP (creates user if not exists)
@@ -392,7 +542,6 @@ async function doSignup(){
     btn.textContent='Create Account →';btn.disabled=false;return;
   }
 
-  // Show OTP screen
   const masked=email.replace(/(.{2})(.*)(@.*)/,'$1***$3');
   document.getElementById('signupOtpDesc').innerHTML=
     'OTP sent to <b>'+masked+'</b><br>'+
@@ -404,7 +553,7 @@ async function doSignup(){
   btn.textContent='Create Account →';btn.disabled=false;
 }
 
-// ── SIGNUP: VERIFY ───────────────────────────────────
+// ── SIGNUP: VERIFY OTP + SET PASSWORD ────────────────
 async function verifySignupOtp(){
   const token=document.getElementById('signupOtp').value.trim();
   if(token.length!==6){showMsg('Enter the 6-digit OTP','error');return;}
@@ -417,9 +566,10 @@ async function verifySignupOtp(){
     btn.textContent='Verify & Enter →';btn.disabled=false;return;
   }
 
-  // OTP verified — save profile with name + mobile
+  // OTP verified — save profile + set password
   const pending=JSON.parse(sessionStorage.getItem('pending_signup')||'{}');
   if(data.user){
+    // Save profile with name + mobile
     await sb.from('profiles').upsert({
       id: data.user.id,
       name: pending.name || null,
@@ -427,6 +577,12 @@ async function verifySignupOtp(){
       email: pending.email || _loginEmail,
       plan: 'free'
     });
+
+    // Set password for future logins
+    if(pending.password){
+      await sb.auth.updateUser({password:pending.password});
+    }
+
     sessionStorage.removeItem('pending_signup');
   }
 
