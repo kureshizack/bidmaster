@@ -576,13 +576,13 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
   const planBadge = document.getElementById('planBadge');
   const upgradeLink = document.getElementById('upgradeLink');
   if (planBadge && upgradeLink) {
-    const tierMap = {free:'FREE', gully:'FREE', club:'CLUB', pro:'PRO', district:'PRO', national:'PRO'};
+    const tierMap = {free:'FREE', gully:'FREE', matchday:'MATCH DAY', match_day:'MATCH DAY', club:'CLUB', pro:'PRO', district:'PRO', national:'PRO'};
     planBadge.textContent = window._isSuperAdmin ? '🛡 ADMIN' : (tierMap[window._userPlan] || 'FREE');
     if (window._isSuperAdmin) {
       planBadge.className = 'plan-badge paid';
       upgradeLink.textContent = '🛡 Admin Console';
       upgradeLink.href = 'admin.html';
-    } else if (window._userPlan === 'club' || window._userPlan === 'pro' || window._userPlan === 'district' || window._userPlan === 'national') {
+    } else if (window._userPlan === 'matchday' || window._userPlan === 'match_day' || window._userPlan === 'club' || window._userPlan === 'pro' || window._userPlan === 'district' || window._userPlan === 'national') {
       planBadge.className = 'plan-badge paid';
       upgradeLink.textContent = '⚙ Manage Plan';
     } else {
@@ -592,15 +592,18 @@ const auctionId = new URLSearchParams(window.location.search).get('auction');
 
   // ── PLAN ENFORCEMENT ─────────────────────────────────────
   // Plan tiers: gully(free) < club < district < national
-  const PLAN_LEVELS = { free: 0, gully: 0, club: 1, district: 2, national: 3, pro: 3, paid: 1 };
+  const PLAN_LEVELS = { free: 0, gully: 0, matchday: 1, match_day: 1, club: 2, district: 3, national: 4, pro: 4, paid: 2 };
   window.getPlanLevel = () => PLAN_LEVELS[window._userPlan] || 0;
   window.hasPlan = (minPlan) => window._isSuperAdmin || (window.getPlanLevel() >= (PLAN_LEVELS[minPlan] || 0));
   window.PLAN_LIMITS = {
-    free:     { teams: 3, players: 18, auctions: 3 },
-    gully:    { teams: 3, players: 18, auctions: 3 },
-    club:     { teams: 8, players: 60, auctions: 6 },
-    district: { teams: 14, players: 120, auctions: 12 },
-    national: { teams: 32, players: 500, auctions: 999 }
+    free:     { teams: 6, players: 50, auctions: 1 },
+    gully:    { teams: 6, players: 50, auctions: 1 },
+    matchday: { teams: 8, players: 80, auctions: 1 },
+    match_day:{ teams: 8, players: 80, auctions: 1 },
+    club:     { teams: 10, players: 120, auctions: 5 },
+    district: { teams: 14, players: 160, auctions: 12 },
+    national: { teams: 16, players: 200, auctions: 999 },
+    pro:      { teams: 16, players: 200, auctions: 999 }
   };
   window.getPlanLimits = () => window.PLAN_LIMITS[window._userPlan] || window.PLAN_LIMITS.free;
 
@@ -1801,8 +1804,8 @@ const PLAN_LIMITS = {
   district: { teams: 10,  players: 150 },
   national: { teams: 999, players: 9999 }
 };
-const PLAN_NAMES = { free:'Gully', gully:'Gully', club:'Club', paid:'Club', pro:'Pro', district:'Pro', national:'Admin' };
-const UPGRADE_PRICES = { free:'₹799/auction', gully:'₹799/auction', club:'₹1,499/auction', pro:'Contact us' };
+const PLAN_NAMES = { free:'Gully', gully:'Gully', matchday:'Match Day', match_day:'Match Day', club:'Club', paid:'Club', pro:'Pro', district:'Pro', national:'Admin' };
+const UPGRADE_PRICES = { free:'₹199/event', gully:'₹199/event', matchday:'₹799/event', match_day:'₹799/event', club:'₹1,499/event', pro:'Contact us' };
 
 function getUserPlan() {
   if (window._isSuperAdmin) return 'national'; // unlimited
@@ -1835,7 +1838,7 @@ function checkPlayerLimit(currentCount) {
 }
 
 function showPlanPaywall(type, currentPlan, limit) {
-  const nextPlan = currentPlan === 'free' ? 'club' : currentPlan === 'club' ? 'district' : 'national';
+  const nextPlan = (currentPlan === 'free' || currentPlan === 'gully') ? 'matchday' : currentPlan === 'matchday' ? 'club' : currentPlan === 'club' ? 'pro' : 'pro';
   const nextLimit = PLAN_LIMITS[nextPlan][type];
   const price = UPGRADE_PRICES[currentPlan] || '';
   const typeLabel = type === 'teams' ? 'teams' : 'players';
@@ -1862,7 +1865,7 @@ function showPlanPaywall(type, currentPlan, limit) {
         <div style="font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--accent);">${price}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px;">${PLAN_NAMES[nextPlan]} plan · Unlock more ${typeLabel}</div>
       </div>
-      <button onclick="document.getElementById('paywallModal').remove()" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:8px;">
+      <button onclick="window.location.href='upgrade.html?plan=${nextPlan}'" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;margin-bottom:8px;">
         Upgrade to ${PLAN_NAMES[nextPlan]} — ${price}
       </button>
       <div style="font-size:12px;color:var(--muted);margin-top:4px;cursor:pointer;" onclick="document.getElementById('paywallModal').remove()">

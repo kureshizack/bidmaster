@@ -217,9 +217,9 @@ let matches=[];
   const planBadge=document.getElementById('planBadge');
   const upgradeLink=document.getElementById('upgradeLink');
   if(planBadge&&upgradeLink){
-    const tierMap={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+    const tierMap={free:'FREE',gully:'FREE',matchday:'MATCH DAY',match_day:'MATCH DAY',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
     planBadge.textContent=tierMap[_plan]||'FREE';
-    if(_plan==='club'||_plan==='pro'||_plan==='district'||_plan==='national'){
+    if(_plan==='matchday'||_plan==='match_day'||_plan==='club'||_plan==='pro'||_plan==='district'||_plan==='national'){
       planBadge.className='plan-badge paid';upgradeLink.textContent='⚙ Manage Plan';
     } else { planBadge.className='plan-badge free'; }
   }

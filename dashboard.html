@@ -513,13 +513,15 @@ async function createAuction() {
 
   // Plan limit check
   const planLimits = {
-    'gully':{auctions:1,teams:3,players:20},
-    'free':{auctions:1,teams:3,players:20},
-    'club':{auctions:5,teams:6,players:66},
-    'paid':{auctions:5,teams:6,players:66},
-    'pro':{auctions:12,teams:10,players:150},
-    'district':{auctions:12,teams:10,players:150},
-    'national':{auctions:12,teams:10,players:150}
+    'gully':{auctions:1,teams:6,players:50},
+    'free':{auctions:1,teams:6,players:50},
+    'matchday':{auctions:1,teams:8,players:80},
+    'match_day':{auctions:1,teams:8,players:80},
+    'club':{auctions:5,teams:10,players:120},
+    'paid':{auctions:5,teams:10,players:120},
+    'pro':{auctions:999,teams:16,players:200},
+    'district':{auctions:12,teams:14,players:160},
+    'national':{auctions:999,teams:16,players:200}
   };
   const userPlan = userProfile?.plan || 'gully';
   const isSuperAdmin = userProfile?.is_superadmin === true || userProfile?.is_admin === true;

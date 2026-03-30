@@ -375,9 +375,9 @@ let tossDecision = null;
   const upgradeLink = document.getElementById('upgradeLink');
   if (planBadge && upgradeLink) {
     const plan = profile?.plan || 'free';
-    const tierMap = {free:'FREE', gully:'FREE', club:'CLUB', pro:'PRO'};
+    const tierMap = {free:'FREE', gully:'FREE', matchday:'MATCH DAY', match_day:'MATCH DAY', club:'CLUB', pro:'PRO'};
     planBadge.textContent = tierMap[plan] || 'FREE';
-    if (plan === 'club' || plan === 'pro') {
+    if (plan === 'matchday' || plan === 'match_day' || plan === 'club' || plan === 'pro') {
       planBadge.className = 'plan-badge paid';
       upgradeLink.textContent = '⚙ Manage Plan';
     } else {

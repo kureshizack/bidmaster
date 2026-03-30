@@ -457,9 +457,9 @@ let allPlayerNames = []; // flat list of all player names
       const{data:_p}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
       const _pb=document.getElementById('scorerPlanBadge');
       if(_pb&&_p){
-        const tm={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+        const tm={free:'FREE',gully:'FREE',matchday:'MATCH DAY',match_day:'MATCH DAY',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
         _pb.textContent=tm[_p.plan]||'FREE';
-        if(_p.plan==='club'||_p.plan==='pro'||_p.plan==='district'||_p.plan==='national'){
+        if(_p.plan==='matchday'||_p.plan==='match_day'||_p.plan==='club'||_p.plan==='pro'||_p.plan==='district'||_p.plan==='national'){
           _pb.style.color='var(--accent)';_pb.style.borderColor='var(--accent)';
         }
       }

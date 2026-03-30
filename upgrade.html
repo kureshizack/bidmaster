@@ -67,8 +67,8 @@ nav{padding:16px 28px;display:flex;align-items:center;justify-content:space-betw
 .save-badge{font-size:11px;background:rgba(34,197,94,0.15);color:var(--green);padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:0.5px;}
 
 /* PLANS GRID */
-.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
-@media(max-width:900px){.plans-grid{grid-template-columns:1fr 1fr;}}
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:40px;}
+@media(max-width:1100px){.plans-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:600px){.plans-grid{grid-template-columns:1fr;}}
 
 /* PLAN CARD */
@@ -195,7 +195,7 @@ footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
 
   <!-- BILLING TOGGLE -->
   <div class="billing-toggle">
-    <span class="toggle-label active" id="lblPerAuction" onclick="setBilling('per_auction')">Per Auction</span>
+    <span class="toggle-label active" id="lblPerAuction" onclick="setBilling('per_auction')">Per Event</span>
     <div class="toggle-switch" id="billingToggle" onclick="toggleBilling()"></div>
     <span class="toggle-label" id="lblAnnual" onclick="setBilling('annual')">Annual</span>
     <span class="save-badge" id="saveBadge" style="display:none;">SAVE UP TO 40%</span>
@@ -215,32 +215,32 @@ footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
         <tr>
           <th>Feature</th>
           <th>Gully</th>
-          <th class="highlight-col">Club ₹799</th>
+          <th class="highlight-col">Match Day ₹199</th>
+          <th>Club ₹799</th>
           <th>Pro ₹1,499</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>Max Teams</td><td>3</td><td>6</td><td>10</td></tr>
-        <tr><td>Max Players</td><td>20</td><td>66</td><td>150</td></tr>
-        <tr><td>Auctions</td><td>1 total</td><td>5</td><td>12</td></tr>
-        <tr><td>Live Auction Arena</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Bidder Panel (Mobile)</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Viewer Screen</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Player Registration Portal</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Razorpay Fee Collection</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Player Photo Upload</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Player Certificates</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Excel + PDF Export</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>SMS Viewer Link</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Player Update Link</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Remove Watermark</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
-        <tr><td>Custom Branding (Your Logo)</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
-        <tr><td>PDF Auction Report</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
-        <tr><td>Multi-Round Auctions</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
-        <tr><td>Priority WhatsApp Support</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
-        <tr><td>Annual Plan</td><td>—</td><td>₹2,999/yr</td><td>₹5,999/yr</td></tr>
-        <tr><td>Extra Auction Pack</td><td>—</td><td>₹199/auction</td><td>₹299/auction</td></tr>
-        <tr><td>Extra Team Slot</td><td>—</td><td>₹99/team</td><td>₹99/team</td></tr>
+        <tr><td>Max Teams</td><td>6</td><td>8</td><td>10</td><td>16</td></tr>
+        <tr><td>Max Players</td><td>50</td><td>80</td><td>120</td><td>200</td></tr>
+        <tr><td>Events</td><td>1 total</td><td>1 per purchase</td><td>5</td><td>Unlimited</td></tr>
+        <tr><td>Live Auction Arena</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Captain Bidding (Mobile)</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Viewer Screen</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Ball-by-Ball Scoring</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Player Registration Portal</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Razorpay Fee Collection</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Player Photos + Certificates</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>SMS Viewer Link</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Remove Watermark</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Excel + PDF Export</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Star Player Tags</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Custom Auction Order</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Custom Branding (Your Logo)</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
+        <tr><td>PDF Auction Report</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
+        <tr><td>Multi-Round Auctions</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
+        <tr><td>Priority WhatsApp Support</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-no">✗</td><td class="check-yes">✓</td></tr>
+        <tr><td>Annual Plan Available</td><td>—</td><td>—</td><td>₹2,999/yr</td><td>₹5,999/yr</td></tr>
       </tbody>
     </table>
     </div>
@@ -263,7 +263,7 @@ footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
     </div>
     <div class="faq-item" onclick="toggleFaq(this)">
       <div class="faq-q">Can I get a refund?<span class="faq-arrow">▼</span></div>
-      <div class="faq-a">Per-auction plans are non-refundable once activated. Annual plans can be refunded within 7 days if no auction has been created on the plan. Contact <a href="mailto:support@captainxi.com" style="color:var(--accent);">support@captainxi.com</a>.</div>
+      <div class="faq-a">Per-auction plans are non-refundable once activated. Annual plans can be refunded within 7 days if no auction has been created on the plan. Contact <a href="/cdn-cgi/l/email-protection#40333530302f3234002321303421292e38296e232f2d" style="color:var(--accent);"><span class="__cf_email__" data-cfemail="d1a2a4a1a1bea3a591b2b0a1a5b0b8bfa9b8ffb2bebc">[email&#160;protected]</span></a>.</div>
     </div>
     <div class="faq-item" onclick="toggleFaq(this)">
       <div class="faq-q">Do players or captains need to pay for captainXI.com?<span class="faq-arrow">▼</span></div>
@@ -299,7 +299,7 @@ footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
   <a href="index.html">Home</a>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── SUPABASE ─────────────────────────────────────────────
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -355,40 +355,51 @@ let billingMode='per_auction'; // or 'annual'
 // ── PLAN DEFINITIONS ─────────────────────────────────────
 const PLANS={
   gully:{
-    id:'gully',name:'Gully',icon:'🏏',tagline:'Try it out — free forever',
+    id:'gully',name:'Gully',icon:'🏏',tagline:'Your first real tournament — on us',
     price_per:0,price_annual:0,
-    teams:3,players:20,auctions:'1 auction',
-    features:['Live Auction Arena','Bidder Panel (Mobile)','Viewer Screen','Player Registration Portal','3 teams · 20 players'],
-    locked:['Razorpay Fee Collection','Player Photos','Certificates','Excel/PDF Export','SMS Links'],
+    teams:6,players:50,auctions:'1 tournament',
+    features:['IPL-Style Live Auction','Captain Bidding (Mobile)','Live Viewer Screen','Ball-by-Ball Scoring','Player Registration Portal','6 teams · 50 players'],
+    locked:['Razorpay Fee Collection','Player Photos','Certificates','Excel/PDF Export'],
     badge:'"Powered by captainXI.com" watermark',
     btnText:'Current — Free',btnClass:'plan-btn-current',isFree:true
   },
-  club:{
-    id:'club',name:'Club',icon:'🏆',tagline:'For your mohalla tournament',
-    price_per:799,price_annual:2999,
-    teams:6,players:66,auctions:'5 auctions',
-    annual_auctions:'5 auctions/year',
-    features:['Everything in Gully','6 teams · 66 players','5 auctions','Razorpay Fee Collection','Player Photos + Certificates','Excel + PDF Export','SMS Viewer Link','Player Update Link','No Watermark'],
-    locked:['Custom Branding','Multi-Round Auctions','PDF Auction Report'],
+  matchday:{
+    id:'matchday',name:'Match Day',icon:'🔥',tagline:'Unlock your next event — just ₹199',
+    price_per:199,price_annual:199,
+    teams:8,players:80,auctions:'1 event (per purchase)',
+    features:['Everything in Gully','8 teams · 80 players','Player Photos + Certificates','Razorpay Fee Collection','SMS Viewer Link','No Watermark'],
+    locked:['Excel/PDF Export','Custom Branding','Multi-Round Auctions'],
     popular:true,
-    per_unit:'per auction · ₹133/team',
-    annual_unit:'per year · ₹600/auction',
-    annual_save:'Save ₹996 vs per-auction'
+    per_unit:'one-time · per event',
+    annual_unit:'one-time · per event',
+    annual_save:'Same price — per event only',
+    noAnnual:true
+  },
+  club:{
+    id:'club',name:'Club',icon:'🏆',tagline:'For regular tournament organisers',
+    price_per:799,price_annual:2999,
+    teams:10,players:120,auctions:'5 events',
+    annual_auctions:'5 events/year',
+    features:['Everything in Match Day','10 teams · 120 players','5 events per year','Excel + PDF Export','Star Player Tags','Custom Auction Order','Player Update Link'],
+    locked:['Custom Branding','PDF Auction Report'],
+    per_unit:'per event · ₹80/team',
+    annual_unit:'per year · ₹600/event',
+    annual_save:'Save ₹996 vs per-event'
   },
   pro:{
     id:'pro',name:'Pro',icon:'🏟️',tagline:'For serious leagues & clubs',
     price_per:1499,price_annual:5999,
-    teams:10,players:150,auctions:'12 auctions',
-    annual_auctions:'12 auctions/year',
-    features:['Everything in Club','10 teams · 150 players','12 auctions','Custom Branding (your logo)','PDF Auction Report','Multi-Round Auctions','Priority WhatsApp Support','Audience Reactions'],
+    teams:16,players:200,auctions:'Unlimited events',
+    annual_auctions:'Unlimited events/year',
+    features:['Everything in Club','16 teams · 200 players','Unlimited Events','Custom Branding (your logo)','PDF Auction Report','Multi-Round Auctions','Priority WhatsApp Support','Audience Reactions'],
     locked:[],
-    per_unit:'per auction · ₹150/team',
-    annual_unit:'per year · ₹500/auction',
-    annual_save:'Save ₹11,989 vs per-auction'
+    per_unit:'per event · ₹94/team',
+    annual_unit:'per year · unlimited events',
+    annual_save:'Save ₹11,989 vs per-event'
   }
 };
 
-const PLAN_TIERS=['gully','club','pro'];
+const PLAN_TIERS=['gully','matchday','club','pro'];
 
 // ── INIT ─────────────────────────────────────────────────
 (async()=>{
@@ -429,6 +440,7 @@ async function loadUsage(){
 function getCurrentPlanTier(){
   const plan=userProfile?.plan;
   if(!plan||plan==='free'||plan==='gully')return 'gully';
+  if(plan==='matchday'||plan==='match_day')return 'matchday';
   if(plan==='paid'||plan==='club')return 'club';
   if(plan==='pro'||plan==='district'||plan==='national')return 'pro';
   return 'gully';
@@ -454,7 +466,7 @@ function renderCurrentPlan(){
   // Update nav badge
   const navBadge=document.getElementById('navPlanBadge');
   if(navBadge){
-    const tierMap={gully:'FREE',club:'CLUB',pro:'PRO'};
+    const tierMap={gully:'FREE',matchday:'MATCH DAY',club:'CLUB',pro:'PRO'};
     navBadge.textContent=tierMap[tier]||'FREE';
     if(!p.isFree){
       navBadge.style.color='var(--accent)';
@@ -478,7 +490,11 @@ function renderPlans(){
 
     let priceText,subText;
     if(p.isFree){
-      priceText='FREE';subText='Forever';
+      priceText='FREE';subText='Forever · No card needed';
+    } else if(p.noAnnual){
+      // Match Day is always per-event regardless of toggle
+      priceText='₹'+p.price_per.toLocaleString('en-IN');
+      subText=p.per_unit;
     } else if(billingMode==='annual'){
       priceText='₹'+p.price_annual.toLocaleString('en-IN');
       subText=p.annual_unit;
@@ -544,8 +560,10 @@ function startPayment(planKey){
   const plan=PLANS[planKey];
   if(!plan||plan.isFree)return;
 
-  const amount=billingMode==='annual'?plan.price_annual:plan.price_per;
-  const desc=plan.name+' Plan'+(billingMode==='annual'?' (Annual)':' (Per Auction)');
+  // Match Day is always per-event regardless of billing toggle
+  const effectiveBilling=plan.noAnnual?'per_auction':billingMode;
+  const amount=effectiveBilling==='annual'?plan.price_annual:plan.price_per;
+  const desc=plan.name+' Plan'+(effectiveBilling==='annual'?' (Annual)':' (Per Event)');
 
   const options={
     key:RAZORPAY_KEY,
@@ -561,7 +579,7 @@ function startPayment(planKey){
     theme:{color:'#f59e0b'},
     handler:function(response){
       // Payment successful
-      onPaymentSuccess(planKey,amount,billingMode,response.razorpay_payment_id);
+      onPaymentSuccess(planKey,amount,effectiveBilling,response.razorpay_payment_id);
     },
     modal:{
       ondismiss:function(){
@@ -570,7 +588,7 @@ function startPayment(planKey){
     },
     notes:{
       plan:planKey,
-      billing:billingMode,
+      billing:effectiveBilling,
       user_id:currentUser.id
     }
   };
@@ -631,14 +649,4 @@ async function onPaymentSuccess(planKey,amount,billing,paymentId){
     document.getElementById('successPlanDetail').textContent='Your plan will be activated shortly. Payment ID: '+paymentId;
 
     // Still redirect even on DB error — payment went through
-    setTimeout(()=>{ window.location.href='dashboard.html'; }, 4000);
-  }
-}
-
-// ── FAQ TOGGLE ──────────────────────────────────────────
-function toggleFaq(el){
-  el.classList.toggle('open');
-}
-</script>
-</body>
-</html>
+    setTimeout(()=>{ window.location.href='dashboard.html'; 

@@ -319,7 +319,7 @@ function renderOrgList(){
   el.innerHTML=filteredOrganisers.map(o=>{
     const initials=(o.name||o.email||'?').substring(0,2).toUpperCase();
     const plan=o.plan||'free';
-    const planClass=plan==='free'||plan==='gully'?'free':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
+    const planClass=plan==='free'||plan==='gully'?'free':plan==='matchday'||plan==='match_day'?'club':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
     const isActive=selectedOrg?.id===o.id;
     return `<div class="org-item ${isActive?'active':''}" onclick="selectOrganiser('${o.id}')">
       <div class="org-avatar">${initials}</div>
@@ -357,7 +357,7 @@ async function selectOrganiser(userId){
   }
 
   const plan=org.plan||'free';
-  const planClass=plan==='free'||plan==='gully'?'free':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
+  const planClass=plan==='free'||plan==='gully'?'free':plan==='matchday'||plan==='match_day'?'club':plan==='club'?'club':plan==='district'?'district':plan==='national'?'national':'pro';
   const joinDate=org.created_at?new Date(org.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
   const initials=(org.name||org.email||'?').substring(0,2).toUpperCase();
 
