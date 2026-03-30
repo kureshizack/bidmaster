@@ -649,4 +649,11 @@ async function onPaymentSuccess(planKey,amount,billing,paymentId){
     document.getElementById('successPlanDetail').textContent='Your plan will be activated shortly. Payment ID: '+paymentId;
 
     // Still redirect even on DB error — payment went through
-    setTimeout(()=>{ window.location.href='dashboard.html'; 
+    setTimeout(()=>{ window.location.href='dashboard.html'; }, 3000);
+  }
+}
+
+function toggleFaq(el){ el.classList.toggle('open'); }
+</script>
+</body>
+</html>
