@@ -100,8 +100,8 @@ footer a{color:var(--accent);text-decoration:none;}
   <div id="searchScreen" class="search-screen">
     <div class="search-logo">captain<span>XI</span>.com</div>
     <div class="search-title">🏏 Player Profile</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Enter your mobile number to view your cricket career stats across all tournaments.</p>
-    <input class="search-input" id="searchMobile" type="tel" placeholder="10-digit mobile" maxlength="10" inputmode="numeric">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Enter your mobile number or name to view your cricket career stats across all tournaments.</p>
+    <input class="search-input" id="searchMobile" type="text" placeholder="Mobile or player name" maxlength="30">
     <br>
     <button class="search-btn" onclick="searchProfile()">View My Profile</button>
     <div class="search-msg" id="searchMsg"></div>
@@ -212,15 +212,42 @@ if(urlMobile){
 }
 
 async function searchProfile(){
-  const mobile=document.getElementById('searchMobile').value.trim();
+  const input=document.getElementById('searchMobile').value.trim();
   const msg=document.getElementById('searchMsg');
-  if(!mobile||mobile.length!==10||!/^\d{10}$/.test(mobile)){
-    msg.style.color='var(--red)';msg.textContent='Enter valid 10-digit mobile number';return;
+  if(!input||input.length<2){
+    msg.style.color='var(--red)';msg.textContent='Enter a mobile number or player name';return;
   }
   msg.style.color='var(--accent)';msg.textContent='⏳ Searching...';
   document.getElementById('searchScreen').style.display='none';
   document.getElementById('loadingScreen').style.display='block';
-  await loadProfile(mobile);
+
+  // If input looks like a mobile number
+  if(/^\d{10}$/.test(input)){
+    await loadProfile(input);
+  } else {
+    // Search by name in player_registrations and players
+    await loadProfileByName(input);
+  }
+}
+
+async function loadProfileByName(name){
+  // Search in player_registrations
+  const{data:regs}=await sb.from('player_registrations').select('mobile,name').ilike('name','%'+name+'%').limit(1);
+  if(regs?.length && regs[0].mobile){
+    await loadProfile(regs[0].mobile);
+    return;
+  }
+  // Search in players table
+  const{data:players}=await sb.from('players').select('mobile,name').ilike('name','%'+name+'%').not('mobile','is',null).limit(1);
+  if(players?.length && players[0].mobile){
+    await loadProfile(players[0].mobile);
+    return;
+  }
+  // Not found
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('searchScreen').style.display='block';
+  document.getElementById('searchMsg').style.color='var(--red)';
+  document.getElementById('searchMsg').textContent='No player found with that name. Try a different name or mobile number.';
 }
 
 async function loadProfileByCode(code){
@@ -258,8 +285,22 @@ async function buildProfileFromData(mobile){
   // Check registrations
   const{data:regs}=await sb.from('player_registrations').select('*').eq('mobile',mobile);
 
-  // Check sales (player was auctioned)
-  const{data:sales}=await sb.from('sales').select('*,players(name,role,photo_url,mobile),teams(name),auctions(name)').eq('players.mobile',mobile);
+  // Check sales (player was auctioned) — find player IDs first, then get sales
+  let sales = [];
+  const{data:playerRows}=await sb.from('players').select('id,name,role,photo_url,mobile').eq('mobile',mobile);
+  if(playerRows?.length){
+    const playerIds = playerRows.map(p=>p.id);
+    const{data:salesData}=await sb.from('sales').select('*,players(name,role,photo_url,mobile),teams(name),auctions(name)').in('player_id',playerIds);
+    // Deduplicate: keep only the LAST sale per player per auction (in case of re-auction)
+    const seen = new Map();
+    (salesData||[]).forEach(s=>{
+      const key = s.auction_id + '_' + s.player_id;
+      if(!seen.has(key) || new Date(s.sold_at) > new Date(seen.get(key).sold_at)){
+        seen.set(key, s);
+      }
+    });
+    sales = Array.from(seen.values());
+  }
 
   // Check batting cards
   const{data:batCards}=await sb.from('batting_card').select('*').ilike('player_name','%');
