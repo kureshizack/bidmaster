@@ -111,6 +111,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .setup-input:focus{border-color:var(--accent);}
 .setup-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
 .setup-btn{width:100%;padding:16px;border-radius:12px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;background:var(--accent);color:#000;margin-top:8px;}
+/* CXI Modal Utility */
+.cxi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:cxiFadeIn .15s;}
+@keyframes cxiFadeIn{from{opacity:0}to{opacity:1}}
+.cxi-modal-box{background:var(--surface,#111827);border:1px solid var(--border,#2a3a55);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;}
+.cxi-modal-icon{font-size:40px;margin-bottom:12px;}
+.cxi-modal-msg{color:var(--text,#f0f4ff);font-size:14px;line-height:1.7;margin-bottom:20px;white-space:pre-line;word-break:break-word;}
+.cxi-modal-btns{display:flex;gap:10px;}
+.cxi-modal-btn{flex:1;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+.cxi-modal-btn-primary{background:var(--accent,#f59e0b);color:#000;}
+.cxi-modal-btn-primary:hover{filter:brightness(1.1);}
+.cxi-modal-btn-ghost{background:transparent;color:var(--muted,#7a8faa);border:1px solid var(--border,#2a3a55);}
+.cxi-modal-btn-ghost:hover{color:var(--text,#f0f4ff);border-color:var(--muted,#7a8faa);}
+.cxi-modal-input{width:100%;background:var(--surface2,#1a2235);border:2px solid var(--border,#2a3a55);color:var(--text,#f0f4ff);padding:12px 16px;border-radius:10px;font-size:16px;outline:none;margin-bottom:16px;font-family:'Rajdhani',sans-serif;font-weight:600;}
+.cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
+
 </style>
 </head>
 <body>
@@ -365,6 +380,45 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// ── CXI Modal Utility (replaces browser alert/confirm/prompt) ──
+function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cxiAlert(msg,icon){
+  icon=icon||'ℹ️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiOk">OK</button></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiOk').onclick=function(){o.remove();resolve();};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve();}};
+    o.querySelector('#_cxiOk').focus();
+  });
+}
+function cxiConfirm(msg,icon){
+  icon=icon||'⚠️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">Confirm</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(true);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(false);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(false);}};
+  });
+}
+function cxiPrompt(msg,placeholder,icon){
+  icon=icon||'✏️';placeholder=placeholder||'';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><input class="cxi-modal-input" id="_cxiInp" placeholder="'+placeholder+'"><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">OK</button></div></div>';
+    document.body.appendChild(o);
+    var inp=o.querySelector('#_cxiInp');setTimeout(function(){inp.focus();},100);
+    inp.onkeydown=function(e){if(e.key==='Enter'){o.remove();resolve(inp.value);}};
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(inp.value);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(null);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(null);}};
+  });
+}
+
 const params=new URLSearchParams(window.location.search);
 const auctionId=params.get('auction');
 const matchId=params.get('match');
@@ -443,7 +497,7 @@ let allPlayerNames = []; // flat list of all player names
     // Check localStorage for active match
     const savedMatchId = localStorage.getItem('captainxi_active_match');
     if(savedMatchId){
-      const resume = confirm('You have an active match in progress. Resume scoring?');
+      const resume = await cxiConfirm('You have an active match in progress. Resume scoring?');
       if(resume){
         await resumeMatch(savedMatchId);
       } else {
@@ -771,7 +825,7 @@ function closeExtraModal(){document.getElementById('extraModal').classList.remov
 function recordWicket(){
   // On free hit, only run out is possible
   if(isNextFreeHit){
-    alert('Free Hit! Only Run Out is possible. Tap Run Out if the batsman was run out, otherwise record the ball normally.');
+    cxiAlert('Free Hit! Only Run Out is possible. Tap Run Out if the batsman was run out, otherwise record the ball normally.');
     return;
   }
   document.getElementById('wicketModal').classList.add('open');
@@ -801,10 +855,10 @@ function setRunOutWho(who){
 }
 
 async function finalizeWicket(){
-  if(!pendingWicketType){alert('Select how the batsman was out');return;}
+  if(!pendingWicketType){cxiAlert('Select how the batsman was out');return;}
   const newBatName=document.getElementById('newBatsman').value.trim();
   const fielder=document.getElementById('wicketFielder').value.trim();
-  if(!newBatName&&currentInnings.total_wickets<9){alert('Enter new batsman name (unless all out)');return;}
+  if(!newBatName&&currentInnings.total_wickets<9){cxiAlert('Enter new batsman name (unless all out)');return;}
 
   document.getElementById('wicketModal').classList.remove('open');
 
@@ -942,7 +996,7 @@ async function selectExistingBowler(id){
 
 async function confirmBowlerChange(){
   const name=document.getElementById('newBowlerName').value.trim();
-  if(!name){alert('Enter bowler name or select from list');return;}
+  if(!name){cxiAlert('Enter bowler name or select from list');return;}
   document.getElementById('bowlerModal').classList.remove('open');
   await sb.from('bowling_card').update({is_current:false}).eq('id',bowler.id);
   const{data:newB}=await sb.from('bowling_card').insert({
@@ -983,7 +1037,7 @@ function checkInningsEnd(){
 
   if(allOut||oversComplete){
     if(currentInnings.innings_number===1){
-      alert('Innings complete! '+currentInnings.batting_team+' scored '+currentInnings.total_runs+'/'+currentInnings.total_wickets+'. Time for 2nd innings.');
+      cxiAlert('Innings complete! '+currentInnings.batting_team+' scored '+currentInnings.total_runs+'/'+currentInnings.total_wickets+'. Time for 2nd innings.');
       endInnings();
     } else {
       endMatch();
@@ -1003,11 +1057,11 @@ async function endInnings(){
   // Prompt for 2nd innings openers
   const battingTeam=currentInnings.bowling_team;
   const bowlingTeam=currentInnings.batting_team;
-  const s=prompt('2nd Innings — '+battingTeam+' need '+target+' to win.\n\nEnter Striker name:');
+  const s=await cxiPrompt('2nd Innings — '+battingTeam+' need '+target+' to win.\n\nEnter Striker name:');
   if(!s)return;
-  const ns=prompt('Enter Non-Striker name:');
+  const ns=await cxiPrompt('Enter Non-Striker name:');
   if(!ns)return;
-  const bw=prompt('Enter Opening Bowler ('+bowlingTeam+'):');
+  const bw=await cxiPrompt('Enter Opening Bowler ('+bowlingTeam+'):');
   if(!bw)return;
 
   // Create 2nd innings
@@ -1051,7 +1105,7 @@ async function endMatch(){
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   localStorage.removeItem('captainxi_active_match');
 
-  alert('🏆 Match Complete!\n\n'+result+'\n\nShare the scorecard link with everyone!');
+  cxiAlert('🏆 Match Complete!\n\n'+result+'\n\nShare the scorecard link with everyone!');
   shareScore();
 }
 
@@ -1059,8 +1113,8 @@ async function endMatch(){
 // UNDO LAST BALL
 // ══════════════════════════════════════════════════════════
 async function undoLastBall(){
-  if(!allBalls.length){alert('Nothing to undo');return;}
-  if(!confirm('Undo last ball?'))return;
+  if(!allBalls.length){cxiAlert('Nothing to undo');return;}
+  if(!await cxiConfirm('Undo last ball?'))return;
   const lastBall=allBalls.pop();
   overBalls=overBalls.filter(b=>b.id!==lastBall.id);
 
@@ -1264,11 +1318,11 @@ function renderScoreUI(){
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
   const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
-  if(!m){alert('Match not found');return;}
+  if(!m){cxiAlert('Match not found');return;}
   match=m;
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
-  if(!inn){alert('No active innings');return;}
+  if(!inn){cxiAlert('No active innings');return;}
   currentInnings=inn;
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');

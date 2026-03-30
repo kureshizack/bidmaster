@@ -116,6 +116,21 @@ input:focus,select:focus{border-color:var(--accent);}
 .cp-label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:8px;}
 .cp-name{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--accent);}
 .cp-meta{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:4px;}
+/* CXI Modal Utility */
+.cxi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:cxiFadeIn .15s;}
+@keyframes cxiFadeIn{from{opacity:0}to{opacity:1}}
+.cxi-modal-box{background:var(--surface,#111827);border:1px solid var(--border,#2a3a55);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;}
+.cxi-modal-icon{font-size:40px;margin-bottom:12px;}
+.cxi-modal-msg{color:var(--text,#f0f4ff);font-size:14px;line-height:1.7;margin-bottom:20px;white-space:pre-line;word-break:break-word;}
+.cxi-modal-btns{display:flex;gap:10px;}
+.cxi-modal-btn{flex:1;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+.cxi-modal-btn-primary{background:var(--accent,#f59e0b);color:#000;}
+.cxi-modal-btn-primary:hover{filter:brightness(1.1);}
+.cxi-modal-btn-ghost{background:transparent;color:var(--muted,#7a8faa);border:1px solid var(--border,#2a3a55);}
+.cxi-modal-btn-ghost:hover{color:var(--text,#f0f4ff);border-color:var(--muted,#7a8faa);}
+.cxi-modal-input{width:100%;background:var(--surface2,#1a2235);border:2px solid var(--border,#2a3a55);color:var(--text,#f0f4ff);padding:12px 16px;border-radius:10px;font-size:16px;outline:none;margin-bottom:16px;font-family:'Rajdhani',sans-serif;font-weight:600;}
+.cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
+
 </style>
 </head>
 <body>
@@ -377,6 +392,45 @@ input:focus,select:focus{border-color:var(--accent);}
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── CXI Modal Utility (replaces browser alert/confirm/prompt) ──
+function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cxiAlert(msg,icon){
+  icon=icon||'ℹ️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiOk">OK</button></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiOk').onclick=function(){o.remove();resolve();};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve();}};
+    o.querySelector('#_cxiOk').focus();
+  });
+}
+function cxiConfirm(msg,icon){
+  icon=icon||'⚠️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">Confirm</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(true);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(false);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(false);}};
+  });
+}
+function cxiPrompt(msg,placeholder,icon){
+  icon=icon||'✏️';placeholder=placeholder||'';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><input class="cxi-modal-input" id="_cxiInp" placeholder="'+placeholder+'"><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">OK</button></div></div>';
+    document.body.appendChild(o);
+    var inp=o.querySelector('#_cxiInp');setTimeout(function(){inp.focus();},100);
+    inp.onkeydown=function(e){if(e.key==='Enter'){o.remove();resolve(inp.value);}};
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(inp.value);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(null);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(null);}};
+  });
+}
+
 
 const auctionId = new URLSearchParams(window.location.search).get('auction');
 let auction = null;
@@ -937,7 +991,7 @@ async function markUnsold() {
   if (!pn) { showMsg('saleMsg', 'No player selected', 'error'); return; }
   const player = players.find(p => p.name.toLowerCase() === pn.toLowerCase());
   if (!player) return;
-  if (!confirm(`Mark ${player.name} as UNSOLD?`)) return;
+  if (!await cxiConfirm(`Mark ${player.name} as UNSOLD?`)) return;
 
   await sb.from('players').update({ unsold: true }).eq('id', player.id);
   await sb.from('current_state').update({
@@ -1025,8 +1079,8 @@ async function togglePause() {
 }
 
 async function completeAuction() {
-  if (!confirm('Complete this auction?\n\nThis will end the auction for all viewers and bidders.\n\nSwipe to confirm — tap OK to proceed.')) return;
-  if (!confirm('Are you sure? This cannot be undone.')) return;
+  if (!await cxiConfirm('Complete this auction?\n\nThis will end the auction for all viewers and bidders.\n\nSwipe to confirm — tap OK to proceed.')) return;
+  if (!await cxiConfirm('Are you sure? This cannot be undone.')) return;
 
   await sb.from('auctions').update({ status: 'ended' }).eq('id', auctionId);
   await sb.from('current_state').update({
@@ -1039,7 +1093,7 @@ async function completeAuction() {
   copyWhatsAppSummary();
 
   // Ask if they want to schedule matches
-  if (confirm('✅ Auction completed! WhatsApp summary copied.\n\nWant to schedule tournament matches now?')) {
+  if (await cxiConfirm('✅ Auction completed! WhatsApp summary copied.\n\nWant to schedule tournament matches now?')) {
     window.location.href = 'schedule.html?auction=' + auctionId;
   } else {
     window.location.href = 'dashboard.html';
@@ -1117,7 +1171,7 @@ function copyWhatsAppSummary() {
   const cardPreview = teamCards.map(tc =>
     `━━ ${tc.team}${tc.captain?' ('+tc.captain+')':''} ━━`
   ).join('\n');
-  alert(`✅ Master summary copied!\n\nIndividual team cards available for:\n${cardPreview}\n\nClick "Copy Team Card" from the auction dashboard to copy each captain's card separately.`);
+  cxiAlert(`✅ Master summary copied!\n\nIndividual team cards available for:\n${cardPreview}\n\nClick "Copy Team Card" from the auction dashboard to copy each captain's card separately.`);
 
   // Store team cards for individual copy
   window._teamCards = teamCards;
@@ -1132,7 +1186,7 @@ function copyTeamCard(teamId) {
   });
   if (card) {
     navigator.clipboard.writeText(card.card).then(() =>
-      alert(`✅ ${card.team} team card copied!\n\nPaste and send to ${card.captain || 'the captain'} on WhatsApp.`)
+      cxiAlert(`✅ ${card.team} team card copied!\n\nPaste and send to ${card.captain || 'the captain'} on WhatsApp.`)
     );
   }
 }
@@ -1237,13 +1291,13 @@ function resetForm() {
 async function releasePlayer(saleId, teamId, amount, playerName, teamName) {
   // Check if release is allowed for this auction
   if (auction.release_allowed === false) {
-    alert('Player release is not allowed for this auction.\n\nThe organizer disabled releases when creating this auction.');
+    cxiAlert('Player release is not allowed for this auction.\n\nThe organizer disabled releases when creating this auction.');
     return;
   }
   const pct = auction.release_pct ?? 50;
   const refund = Math.floor(amount * pct / 100);
   const refundStr = pct === 0 ? 'No refund (0%)' : `${pct}% refund: ₹${refund.toLocaleString('en-IN')}`;
-  if (!confirm(`Release ${playerName} from ${teamName}?\n${refundStr}`)) return;
+  if (!await cxiConfirm(`Release ${playerName} from ${teamName}?\n${refundStr}`)) return;
   const team = teams.find(t => t.id === teamId);
   await sb.from('sales').delete().eq('id', saleId);
   await sb.from('teams').update({ credits: team.credits + refund }).eq('id', teamId);
@@ -1456,10 +1510,10 @@ function showMsg(id, txt, type) {
 }
 function copyViewerLink() {
   const url = `${window.location.origin}/viewer.html?room=${auction?.room_code}`;
-  navigator.clipboard.writeText(url).then(() => alert(`Viewer link copied!\n\n${url}\n\nShare on WhatsApp with anyone who wants to watch live.`));
+  navigator.clipboard.writeText(url).then(() => cxiAlert(`Viewer link copied!\n\n${url}\n\nShare on WhatsApp with anyone who wants to watch live.`));
 }
 function copyBidderLinks() {
-  if (!teams.length) { alert('No teams found. Add teams in Setup first.'); return; }
+  if (!teams.length) { cxiAlert('No teams found. Add teams in Setup first.'); return; }
   const base = `${window.location.origin}/bidder.html?auction=${auctionId}`;
   let msg = `🏏 captainXI.com — Live Bidding\nAuction: ${auction.name}\n\n`;
   msg += `📱 Bidding Link (tap to open):\n${base}\n\n`;
@@ -1541,11 +1595,11 @@ async function startNewRound() {
   const currentRound = auction?.current_round || 1;
   const unsoldPlayers = players.filter(p => p.unsold && !sales.find(s => s.player_id === p.id));
   if (!unsoldPlayers.length) {
-    alert('No unsold players remaining. All players have been sold!');
+    cxiAlert('No unsold players remaining. All players have been sold!');
     return;
   }
   const nextRound = currentRound + 1;
-  if (!confirm('Start Round ' + nextRound + '?\n\n' + unsoldPlayers.length + ' unsold players will be re-auctioned.\nYou can optionally reduce base prices.')) return;
+  if (!await cxiConfirm('Start Round ' + nextRound + '?\n\n' + unsoldPlayers.length + ' unsold players will be re-auctioned.\nYou can optionally reduce base prices.')) return;
 
   // Update auction round
   await sb.from('auctions').update({ current_round: nextRound }).eq('id', auctionId);
@@ -1582,7 +1636,7 @@ async function showAuctionReplay() {
     .order('created_at', { ascending: true });
 
   if (!logs?.length) {
-    alert('No auction events recorded yet. Events are logged automatically during the auction.');
+    cxiAlert('No auction events recorded yet. Events are logged automatically during the auction.');
     return;
   }
 
@@ -1639,7 +1693,7 @@ async function showAuctionReplay() {
 
 // ── SEND ALERTS TO ALL CAPTAINS ──────────────────────────
 async function sendAllCaptainAlerts() {
-  if (!sales.length) { alert('No sales yet. Alerts will be sent as players are sold.'); return; }
+  if (!sales.length) { cxiAlert('No sales yet. Alerts will be sent as players are sold.'); return; }
   const lastSale = sales[0]; // most recent sale
   const player = lastSale.players;
   const winTeam = lastSale.teams;

@@ -76,6 +76,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
 .stat{text-align:center;}
 .stat-val{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;}
 .stat-lbl{font-size:12px;color:var(--muted);}
+/* CXI Modal Utility */
+.cxi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:cxiFadeIn .15s;}
+@keyframes cxiFadeIn{from{opacity:0}to{opacity:1}}
+.cxi-modal-box{background:var(--surface,#111827);border:1px solid var(--border,#2a3a55);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;}
+.cxi-modal-icon{font-size:40px;margin-bottom:12px;}
+.cxi-modal-msg{color:var(--text,#f0f4ff);font-size:14px;line-height:1.7;margin-bottom:20px;white-space:pre-line;word-break:break-word;}
+.cxi-modal-btns{display:flex;gap:10px;}
+.cxi-modal-btn{flex:1;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+.cxi-modal-btn-primary{background:var(--accent,#f59e0b);color:#000;}
+.cxi-modal-btn-primary:hover{filter:brightness(1.1);}
+.cxi-modal-btn-ghost{background:transparent;color:var(--muted,#7a8faa);border:1px solid var(--border,#2a3a55);}
+.cxi-modal-btn-ghost:hover{color:var(--text,#f0f4ff);border-color:var(--muted,#7a8faa);}
+.cxi-modal-input{width:100%;background:var(--surface2,#1a2235);border:2px solid var(--border,#2a3a55);color:var(--text,#f0f4ff);padding:12px 16px;border-radius:10px;font-size:16px;outline:none;margin-bottom:16px;font-family:'Rajdhani',sans-serif;font-weight:600;}
+.cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
+
 </style>
 </head>
 <body>
@@ -356,10 +371,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   <!-- DEV: QUICK TEST FILL — hidden in production -->
   <div class="panel" id="devQuickFillPanel" style="display:none;border-color:#6b21a8;margin-bottom:16px;background:rgba(107,33,168,0.05);">
     <div class="panel-title" style="color:#c084fc;">🧪 Quick Test Fill — Dev Only</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Instantly populate this auction with dummy teams and players for testing. Clears existing data first.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">One-click test data. Press Ctrl+Shift+D to toggle.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
       <button class="btn btn-sm" style="background:#6b21a8;color:#fff;font-weight:700;" onclick="quickFill(6,20)">⚡ 6 Teams + 20 Players</button>
       <button class="btn btn-sm" style="background:#6b21a8;color:#fff;font-weight:700;" onclick="quickFill(8,40)">⚡ 8 Teams + 40 Players</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="btn btn-sm" style="background:#0e7490;color:#fff;font-weight:700;" onclick="quickAuction(6,24)">🏏 Quick Auction (6T+24P+Auto-Sell)</button>
+      <button class="btn btn-sm" style="background:#b45309;color:#fff;font-weight:700;" onclick="quickMatch()">🏟️ Quick Match (auto Playing XI)</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-sm" style="background:rgba(239,68,68,0.15);color:var(--red);border:1px solid var(--red);" onclick="clearAllData()">🗑 Clear All Data</button>
     </div>
     <div id="quickFillMsg" style="font-size:12px;margin-top:8px;min-height:16px;color:var(--green);"></div>
@@ -476,6 +497,45 @@ const DEV_MODE = false;
 const SUPABASE_URL = 'https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── CXI Modal Utility (replaces browser alert/confirm/prompt) ──
+function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cxiAlert(msg,icon){
+  icon=icon||'ℹ️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiOk">OK</button></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiOk').onclick=function(){o.remove();resolve();};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve();}};
+    o.querySelector('#_cxiOk').focus();
+  });
+}
+function cxiConfirm(msg,icon){
+  icon=icon||'⚠️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">Confirm</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(true);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(false);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(false);}};
+  });
+}
+function cxiPrompt(msg,placeholder,icon){
+  icon=icon||'✏️';placeholder=placeholder||'';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><input class="cxi-modal-input" id="_cxiInp" placeholder="'+placeholder+'"><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">OK</button></div></div>';
+    document.body.appendChild(o);
+    var inp=o.querySelector('#_cxiInp');setTimeout(function(){inp.focus();},100);
+    inp.onkeydown=function(e){if(e.key==='Enter'){o.remove();resolve(inp.value);}};
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(inp.value);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(null);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(null);}};
+  });
+}
+
 
 let currentUser = null;
 let auction = null;
@@ -794,10 +854,10 @@ async function saveTeamField(id, field) {
   const val = document.getElementById(dispId + '-input-' + id).value.trim();
   if (!val) { cancelEditTeam(id, field); return; }
   if (field === 'captain_mobile') {
-    if (val.length !== 10 || isNaN(val)) { alert('Enter valid 10-digit mobile'); return; }
+    if (val.length !== 10 || isNaN(val)) { cxiAlert('Enter valid 10-digit mobile'); return; }
     // Check duplicate mobile in teams (exclude current team)
     const { data: dup } = await sb.from('teams').select('id,name').eq('auction_id', auctionId).eq('captain_mobile', val).neq('id', id).single();
-    if (dup) { alert('❌ Mobile ' + val + ' already used by team "' + dup.name + '". Each captain must have a unique mobile.'); return; }
+    if (dup) { cxiAlert('❌ Mobile ' + val + ' already used by team "' + dup.name + '". Each captain must have a unique mobile.'); return; }
   }
   await sb.from('teams').update({ [field]: val }).eq('id', id);
   const dispEl = document.getElementById(dispId + '-disp-' + id);
@@ -808,7 +868,7 @@ async function saveTeamField(id, field) {
 
 function copyTeamAccess(roomCode, mobile, teamName, captainName) {
   const msg = `🏏 *captainXI.com — Bidding Access*\n\nTeam: *${teamName}*\nCaptain: ${captainName||'—'}\n\n📱 Open bidder app:\n${window.location.origin}/bidder.html\n\n🔑 Room Code: *${roomCode}*\nEnter room code + your mobile (${mobile}) → OTP → start bidding!\n\nPowered by captainXI.com 🏆`;
-  navigator.clipboard.writeText(msg).then(() => alert('Access message copied!\nPaste on WhatsApp to the captain.'));
+  navigator.clipboard.writeText(msg).then(() => cxiAlert('Access message copied!\nPaste on WhatsApp to the captain.'));
 }
 
 async function addTeam() {
@@ -880,7 +940,7 @@ async function importTeams() {
 }
 
 async function deleteTeam(id) {
-  if (!confirm('Remove this team?')) return;
+  if (!await cxiConfirm('Remove this team?')) return;
   await sb.from('teams').delete().eq('id', id);
   await loadTeams();
 }
@@ -921,7 +981,7 @@ async function importFromRegistrations() {
   const { data: regs } = await sb.from('player_registrations')
     .select('*').eq('auction_id', auctionId);
   if (!regs?.length) {
-    alert('No registered players found. Share the registration link with players first.');
+    cxiAlert('No registered players found. Share the registration link with players first.');
     return;
   }
   const { data: existing } = await sb.from('players').select('name').eq('auction_id', auctionId);
@@ -934,9 +994,9 @@ async function importFromRegistrations() {
       mobile: r.mobile || null,
       photo_url: freshPhotoUrl(r.photo_url)
     }));
-  if (!toInsert.length) { alert('All registered players are already in your auction player list!'); return; }
+  if (!toInsert.length) { cxiAlert('All registered players are already in your auction player list!'); return; }
   const { error } = await sb.from('players').insert(toInsert);
-  if (error) { alert('Import failed: ' + error.message); return; }
+  if (error) { cxiAlert('Import failed: ' + error.message); return; }
   await loadPlayers();
   await loadRegPortalPreview();
   const preview = document.getElementById('regPortalPreview');
@@ -1151,7 +1211,7 @@ async function uploadPlayerPhoto(e, playerId) {
   const ext = file.name.split('.').pop();
   const path = auctionId + '/player_' + (player?.mobile || playerId) + '_' + Date.now() + '.' + ext;
   const { data: upData, error } = await sb.storage.from('player-photos').upload(path, file, { upsert: true });
-  if (error) { alert('Upload failed: ' + error.message); return; }
+  if (error) { cxiAlert('Upload failed: ' + error.message); return; }
   const { data: urlData } = sb.storage.from('player-photos').getPublicUrl(path);
   const photoUrl = urlData.publicUrl;
   await sb.from('players').update({ photo_url: photoUrl }).eq('id', playerId);
@@ -1160,9 +1220,9 @@ async function uploadPlayerPhoto(e, playerId) {
 }
 async function savePlayerMobile(id) {
   const val = document.getElementById('pmob-input-' + id)?.value?.trim();
-  if (!val || val.length !== 10) { alert('Enter valid 10-digit mobile'); return; }
+  if (!val || val.length !== 10) { cxiAlert('Enter valid 10-digit mobile'); return; }
   const { data: dup } = await sb.from('players').select('id,name').eq('auction_id', auctionId).eq('mobile', val).neq('id', id).single();
-  if (dup) { alert('❌ Mobile ' + val + ' already used by "' + dup.name + '"'); return; }
+  if (dup) { cxiAlert('❌ Mobile ' + val + ' already used by "' + dup.name + '"'); return; }
   await sb.from('players').update({ mobile: val }).eq('id', id);
   const d = document.getElementById('pmob-disp-' + id);
   d.textContent = val; d.style.color = 'var(--muted)';
@@ -1331,7 +1391,7 @@ async function toggleStar(id, current) {
 }
 
 async function deletePlayer(id) {
-  if (!confirm('Remove this player?')) return;
+  if (!await cxiConfirm('Remove this player?')) return;
   await sb.from('players').delete().eq('id', id);
   await loadPlayers();
 }
@@ -1547,7 +1607,7 @@ async function quickFill(numTeams, numPlayers) {
 }
 
 async function clearAllData() {
-  if (!confirm('Clear ALL teams, players and sales from this auction?')) return;
+  if (!await cxiConfirm('Clear ALL teams, players and sales from this auction?')) return;
   const msg = document.getElementById('quickFillMsg');
   msg.style.color = 'var(--accent)';
   msg.textContent = '⏳ Clearing...';
@@ -1563,6 +1623,132 @@ async function clearAllData() {
   msg.textContent = '✅ All data cleared.';
   await loadTeams();
   await loadPlayers();
+}
+
+// ── QUICK AUCTION — fill + auto-sell players to teams ────
+async function quickAuction(numTeams, numPlayers) {
+  const msg = document.getElementById('quickFillMsg');
+
+  // Step 1: Fill teams + players
+  await quickFill(numTeams, numPlayers);
+
+  msg.style.color = 'var(--accent)';
+  msg.textContent = '⏳ Auto-selling players to teams...';
+
+  // Step 2: Load fresh teams + players
+  const { data: teams } = await sb.from('teams').select('*').eq('auction_id', auctionId);
+  const { data: players } = await sb.from('players').select('*').eq('auction_id', auctionId);
+  if (!teams?.length || !players?.length) {
+    msg.style.color = 'var(--red)'; msg.textContent = '❌ No teams or players found.'; return;
+  }
+
+  // Step 3: Distribute players evenly across teams
+  const playersPerTeam = Math.floor(players.length / teams.length);
+  const salesInserts = [];
+  const base = auction.base_price || 1000;
+  let pi = 0;
+
+  for (let ti = 0; ti < teams.length; ti++) {
+    const team = teams[ti];
+    const count = ti < teams.length - 1 ? playersPerTeam : players.length - pi;
+    for (let j = 0; j < count && pi < players.length; j++, pi++) {
+      const price = base + Math.floor(Math.random() * 5) * (auction.bid_step || 1000);
+      salesInserts.push({
+        auction_id: auctionId,
+        player_id: players[pi].id,
+        team_id: team.id,
+        amount: price,
+        sold_at: new Date().toISOString()
+      });
+    }
+    // Deduct credits
+    const spent = salesInserts.filter(s => s.team_id === team.id).reduce((sum, s) => sum + s.amount, 0);
+    await sb.from('teams').update({ credits: team.credits - spent }).eq('id', team.id);
+  }
+
+  await sb.from('sales').insert(salesInserts);
+
+  // Update auction status
+  await sb.from('auctions').update({ status: 'ended' }).eq('id', auctionId);
+
+  msg.style.color = 'var(--green)';
+  msg.textContent = '✅ Quick Auction done! ' + numTeams + ' teams, ' + salesInserts.length + ' players sold. Ready for matches!';
+  await loadTeams();
+  await loadPlayers();
+}
+
+// ── QUICK MATCH — create match with auto Playing XI ──────
+async function quickMatch() {
+  const msg = document.getElementById('quickFillMsg');
+  msg.style.color = 'var(--accent)';
+  msg.textContent = '⏳ Creating test match...';
+
+  // Get teams with sold players
+  const { data: teams } = await sb.from('teams').select('*').eq('auction_id', auctionId);
+  if (!teams || teams.length < 2) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ Need at least 2 teams with sold players. Run "Quick Auction" first.';
+    return;
+  }
+
+  const team1 = teams[0];
+  const team2 = teams[1];
+
+  // Get sold players for each team
+  const { data: sales1 } = await sb.from('sales').select('*,players(id,name,role)').eq('auction_id', auctionId).eq('team_id', team1.id);
+  const { data: sales2 } = await sb.from('sales').select('*,players(id,name,role)').eq('auction_id', auctionId).eq('team_id', team2.id);
+
+  if (!sales1?.length || !sales2?.length) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ Teams have no players. Run "Quick Auction" first.';
+    return;
+  }
+
+  // Generate 6-char share code
+  const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  // Create match
+  const { data: match, error: matchErr } = await sb.from('matches').insert({
+    auction_id: auctionId,
+    team_a: team1.name,
+    team_b: team2.name,
+    team1_id: team1.id,
+    team2_id: team2.id,
+    overs_per_side: 5,
+    status: 'toss',
+    toss_winner: team1.name,
+    toss_decision: 'bat',
+    share_code: shareCode,
+    venue: 'Test Ground, Gujarat',
+    created_by: (await sb.auth.getSession()).data.session?.user?.id || null
+  }).select().single();
+
+  if (matchErr) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ Match creation failed: ' + matchErr.message;
+    return;
+  }
+
+  // Add playing XI for both teams (pick up to 11)
+  const xi1 = sales1.slice(0, 11).map((s, i) => ({
+    match_id: match.id,
+    team_name: team1.name,
+    player_name: s.players?.name || 'Player ' + (i + 1),
+    batting_order: i + 1
+  }));
+  const xi2 = sales2.slice(0, 11).map((s, i) => ({
+    match_id: match.id,
+    team_name: team2.name,
+    player_name: s.players?.name || 'Player ' + (i + 1),
+    batting_order: i + 1
+  }));
+
+  await sb.from('match_players').insert([...xi1, ...xi2]);
+
+  msg.style.color = 'var(--green)';
+  msg.innerHTML = '✅ Match created! <b>' + team1.name + '</b> vs <b>' + team2.name + '</b> (5 overs)' +
+    '<br><a href="scorer.html?match=' + match.id + '" style="color:var(--accent);font-weight:700;">🏏 Open Scorer →</a>' +
+    ' · <a href="scorecard.html?code=' + shareCode + '" target="_blank" style="color:var(--blue);font-weight:700;">📺 Open Scorecard →</a>';
 }
 
 // ── PLAN LIMITS ───────────────────────────────────────────
@@ -1992,9 +2178,9 @@ async function loadRegisteredPlayers(filter = 'player') {
 }
 
 async function deleteRegistration(regId, name) {
-  if (!confirm('Delete registration for "' + name + '"?\n\nThis allows them to re-register with the same mobile number.')) return;
+  if (!await cxiConfirm('Delete registration for "' + name + '"?\n\nThis allows them to re-register with the same mobile number.')) return;
   const { error } = await sb.from('player_registrations').delete().eq('id', regId);
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { cxiAlert('Error: ' + error.message); return; }
   await loadRegPortalPreview();
   // refresh whichever tab is active
   const isPlayerTab = document.getElementById('viewPlayersBtn').style.background.includes('000') || document.getElementById('viewPlayersBtn').style.background.includes('rgb(0');
@@ -2002,7 +2188,7 @@ async function deleteRegistration(regId, name) {
 }
 
 async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
-  if (!confirm('Create team "' + teamName + '" in auction for captain ' + captainName + '?')) return;
+  if (!await cxiConfirm('Create team "' + teamName + '" in auction for captain ' + captainName + '?')) return;
   const credits = auction.default_credits || 100000;
   const teamCode = genTeamCode();
   const { error } = await sb.from('teams').insert({
@@ -2013,13 +2199,13 @@ async function createTeamFromCaptain(regId, teamName, captainName, mobile) {
     bid_increment: auction.bid_step || 1000,
     min_squad: auction.min_squad || 11
   });
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { cxiAlert('Error: ' + error.message); return; }
   // Mark as imported
   await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
   // Copy team code to clipboard
   const msg = '🏏 *' + auction.name + '* — Captain Access\n\nTeam: *' + teamName + '*\nCaptain: ' + captainName + '\n\n🔑 Your Team Code: *' + teamCode + '*\n\n📱 Open bidder app: ' + window.location.origin + '/bidder.html\nEnter team code + your mobile to start bidding live!';
   await navigator.clipboard.writeText(msg);
-  alert('✅ Team "' + teamName + '" created!\n\nTeam code + instructions copied to clipboard.\nPaste this on WhatsApp to the captain.');
+  cxiAlert('✅ Team "' + teamName + '" created!\n\nTeam code + instructions copied to clipboard.\nPaste this on WhatsApp to the captain.');
   await loadTeams();
   await loadRegisteredPlayers('captain');
 }
@@ -2056,7 +2242,7 @@ async function importOnePlayer(regId, name, role) {
     mobile: reg?.mobile || null,
     photo_url: photoUrl, star: false
   });
-  if (error) { alert('Error: ' + error.message); return; }
+  if (error) { cxiAlert('Error: ' + error.message); return; }
   await sb.from('player_registrations').update({ imported_to_auction: true }).eq('id', regId);
   await loadPlayers();
   await loadRegisteredPlayers('player');
@@ -2065,7 +2251,7 @@ async function importOnePlayer(regId, name, role) {
 async function importAllPlayers() {
   const { data } = await sb.from('player_registrations')
     .select('*').eq('auction_id', auctionId).eq('is_captain', false).eq('imported_to_auction', false);
-  if (!data?.length) { alert('All players are already imported.'); return; }
+  if (!data?.length) { cxiAlert('All players are already imported.'); return; }
   const base = auction.base_price || 1000;
 
   const inserts = data.map(p => ({
@@ -2079,11 +2265,11 @@ async function importAllPlayers() {
   await sb.from('player_registrations').update({ imported_to_auction: true }).in('id', ids);
   await loadPlayers();
   await loadRegisteredPlayers('player');
-  alert('✅ ' + data.length + ' players imported!');
+  cxiAlert('✅ ' + data.length + ' players imported!');
 }
 
 async function sendSMSToAll() {
-  if (!auction?.room_code) { alert('Go Live first to get the viewer link.'); return; }
+  if (!auction?.room_code) { cxiAlert('Go Live first to get the viewer link.'); return; }
   const msgEl = document.getElementById('smsMsg');
   const viewerUrl = `${window.location.origin}/viewer.html?room=${auction.room_code}`;
 
@@ -2118,7 +2304,7 @@ async function getExportData() {
 async function exportPlayersExcel() {
   if (!window.hasPlan('club')) { window.showUpgradePrompt('Excel export', 'club'); return; }
   const { players, captains } = await getExportData();
-  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+  if (!players.length && !captains.length) { cxiAlert('No registrations to export.'); return; }
 
   const wb = XLSX.utils.book_new();
 
@@ -2184,7 +2370,7 @@ async function exportPlayersExcel() {
 async function exportPlayersPDF() {
   if (!window.hasPlan('club')) { window.showUpgradePrompt('PDF export', 'club'); return; }
   const { players, captains } = await getExportData();
-  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+  if (!players.length && !captains.length) { cxiAlert('No registrations to export.'); return; }
 
   const aName = auction?.name || 'Auction';
   const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -2251,7 +2437,7 @@ async function exportPlayersPDF() {
 
 async function exportPlayersWhatsApp() {
   const { players, captains } = await getExportData();
-  if (!players.length && !captains.length) { alert('No registrations to export.'); return; }
+  if (!players.length && !captains.length) { cxiAlert('No registrations to export.'); return; }
 
   const aName = auction?.name || 'Auction';
   let msg = '🏏 *' + aName + '* — Registration List\n\n';
@@ -2281,7 +2467,7 @@ async function exportPlayersWhatsApp() {
 
   try {
     await navigator.clipboard.writeText(msg);
-    alert('✅ Player list copied! Paste it in any WhatsApp chat.');
+    cxiAlert('✅ Player list copied! Paste it in any WhatsApp chat.');
   } catch(e) {
     // Fallback — open WhatsApp with message
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');

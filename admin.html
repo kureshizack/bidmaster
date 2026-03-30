@@ -131,6 +131,21 @@ nav{background:var(--surface);border-bottom:2px solid var(--admin);padding:12px 
 .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--green);border-radius:10px;padding:12px 20px;font-size:13px;color:var(--green);font-weight:600;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.error{border-color:var(--red);color:var(--red);}
+/* CXI Modal Utility */
+.cxi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:cxiFadeIn .15s;}
+@keyframes cxiFadeIn{from{opacity:0}to{opacity:1}}
+.cxi-modal-box{background:var(--surface,#111827);border:1px solid var(--border,#2a3a55);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;}
+.cxi-modal-icon{font-size:40px;margin-bottom:12px;}
+.cxi-modal-msg{color:var(--text,#f0f4ff);font-size:14px;line-height:1.7;margin-bottom:20px;white-space:pre-line;word-break:break-word;}
+.cxi-modal-btns{display:flex;gap:10px;}
+.cxi-modal-btn{flex:1;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+.cxi-modal-btn-primary{background:var(--accent,#f59e0b);color:#000;}
+.cxi-modal-btn-primary:hover{filter:brightness(1.1);}
+.cxi-modal-btn-ghost{background:transparent;color:var(--muted,#7a8faa);border:1px solid var(--border,#2a3a55);}
+.cxi-modal-btn-ghost:hover{color:var(--text,#f0f4ff);border-color:var(--muted,#7a8faa);}
+.cxi-modal-input{width:100%;background:var(--surface2,#1a2235);border:2px solid var(--border,#2a3a55);color:var(--text,#f0f4ff);padding:12px 16px;border-radius:10px;font-size:16px;outline:none;margin-bottom:16px;font-family:'Rajdhani',sans-serif;font-weight:600;}
+.cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
+
 </style>
 </head>
 <body>
@@ -187,6 +202,45 @@ nav{background:var(--surface);border-bottom:2px solid var(--admin);padding:12px 
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// ── CXI Modal Utility (replaces browser alert/confirm/prompt) ──
+function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cxiAlert(msg,icon){
+  icon=icon||'ℹ️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiOk">OK</button></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiOk').onclick=function(){o.remove();resolve();};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve();}};
+    o.querySelector('#_cxiOk').focus();
+  });
+}
+function cxiConfirm(msg,icon){
+  icon=icon||'⚠️';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">Confirm</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(true);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(false);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(false);}};
+  });
+}
+function cxiPrompt(msg,placeholder,icon){
+  icon=icon||'✏️';placeholder=placeholder||'';
+  return new Promise(function(resolve){
+    var o=document.createElement('div');o.className='cxi-modal-overlay';
+    o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><input class="cxi-modal-input" id="_cxiInp" placeholder="'+placeholder+'"><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_cxiNo">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiYes">OK</button></div></div>';
+    document.body.appendChild(o);
+    var inp=o.querySelector('#_cxiInp');setTimeout(function(){inp.focus();},100);
+    inp.onkeydown=function(e){if(e.key==='Enter'){o.remove();resolve(inp.value);}};
+    o.querySelector('#_cxiYes').onclick=function(){o.remove();resolve(inp.value);};
+    o.querySelector('#_cxiNo').onclick=function(){o.remove();resolve(null);};
+    o.onclick=function(e){if(e.target===o){o.remove();resolve(null);}};
+  });
+}
+
 
 let currentUser=null;
 let allOrganisers=[];
@@ -419,7 +473,7 @@ async function applyPlan(userId,newPlan){
 }
 
 async function resetOrgPlan(userId){
-  if(!confirm('Reset this organiser to FREE plan?'))return;
+  if(!await cxiConfirm('Reset this organiser to FREE plan?'))return;
   await applyPlan(userId,'free');
 }
 
@@ -446,7 +500,7 @@ function openBidder(roomCode){
 }
 
 async function forceEndAuction(auctionId,name){
-  if(!confirm('Force end "'+name+'"? This will stop the live auction.'))return;
+  if(!await cxiConfirm('Force end "'+name+'"? This will stop the live auction.'))return;
   await sb.from('auctions').update({status:'ended'}).eq('id',auctionId);
   await logAdminAction(selectedOrg?.id,'Force-ended auction: '+name);
   showToast('⏹ Auction ended: '+name);
@@ -454,7 +508,7 @@ async function forceEndAuction(auctionId,name){
 }
 
 async function reopenAuction(auctionId,name){
-  if(!confirm('Reopen "'+name+'" back to setup mode?'))return;
+  if(!await cxiConfirm('Reopen "'+name+'" back to setup mode?'))return;
   await sb.from('auctions').update({status:'setup'}).eq('id',auctionId);
   await logAdminAction(selectedOrg?.id,'Reopened auction: '+name);
   showToast('🔄 Auction reopened: '+name);
