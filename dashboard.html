@@ -324,17 +324,31 @@ let userProfile = null;
   // Load profile
   const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
   userProfile = profile;
-  document.getElementById('userName').textContent = profile?.name || currentUser.email;
+
+  // ── CHECK PLAN EXPIRY ──────────────────────────────────
+  if (profile && profile.plan && profile.plan !== 'free' && profile.plan !== 'gully' && profile.plan_expires_at) {
+    const expiresAt = new Date(profile.plan_expires_at);
+    if (expiresAt < new Date()) {
+      // Plan expired — auto-downgrade
+      await sb.from('profiles').update({
+        plan: 'free', plan_billing: null, plan_expires_at: null, plan_activated_at: null
+      }).eq('id', currentUser.id);
+      userProfile.plan = 'free';
+      userProfile.plan_expires_at = null;
+    }
+  }
+
+  document.getElementById('userName').textContent = userProfile?.name || currentUser.email;
   const planBadge = document.getElementById('planBadge');
   const upgradeLink = document.getElementById('upgradeLink');
-  const plan = profile?.plan || 'gully';
+  const plan = userProfile?.plan || 'gully';
   const tierMap = {
     'free':'FREE','gully':'FREE',
     'paid':'⭐ CLUB','club':'⭐ CLUB',
     'pro':'🏟️ PRO','district':'🏟️ PRO','national':'🏟️ PRO'
   };
   planBadge.textContent = tierMap[plan] || 'FREE';
-  if(profile?.is_superadmin || profile?.is_admin){
+  if(userProfile?.is_superadmin || userProfile?.is_admin){
     planBadge.textContent = '🛡 ADMIN';
     planBadge.className = 'plan-badge paid';
     upgradeLink.textContent = '🛡 Admin Console';
