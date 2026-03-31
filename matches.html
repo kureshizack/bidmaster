@@ -248,6 +248,18 @@ select.form-input option{background:var(--surface2);}
         </div>
       </div>
 
+      <div class="section-divider">Umpires (Optional)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Umpire 1</label>
+          <input class="form-input" id="fUmpire1" type="text" placeholder="Umpire name" maxlength="40">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Umpire 2</label>
+          <input class="form-input" id="fUmpire2" type="text" placeholder="Umpire name" maxlength="40">
+        </div>
+      </div>
+
       <div class="section-divider">Team Logos (Optional)</div>
       <div class="form-row">
         <div class="form-group">
@@ -375,9 +387,9 @@ let tossDecision = null;
   const upgradeLink = document.getElementById('upgradeLink');
   if (planBadge && upgradeLink) {
     const plan = profile?.plan || 'free';
-    const tierMap = {free:'FREE', gully:'FREE', matchday:'MATCH DAY', match_day:'MATCH DAY', club:'CLUB', pro:'PRO'};
+    const tierMap = {free:'FREE', gully:'FREE', club:'CLUB', pro:'PRO'};
     planBadge.textContent = tierMap[plan] || 'FREE';
-    if (plan === 'matchday' || plan === 'match_day' || plan === 'club' || plan === 'pro') {
+    if (plan === 'club' || plan === 'pro') {
       planBadge.className = 'plan-badge paid';
       upgradeLink.textContent = '⚙ Manage Plan';
     } else {
@@ -507,6 +519,8 @@ function openCreateModal() {
   document.getElementById('fSponsorName').value = '';
   document.getElementById('fAdText').value = '';
   document.getElementById('fAdUrl').value = '';
+  document.getElementById('fUmpire1').value = '';
+  document.getElementById('fUmpire2').value = '';
   document.getElementById('modalErr').textContent = '';
   document.getElementById('tossDecisionGroup').style.display = 'none';
   document.getElementById('tBat').classList.remove('selected');
@@ -584,6 +598,8 @@ async function saveMatch() {
     sponsor_name: document.getElementById('fSponsorName').value.trim() || null,
     ad_text: document.getElementById('fAdText').value.trim() || null,
     ad_url: document.getElementById('fAdUrl').value.trim() || null,
+    umpire_1: document.getElementById('fUmpire1').value.trim() || null,
+    umpire_2: document.getElementById('fUmpire2').value.trim() || null,
   };
 
   const { data: match, error } = await sb.from('matches')

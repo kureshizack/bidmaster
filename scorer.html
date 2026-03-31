@@ -184,6 +184,14 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <input class="setup-input" id="sBowler" placeholder="Bowler name" list="bowlingTeamPlayers">
   </div>
 
+  <div class="setup-card">
+    <label class="setup-label">Umpires (Optional)</label>
+    <div class="setup-row">
+      <input class="setup-input" id="sUmpire1" placeholder="Umpire 1 name">
+      <input class="setup-input" id="sUmpire2" placeholder="Umpire 2 name">
+    </div>
+  </div>
+
   <div id="setupMsg" style="font-size:13px;text-align:center;min-height:18px;color:var(--red);margin-bottom:8px;"></div>
   <button class="setup-btn" onclick="startMatch()">🏏 Start Match — Go Live!</button>
 </div>
@@ -437,6 +445,7 @@ let pendingExtraType=null;
 let pendingWicketType=null;
 let pendingRunOutWho='striker';
 let ballSequence=0;
+let isMatchEnded=false;
 
 // Current active players
 let striker=null;    // batting_card row
@@ -457,9 +466,9 @@ let allPlayerNames = []; // flat list of all player names
       const{data:_p}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
       const _pb=document.getElementById('scorerPlanBadge');
       if(_pb&&_p){
-        const tm={free:'FREE',gully:'FREE',matchday:'MATCH DAY',match_day:'MATCH DAY',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
+        const tm={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
         _pb.textContent=tm[_p.plan]||'FREE';
-        if(_p.plan==='matchday'||_p.plan==='match_day'||_p.plan==='club'||_p.plan==='pro'||_p.plan==='district'||_p.plan==='national'){
+        if(_p.plan==='club'||_p.plan==='pro'||_p.plan==='district'||_p.plan==='national'){
           _pb.style.color='var(--accent)';_pb.style.borderColor='var(--accent)';
         }
       }
@@ -596,34 +605,50 @@ async function startMatch(){
     else{bowlingFirst=tossWinner;battingFirst=tossWinner===teamA?teamB:teamA;}
   }
 
-  // Generate share code
-  const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+  // If match was pre-created in matches.html, update it instead of inserting
+  if(window._existingMatchId){
+    const{data:m,error:mErr}=await sb.from('matches').update({
+      team_a:teamA,team_b:teamB,
+      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      overs_per_side:overs,venue:venue||null,
+      status:'live',current_innings:1,
+      umpire_1:document.getElementById('sUmpire1')?.value?.trim()||null,
+      umpire_2:document.getElementById('sUmpire2')?.value?.trim()||null
+    }).eq('id',window._existingMatchId).select().single();
+    if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
+    match=m;
+  } else {
+    // Generate share code
+    const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
 
-  // Create match
-  const{data:m,error:mErr}=await sb.from('matches').insert({
-    auction_id:auctionId||null,team_a:teamA,team_b:teamB,
-    toss_winner:tossWinner||null,toss_decision:tossDecision||null,
-    overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
-    status:'live',current_innings:1,share_code:shareCode
-  }).select().single();
-  if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
-  match=m;
-  localStorage.setItem('captainxi_active_match', m.id);
+    // Create match
+    const{data:m,error:mErr}=await sb.from('matches').insert({
+      auction_id:auctionId||null,team_a:teamA,team_b:teamB,
+      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
+      status:'live',current_innings:1,share_code:shareCode,
+      umpire_1:document.getElementById('sUmpire1')?.value?.trim()||null,
+      umpire_2:document.getElementById('sUmpire2')?.value?.trim()||null
+    }).select().single();
+    if(mErr){msg.style.color='var(--red)';msg.textContent='Error: '+mErr.message;return;}
+    match=m;
+  }
+  localStorage.setItem('captainxi_active_match', match.id);
 
   // Create 1st innings
   const{data:inn}=await sb.from('innings').insert({
-    match_id:m.id,innings_number:1,batting_team:battingFirst,bowling_team:bowlingFirst,status:'in_progress'
+    match_id:match.id,innings_number:1,batting_team:battingFirst,bowling_team:bowlingFirst,status:'in_progress'
   }).select().single();
   currentInnings=inn;
 
   // Create batting card entries
-  const{data:s1}=await sb.from('batting_card').insert({match_id:m.id,innings_id:inn.id,player_name:strikerName,batting_order:1,is_striker:true,is_on_crease:true}).select().single();
-  const{data:s2}=await sb.from('batting_card').insert({match_id:m.id,innings_id:inn.id,player_name:nonStrikerName,batting_order:2,is_striker:false,is_on_crease:true}).select().single();
+  const{data:s1}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:strikerName,batting_order:1,is_striker:true,is_on_crease:true}).select().single();
+  const{data:s2}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:nonStrikerName,batting_order:2,is_striker:false,is_on_crease:true}).select().single();
   striker=s1;nonStriker=s2;
   battingCard=[s1,s2];
 
   // Create bowler card
-  const{data:b1}=await sb.from('bowling_card').insert({match_id:m.id,innings_id:inn.id,player_name:bowlerName,is_current:true}).select().single();
+  const{data:b1}=await sb.from('bowling_card').insert({match_id:match.id,innings_id:inn.id,player_name:bowlerName,is_current:true}).select().single();
   bowler=b1;
   bowlingCard=[b1];
 
@@ -641,6 +666,7 @@ async function startMatch(){
 // ══════════════════════════════════════════════════════════
 async function recordBall(outcome){
   if(!currentInnings||!striker||!bowler)return;
+  if(isMatchEnded){cxiAlert('Match is over! No more balls can be scored.');return;}
 
   const runsBat=parseInt(outcome)||0;
   const isLegal=true;
@@ -709,6 +735,7 @@ async function recordBall(outcome){
 // EXTRAS — Wide, No Ball, Bye, Leg Bye
 // ══════════════════════════════════════════════════════════
 function recordExtra(type){
+  if(isMatchEnded){cxiAlert('Match is over!');return;}
   pendingExtraType=type;
   const titles={wide:'Wide Ball',noball:'No Ball',bye:'Bye',legbye:'Leg Bye'};
   const descs={
@@ -823,6 +850,7 @@ function closeExtraModal(){document.getElementById('extraModal').classList.remov
 // WICKET
 // ══════════════════════════════════════════════════════════
 function recordWicket(){
+  if(isMatchEnded){cxiAlert('Match is over!');return;}
   // On free hit, only run out is possible
   if(isNextFreeHit){
     cxiAlert('Free Hit! Only Run Out is possible. Tap Run Out if the batsman was run out, otherwise record the ball normally.');
@@ -1088,6 +1116,7 @@ async function endInnings(){
 
 async function endMatch(){
   if(!match)return;
+  isMatchEnded=true;
   // Determine result
   let result='';
   if(currentInnings.innings_number===2){
@@ -1152,13 +1181,46 @@ function shareScore(){
   if(!match||!currentInnings)return;
   const inn=currentInnings;
   const overs=formatOvers(inn);
-  const url=window.location.origin+'/scorecard.html?match='+match.id;
+  const url=window.location.origin+'/scorecard.html?code='+(match.share_code||match.id);
 
   let msg='🏏 *'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+overs+' ov)';
-  if(inn.innings_number===2&&inn.target)msg+=' | Need '+(inn.target-inn.total_runs)+' off '+(match.overs_per_side*6-inn.total_balls)+' balls';
-  msg+='\n\nvs '+inn.bowling_team;
-  if(striker)msg+='\n🏏 '+striker.player_name+' '+striker.runs+'*('+striker.balls_faced+')';
-  if(nonStriker)msg+=' & '+nonStriker.player_name+' '+nonStriker.runs+'('+nonStriker.balls_faced+')';
+  if(inn.innings_number===2&&inn.target){
+    if(inn.total_runs>=inn.target){
+      msg+=' — TARGET ACHIEVED!';
+    } else {
+      msg+=' | Need '+(inn.target-inn.total_runs)+' off '+(match.overs_per_side*6-inn.total_balls)+' balls';
+    }
+  }
+  msg+='\nvs '+inn.bowling_team;
+
+  // All batsmen this innings
+  msg+='\n\n📊 *Batting:*';
+  battingCard.forEach(b=>{
+    const status=b.is_out?'':'*';
+    msg+='\n'+b.player_name+' '+b.runs+status+'('+b.balls_faced+') '+(b.fours?b.fours+'×4 ':'')+(b.sixes?b.sixes+'×6':'');
+  });
+
+  // Extras
+  if(inn.extras_total>0){
+    msg+='\nExtras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')';
+  }
+
+  // All bowlers this innings
+  msg+='\n\n🎳 *Bowling:*';
+  bowlingCard.forEach(b=>{
+    msg+='\n'+b.player_name+' '+formatBowlerOvers(b);
+  });
+
+  // Umpires
+  if(match.umpire_1||match.umpire_2){
+    msg+='\n\n🧑‍⚖️ Umpires: '+(match.umpire_1||'')+(match.umpire_2?' & '+match.umpire_2:'');
+  }
+
+  // Match result if completed
+  if(match.result){
+    msg+='\n\n🏆 *'+match.result+'*';
+  }
+
   msg+='\n\n🔗 Live scorecard: '+url;
   msg+='\n\nPowered by captainXI.com 🏏';
 
@@ -1321,9 +1383,53 @@ async function resumeMatch(id){
   if(!m){cxiAlert('Match not found');return;}
   match=m;
 
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').single();
-  if(!inn){cxiAlert('No active innings');return;}
+  // Load match_players for suggestions
+  const{data:mp}=await sb.from('match_players').select('*').eq('match_id',id).order('batting_order');
+  if(mp&&mp.length){
+    mp.forEach(p=>{
+      if(!allPlayersByTeam[p.team_name])allPlayersByTeam[p.team_name]=[];
+      allPlayersByTeam[p.team_name].push(p.player_name);
+      if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
+    });
+  }
+
+  const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
+  if(!inn){
+    // No active innings — pre-fill setup form from match data
+    if(m.team_a)document.getElementById('sTeamA').value=m.team_a;
+    if(m.team_b)document.getElementById('sTeamB').value=m.team_b;
+    if(m.overs_per_side)document.getElementById('sOvers').value=m.overs_per_side;
+    if(m.venue)document.getElementById('sVenue').value=m.venue;
+    updateTossDropdown();
+    if(m.toss_winner){
+      document.getElementById('sTossWinner').value=m.toss_winner;
+      if(m.toss_decision)setToss(m.toss_decision==='bat'?'bat':'bowl');
+    }
+
+    // Populate player datalists from match_players
+    const batTeamPlayers=document.getElementById('battingTeamPlayers');
+    const bowlTeamPlayers=document.getElementById('bowlingTeamPlayers');
+    // Determine batting/bowling team
+    let batTeam=m.team_a,bowlTeam=m.team_b;
+    if(m.toss_winner&&m.toss_decision){
+      if(m.toss_decision==='bat'){batTeam=m.toss_winner;bowlTeam=m.toss_winner===m.team_a?m.team_b:m.team_a;}
+      else{bowlTeam=m.toss_winner;batTeam=m.toss_winner===m.team_a?m.team_b:m.team_a;}
+    }
+    const batPlayers=allPlayersByTeam[batTeam]||[];
+    const bowlPlayers=allPlayersByTeam[bowlTeam]||[];
+    batTeamPlayers.innerHTML=batPlayers.map(n=>'<option value="'+n+'">').join('');
+    bowlTeamPlayers.innerHTML=bowlPlayers.map(n=>'<option value="'+n+'">').join('');
+
+    // Match already exists, so startMatch should UPDATE not INSERT
+    window._existingMatchId=m.id;
+    return;
+  }
   currentInnings=inn;
+
+  // Check if match is already completed
+  if(m.status==='completed'){
+    isMatchEnded=true;
+  }
 
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
   battingCard=bc||[];

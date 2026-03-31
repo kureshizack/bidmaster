@@ -168,6 +168,8 @@ footer a{color:var(--accent);text-decoration:none;}
       <div class="sc-overs" id="scOvers">(0.0 overs)</div>
       <div class="sc-rr" id="scCRR">CRR 0.00</div>
       <div class="sc-target" id="scTarget" style="display:none;">Need 0 off 0 balls</div>
+      <div id="scFirstInnings" style="display:none;font-size:13px;color:var(--muted);margin-top:6px;font-weight:600;"></div>
+      <div id="scUmpires" style="display:none;font-size:11px;color:var(--muted);margin-top:6px;">🧑‍⚖️</div>
       <div class="sc-result" id="scResult" style="display:none;"></div>
     </div>
 
@@ -289,6 +291,7 @@ function launchConfetti(colors,count){
 function adSlotClick(){if(window._adUrl)window.open(window._adUrl,'_blank');}
 
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
+let allInnings=[]; // both innings
 
 (async()=>{
   const _p=new URLSearchParams(window.location.search);
@@ -309,7 +312,12 @@ async function loadAll(){
   if(!m)return;
   matchData=m;
 
-  const{data:inn}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number',{ascending:false}).limit(1).maybeSingle();
+  // Load ALL innings (both 1st and 2nd)
+  const{data:innings}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number');
+  allInnings=innings||[];
+
+  // Current/latest innings for live display
+  const inn=allInnings.length?allInnings[allInnings.length-1]:null;
   inningsData=inn;
 
   if(inn){
@@ -397,6 +405,21 @@ function renderAll(){
     }
   }
 
+  // Show 1st innings score when viewing 2nd innings
+  const firstInnEl=document.getElementById('scFirstInnings');
+  if(inn.innings_number===2&&allInnings.length>=2){
+    const inn1=allInnings[0];
+    firstInnEl.style.display='block';
+    firstInnEl.textContent=inn1.batting_team+' '+inn1.total_runs+'/'+inn1.total_wickets+' ('+inn1.current_over+'.'+inn1.current_over_balls+' ov)';
+  }
+
+  // Umpires
+  const umpEl=document.getElementById('scUmpires');
+  if(matchData.umpire_1||matchData.umpire_2){
+    umpEl.style.display='block';
+    umpEl.textContent='🧑‍⚖️ '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'');
+  }
+
   // Batsmen
   const onCrease=battingData.filter(b=>b.is_on_crease);
   document.getElementById('liveBatsmen').innerHTML=onCrease.map(b=>
@@ -469,40 +492,82 @@ function renderOvers(){
   }).join('');
 }
 
-function renderFullScorecard(){
-  // Batting
-  let html='<table class="sc-table"><thead><tr><th>Batsman</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
-  battingData.forEach(b=>{
-    const cls=b.is_out?'out':'not-out';
-    html+='<tr><td class="'+cls+'">'+b.player_name+(b.dismissal_text?'<span class="dismissal">'+b.dismissal_text+'</span>':'')+'</td>';
-    html+='<td class="'+cls+'" style="font-weight:700;">'+b.runs+'</td>';
-    html+='<td>'+b.balls_faced+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td>';
-    html+='<td>'+(b.strike_rate>0?Number(b.strike_rate).toFixed(1):'—')+'</td></tr>';
-  });
-  html+='</tbody></table>';
-  document.getElementById('fullBattingCard').innerHTML=html;
+async function renderFullScorecard(){
+  const container=document.getElementById('fullBattingCard');
+  const bowlContainer=document.getElementById('fullBowlingCard');
+  const fowEl=document.getElementById('fallOfWickets');
+  let fullHtml='';
+  let fullBowlHtml='';
+  let fowHtml='';
 
-  // Bowling
-  let bhtml='<table class="sc-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead><tbody>';
-  bowlingData.forEach(b=>{
-    const ov=Math.floor((b.overs_balls||0)/6)+'.'+(b.overs_balls||0)%6;
-    bhtml+='<tr><td style="font-weight:600;color:var(--blue);">'+b.player_name+'</td>';
-    bhtml+='<td>'+ov+'</td><td>'+b.maidens+'</td><td>'+b.runs_conceded+'</td>';
-    bhtml+='<td style="color:var(--red);font-weight:700;">'+b.wickets+'</td>';
-    bhtml+='<td>'+(b.economy||'—')+'</td></tr>';
-  });
-  bhtml+='</tbody></table>';
-  document.getElementById('fullBowlingCard').innerHTML=bhtml;
+  for(const inn of allInnings){
+    // Load batting, bowling, balls for this innings
+    const[batRes,bowlRes,ballRes]=await Promise.all([
+      sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order'),
+      sb.from('bowling_card').select('*').eq('innings_id',inn.id).order('created_at'),
+      sb.from('balls').select('*').eq('innings_id',inn.id).order('ball_sequence')
+    ]);
+    const batters=batRes.data||[];
+    const bowlers=bowlRes.data||[];
+    const balls=ballRes.data||[];
 
-  // Fall of wickets
-  const wicketBalls=ballsData.filter(b=>b.is_wicket);
-  if(wicketBalls.length){
-    const fowText=wicketBalls.map((b,i)=>{
-      const runsSoFar=ballsData.filter(bb=>bb.ball_sequence<=b.ball_sequence).reduce((s,bb)=>s+bb.runs_total,0);
-      return (i+1)+'-'+runsSoFar;
-    }).join(', ');
-    document.getElementById('fallOfWickets').innerHTML='<b>Fall of wickets:</b> '+fowText;
+    // Innings header
+    const innOvers=inn.current_over+'.'+inn.current_over_balls;
+    fullHtml+='<div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">'+
+      inn.batting_team+' — '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+
+      (inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+
+      '</div>';
+
+    // Batting table
+    fullHtml+='<table class="sc-table"><thead><tr><th>Batsman</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
+    batters.forEach(b=>{
+      const cls=b.is_out?'out':'not-out';
+      fullHtml+='<tr><td class="'+cls+'">'+b.player_name+(b.dismissal_text?'<span class="dismissal">'+b.dismissal_text+'</span>':'')+'</td>';
+      fullHtml+='<td class="'+cls+'" style="font-weight:700;">'+b.runs+'</td>';
+      fullHtml+='<td>'+b.balls_faced+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td>';
+      fullHtml+='<td>'+(b.strike_rate>0?Number(b.strike_rate).toFixed(1):'—')+'</td></tr>';
+    });
+    fullHtml+='</tbody></table>';
+
+    // Extras
+    fullHtml+='<div style="font-size:12px;color:var(--muted);padding:6px 0;">Extras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')</div>';
+
+    // Total
+    fullHtml+='<div style="font-size:13px;font-weight:700;color:var(--text);padding:4px 0;border-top:1px solid var(--border);">Total: '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' overs)</div>';
+
+    // Bowling header
+    fullBowlHtml+='<div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--blue);margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">'+
+      inn.bowling_team+' Bowling'+(inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+'</div>';
+
+    fullBowlHtml+='<table class="sc-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead><tbody>';
+    bowlers.forEach(b=>{
+      const ov=Math.floor((b.overs_balls||0)/6)+'.'+(b.overs_balls||0)%6;
+      fullBowlHtml+='<tr><td style="font-weight:600;color:var(--blue);">'+b.player_name+'</td>';
+      fullBowlHtml+='<td>'+ov+'</td><td>'+b.maidens+'</td><td>'+b.runs_conceded+'</td>';
+      fullBowlHtml+='<td style="color:var(--red);font-weight:700;">'+b.wickets+'</td>';
+      fullBowlHtml+='<td>'+(b.economy||'—')+'</td></tr>';
+    });
+    fullBowlHtml+='</tbody></table>';
+
+    // Fall of wickets
+    const wicketBalls=balls.filter(b=>b.is_wicket);
+    if(wicketBalls.length){
+      const fowText=wicketBalls.map((b,i)=>{
+        const runsSoFar=balls.filter(bb=>bb.ball_sequence<=b.ball_sequence).reduce((s,bb)=>s+bb.runs_total,0);
+        return (i+1)+'-'+runsSoFar;
+      }).join(', ');
+      fowHtml+='<div style="margin-top:4px;"><b>FOW ('+inn.batting_team+'):</b> '+fowText+'</div>';
+    }
   }
+
+  // Umpires
+  if(matchData.umpire_1||matchData.umpire_2){
+    fowHtml+='<div style="margin-top:10px;font-size:12px;color:var(--muted);">🧑‍⚖️ Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'</div>';
+  }
+
+  container.innerHTML=fullHtml;
+  bowlContainer.innerHTML=fullBowlHtml;
+  fowEl.innerHTML=fowHtml;
 }
 
 function renderCommentary(){
@@ -525,24 +590,46 @@ function switchTab(name){
   document.querySelector('.sc-tab[onclick="switchTab(\''+name+'\')"]').classList.add('active');
 }
 
-function shareScorecard(){
-  if(!matchData||!inningsData)return;
-  const inn=inningsData;
-  const url=window.location.origin+'/scorecard.html?match='+matchData.id;
-  const striker=battingData.find(b=>b.is_striker&&b.is_on_crease);
-  const nonStriker=battingData.find(b=>!b.is_striker&&b.is_on_crease);
+async function shareScorecard(){
+  if(!matchData)return;
+  const url=window.location.origin+'/scorecard.html?code='+(matchData.share_code||matchData.id);
 
-  let msg='🏏 *'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+inn.current_over+'.'+inn.current_over_balls+' ov)';
-  if(inn.innings_number===2&&inn.target){
-    const need=inn.target-inn.total_runs;
-    msg+=' | Need '+need+' to win';
+  let msg='';
+
+  for(const inn of allInnings){
+    const innOvers=inn.current_over+'.'+inn.current_over_balls;
+    msg+='🏏 *'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+(inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+'\n';
+
+    // Load batters for this innings
+    const{data:batters}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
+    if(batters&&batters.length){
+      batters.forEach(b=>{
+        const status=b.is_out?'':'*';
+        msg+=b.player_name+' '+b.runs+status+'('+b.balls_faced+') '+(b.fours?b.fours+'×4 ':'')+(b.sixes?b.sixes+'×6':'')+'\n';
+      });
+    }
+    // Extras
+    if(inn.extras_total>0){
+      msg+='Extras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')\n';
+    }
+    msg+='\n';
   }
-  msg+='\nvs '+inn.bowling_team;
-  if(striker)msg+='\n\n🏏 '+striker.player_name+' '+striker.runs+'*('+striker.balls_faced+')';
-  if(nonStriker)msg+=' & '+nonStriker.player_name+' '+nonStriker.runs+'('+nonStriker.balls_faced+')';
-  msg+='\n\nCRR: '+(inn.run_rate||'0.00');
-  msg+='\n\n🔗 Live: '+url;
-  msg+='\n\ncaptainXI.com 🏏';
+
+  // Match result
+  if(matchData.result){
+    msg+='🏆 *'+matchData.result+'*\n';
+  } else if(inningsData&&inningsData.innings_number===2&&inningsData.target){
+    const need=inningsData.target-inningsData.total_runs;
+    msg+='Need '+need+' to win\n';
+  }
+
+  // Umpires
+  if(matchData.umpire_1||matchData.umpire_2){
+    msg+='🧑‍⚖️ Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'\n';
+  }
+
+  msg+='\n🔗 '+url;
+  msg+='\ncaptainXI.com 🏏';
 
   navigator.clipboard.writeText(msg).then(()=>{
     const btn=document.querySelector('.share-btn-top');
