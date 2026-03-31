@@ -1368,24 +1368,100 @@ async function endMatch(){
   showMoMSelector();
 }
 
-function showMoMSelector(){
-  // Collect all players from both innings
-  const list=document.getElementById('momPlayerList');
-  let allPlayers=[];
-  // Collect from allPlayersByTeam
-  Object.keys(allPlayersByTeam).forEach(team=>{
-    allPlayersByTeam[team].forEach(p=>{
-      if(!allPlayers.includes(p))allPlayers.push(p);
-    });
-  });
-  // Also from battingCard and bowlingCard
-  battingCard.forEach(b=>{if(!allPlayers.includes(b.player_name))allPlayers.push(b.player_name);});
-  bowlingCard.forEach(b=>{if(!allPlayers.includes(b.player_name))allPlayers.push(b.player_name);});
+async function showMoMSelector(){
+  // Load all innings data for impact calculation
+  const{data:allInn}=await sb.from('innings').select('*').eq('match_id',match.id).order('innings_number');
+  const playerImpact={};
 
-  window._selectedMoM=null;
-  list.innerHTML=allPlayers.map(p=>
-    '<button class="modal-btn modal-btn-ghost mom-pick" onclick="selectMoM(this,\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>'
-  ).join('');
+  for(const inn of (allInn||[])){
+    const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id);
+    const{data:bwc}=await sb.from('bowling_card').select('*').eq('innings_id',inn.id);
+    const{data:balls}=await sb.from('balls').select('*').eq('innings_id',inn.id);
+    const teamTotal=inn.total_runs||1;
+
+    // Batting impact
+    (bc||[]).forEach(b=>{
+      if(!playerImpact[b.player_name])playerImpact[b.player_name]={name:b.player_name,team:inn.batting_team,batRuns:0,batBalls:0,batSR:0,bowlWkts:0,bowlRuns:0,bowlBalls:0,bowlEcon:0,catches:0,runouts:0,impact:0,statLine:''};
+      const p=playerImpact[b.player_name];
+      p.batRuns+=b.runs;p.batBalls+=b.balls_faced;
+      p.batSR=p.batBalls>0?(p.batRuns/p.batBalls*100):0;
+      // Run impact: contribution to team total + SR bonus
+      let runImpact=(b.runs/teamTotal)*50;
+      if(b.strike_rate>150)runImpact+=10;
+      if(b.strike_rate>200)runImpact+=15;
+      if(b.runs>=50)runImpact+=15;
+      if(b.runs>=30)runImpact+=8;
+      p.impact+=runImpact;
+    });
+
+    // Bowling impact
+    (bwc||[]).forEach(b=>{
+      if(!playerImpact[b.player_name])playerImpact[b.player_name]={name:b.player_name,team:inn.bowling_team,batRuns:0,batBalls:0,batSR:0,bowlWkts:0,bowlRuns:0,bowlBalls:0,bowlEcon:0,catches:0,runouts:0,impact:0,statLine:''};
+      const p=playerImpact[b.player_name];
+      p.bowlWkts+=b.wickets;p.bowlRuns+=b.runs_conceded;p.bowlBalls+=b.overs_balls||0;
+      p.bowlEcon=p.bowlBalls>0?((p.bowlRuns/(p.bowlBalls/6))):0;
+      let bowlImpact=b.wickets*20;
+      if(b.wickets>=3)bowlImpact+=15;
+      if(b.wickets>=5)bowlImpact+=25;
+      if(p.bowlEcon<6&&p.bowlBalls>=6)bowlImpact+=10;
+      if(b.maidens>0)bowlImpact+=b.maidens*5;
+      p.impact+=bowlImpact;
+    });
+
+    // Fielding impact (catches/runouts from balls data)
+    (balls||[]).forEach(b=>{
+      if(b.is_wicket&&b.fielder_name){
+        if(!playerImpact[b.fielder_name])playerImpact[b.fielder_name]={name:b.fielder_name,team:'',batRuns:0,batBalls:0,batSR:0,bowlWkts:0,bowlRuns:0,bowlBalls:0,bowlEcon:0,catches:0,runouts:0,impact:0,statLine:''};
+        const f=playerImpact[b.fielder_name];
+        if(b.wicket_type==='caught'){f.catches++;f.impact+=8;}
+        if(b.wicket_type==='run_out'){f.runouts++;f.impact+=10;}
+        if(b.wicket_type==='stumped'){f.impact+=8;}
+      }
+    });
+  }
+
+  // Winner bonus: 1.3x for winning team players
+  const winner=match.winner;
+  Object.values(playerImpact).forEach(p=>{
+    if(winner&&p.team===winner)p.impact*=1.3;
+    // Build stat line
+    let sl=[];
+    if(p.batRuns>0)sl.push(p.batRuns+'('+p.batBalls+')');
+    if(p.bowlWkts>0)sl.push(p.bowlWkts+'/'+p.bowlRuns);
+    if(p.catches>0)sl.push(p.catches+' ct');
+    if(p.runouts>0)sl.push(p.runouts+' ro');
+    p.statLine=sl.join(' | ');
+  });
+
+  // Sort by impact
+  const ranked=Object.values(playerImpact).sort((a,b)=>b.impact-a.impact);
+  const topPick=ranked[0];
+
+  // Build UI
+  const list=document.getElementById('momPlayerList');
+  let html='';
+
+  // Auto-suggestion banner
+  if(topPick&&topPick.impact>10){
+    html+='<div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.04));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center;">';
+    html+='<div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">AI Suggested</div>';
+    html+='<div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text);">'+topPick.name+'</div>';
+    html+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+topPick.statLine+'</div>';
+    html+='<div style="font-size:10px;color:var(--green);margin-top:4px;">Impact Score: '+Math.round(topPick.impact)+'</div>';
+    html+='<button class="modal-btn modal-btn-primary wkt-selected mom-pick" onclick="selectMoM(this,\''+topPick.name.replace(/'/g,"\\'")+'\') " style="margin-top:8px;background:var(--green);color:#000;">Select '+topPick.name+'</button>';
+    html+='</div>';
+    window._selectedMoM=topPick.name; // Pre-select
+  }
+
+  html+='<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Or choose manually:</div>';
+
+  // All players ranked by impact
+  ranked.forEach(p=>{
+    const isTop=topPick&&p.name===topPick.name;
+    html+='<button class="modal-btn modal-btn-ghost mom-pick'+(isTop?' wkt-selected':'')+'" onclick="selectMoM(this,\''+p.name.replace(/'/g,"\\'")+'\')"><span style="font-weight:700;">'+p.name+'</span><br><span style="font-size:11px;color:var(--muted);">'+p.statLine+(p.impact>0?' | Impact: '+Math.round(p.impact):'')+'</span></button>';
+  });
+
+  list.innerHTML=html;
   document.getElementById('momCustom').value='';
   document.getElementById('momModal').style.display='flex';
 }
