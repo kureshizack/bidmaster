@@ -322,9 +322,18 @@ footer a{color:var(--accent);text-decoration:none;}
         <div class="chart-card">
           <div class="chart-title">Scoring Breakdown</div>
           <div class="chart-sub">Where did the runs come from?</div>
-          <div style="display:flex;gap:10px;">
-            <div class="chart-wrap" style="flex:1;"><canvas id="scoringPie1"></canvas></div>
-            <div class="chart-wrap" style="flex:1;"><canvas id="scoringPie2"></canvas></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;max-width:50%;"><canvas id="scoringPie1"></canvas></div>
+            <div style="flex:1;min-width:140px;max-width:50%;"><canvas id="scoringPie2"></canvas></div>
+          </div>
+          <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:10px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;">
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#3d5474;margin-right:3px;"></span>Dots</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#60a5fa;margin-right:3px;"></span>1s</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#7cb3f5;margin-right:3px;"></span>2s</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#b4a0f5;margin-right:3px;"></span>3s</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#34d399;margin-right:3px;"></span>4s</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f59e0b;margin-right:3px;"></span>6s</span>
+            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f87171;margin-right:3px;"></span>Extras</span>
           </div>
         </div>
       </div>
@@ -480,10 +489,13 @@ async function loadAll(){
     }
     _lastBallCount=newBalls.length;
     ballsData=newBalls;
-    // Reset charts if data changed so they re-render on next Stats tab click
-    if(chartsRendered&&document.getElementById('tab-stats')?.classList.contains('active')){
-      chartsRendered=false;renderCharts();
-    } else {chartsRendered=false;}
+    // Only reset charts if ball count actually changed
+    if(chartsRendered&&newBalls.length!==window._lastChartBallCount){
+      window._lastChartBallCount=newBalls.length;
+      if(document.getElementById('tab-stats')?.classList.contains('active')){
+        chartsRendered=false;renderCharts();
+      } else {chartsRendered=false;}
+    }
   }
 
   document.getElementById('loadingScreen').style.display='none';
@@ -886,6 +898,10 @@ async function renderCharts(){
   document.getElementById('statsLocked').style.display='none';
   document.getElementById('statsContent').style.display='block';
 
+  // Disable animations for smooth live updates
+  Chart.defaults.animation=false;
+  window._lastChartBallCount=ballsData.length;
+
   // Chart.js theme
   const isDark=document.documentElement.getAttribute('data-theme')!=='light';
   const gridColor=isDark?'rgba(61,84,116,0.3)':'rgba(200,213,226,0.5)';
@@ -1070,9 +1086,11 @@ async function renderCharts(){
       },
       options:{
         responsive:true,maintainAspectRatio:true,
+        animation:false,
+        layout:{padding:2},
         plugins:{
-          legend:{position:'bottom',labels:{boxWidth:8,padding:5,font:{size:9,family:'Rajdhani',weight:'600'}}},
-          title:{display:true,text:d.inn.batting_team+(d.inn.innings_number===1?' (1st)':' (2nd)'),font:{size:13,family:'Rajdhani',weight:'700'},color:colors[i%4]}
+          legend:{display:false},
+          title:{display:true,text:d.inn.batting_team+(d.inn.innings_number===1?' (1st)':' (2nd)'),font:{size:12,family:'Rajdhani',weight:'700'},color:colors[i%4],padding:{bottom:4}}
         }
       }
     });
