@@ -21,27 +21,27 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 /* SCORE HEADER */
 .score-header{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 14px;}
 .score-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
-.score-team{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.score-team{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .score-team.batting{color:var(--accent);}
 .score-team.bowling{color:var(--muted);}
 .score-main{display:flex;align-items:baseline;gap:6px;}
-.score-runs{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--text);line-height:1;letter-spacing:2px;}
-.score-wickets{font-family:'Rajdhani',sans-serif;font-size:24px;color:var(--muted);font-weight:700;}
-.score-overs{font-family:'Rajdhani',sans-serif;font-size:16px;color:var(--accent);font-weight:700;margin-left:8px;}
-.score-extras{font-size:11px;color:var(--muted);margin-top:2px;}
-.score-rr{font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--blue);font-weight:700;}
-.score-target{font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--green);font-weight:700;margin-left:8px;}
+.score-runs{font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--text);line-height:1;letter-spacing:2px;}
+.score-wickets{font-family:'Rajdhani',sans-serif;font-size:28px;color:var(--muted);font-weight:700;}
+.score-overs{font-family:'Rajdhani',sans-serif;font-size:18px;color:var(--accent);font-weight:700;margin-left:8px;}
+.score-extras{font-size:12px;color:var(--muted);margin-top:2px;}
+.score-rr{font-family:'Rajdhani',sans-serif;font-size:15px;color:var(--blue);font-weight:700;}
+.score-target{font-family:'Rajdhani',sans-serif;font-size:15px;color:var(--green);font-weight:700;margin-left:8px;}
 
 /* BATSMEN BAR */
 .batsmen-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;gap:8px;}
-.batsman-pill{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;}
+.batsman-pill{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;display:flex;justify-content:space-between;align-items:center;}
 .batsman-pill.striker{border-color:var(--accent);background:rgba(245,158,11,0.06);}
 .batsman-name{font-weight:700;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.batsman-score{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--accent);font-size:14px;}
-.batsman-balls{font-size:10px;color:var(--muted);margin-left:2px;}
+.batsman-score{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--accent);font-size:16px;}
+.batsman-balls{font-size:12px;color:var(--muted);margin-left:2px;}
 
 /* BOWLER BAR */
-.bowler-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:6px 14px;display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.bowler-bar{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;font-size:14px;}
 .bowler-name{font-weight:700;color:var(--blue);}
 .bowler-fig{color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;}
 
@@ -61,9 +61,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 /* SCORING BUTTONS */
 .score-pad{padding:12px 10px 8px;display:flex;flex-direction:column;gap:8px;}
 .score-row{display:flex;gap:8px;}
-.score-btn{flex:1;padding:18px 8px;border-radius:12px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;transition:all .1s;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;justify-content:center;}
+.score-btn{flex:1;padding:20px 8px;border-radius:12px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:24px;transition:all .1s;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:70px;justify-content:center;}
 .score-btn:active{transform:scale(0.93);opacity:0.8;}
-.score-btn-sub{font-size:10px;font-weight:500;opacity:0.7;letter-spacing:0.5px;}
+.score-btn-sub{font-size:11px;font-weight:500;opacity:0.7;letter-spacing:0.5px;}
 .btn-dot{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
 .btn-1{background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid rgba(96,165,250,0.25);}
 .btn-2{background:rgba(96,165,250,0.15);color:var(--blue);border:1px solid rgba(96,165,250,0.3);}
@@ -77,7 +77,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 /* ACTION BAR */
 .action-bar{padding:6px 10px 12px;display:flex;gap:8px;}
-.action-btn{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:center;transition:all .15s;}
+.action-btn{flex:1;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;text-align:center;transition:all .15s;}
 .action-btn:hover{border-color:var(--accent);color:var(--text);}
 .action-btn.danger{border-color:rgba(239,68,68,0.3);color:var(--red);}
 
@@ -467,6 +467,28 @@ let pendingWicketType=null;
 let pendingRunOutWho='striker';
 let ballSequence=0;
 let isMatchEnded=false;
+let isProcessing=false; // prevent double-tap concurrent ball recording
+
+// ── SOUND EFFECTS ────────────────────────────────────────
+const SFX={
+  four: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='),
+  six: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='),
+  wicket: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+};
+function playSound(type){
+  try{
+    // Use Web Audio API for reliable mobile playback
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    if(type==='four'){o.frequency.value=880;g.gain.value=0.3;o.type='sine';o.start();o.stop(ctx.currentTime+0.15);}
+    else if(type==='six'){o.frequency.value=1200;g.gain.value=0.35;o.type='sine';o.start();
+      setTimeout(()=>{const o2=ctx.createOscillator();const g2=ctx.createGain();o2.connect(g2);g2.connect(ctx.destination);o2.frequency.value=1600;g2.gain.value=0.3;o2.type='sine';o2.start();o2.stop(ctx.currentTime+0.2);},120);
+      o.stop(ctx.currentTime+0.12);}
+    else if(type==='wicket'){o.frequency.value=400;g.gain.value=0.4;o.type='square';o.start();
+      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);o.stop(ctx.currentTime+0.5);}
+  }catch(e){}
+}
 
 // Current active players
 let striker=null;    // batting_card row
@@ -736,6 +758,9 @@ async function startMatch(){
 async function recordBall(outcome){
   if(!currentInnings||!striker||!bowler)return;
   if(isMatchEnded){cxiAlert('Match is over! No more balls can be scored.');return;}
+  if(isProcessing)return;
+  isProcessing=true;
+  try{
 
   const runsBat=parseInt(outcome)||0;
   const isLegal=true;
@@ -796,8 +821,13 @@ async function recordBall(outcome){
   // Check innings complete (all overs done or all out)
   checkInningsEnd();
 
+  // Play sound effect
+  if(outcome==='4')playSound('four');
+  if(outcome==='6')playSound('six');
+
   renderScoreUI();
   addCommentary(savedBall.commentary);
+  }finally{isProcessing=false;}
 }
 
 // ══════════════════════════════════════════════════════════
@@ -822,6 +852,9 @@ async function confirmExtra(additionalRuns){
   document.getElementById('extraModal').classList.remove('open');
   const type=pendingExtraType;
   if(!type)return;
+  if(isProcessing)return;
+  isProcessing=true;
+  try{
 
   const isWide=type==='wide';
   const isNoBall=type==='noball';
@@ -911,6 +944,7 @@ async function confirmExtra(additionalRuns){
   renderScoreUI();
   addCommentary(savedBall.commentary);
   pendingExtraType=null;
+  }finally{isProcessing=false;}
 }
 
 function closeExtraModal(){document.getElementById('extraModal').classList.remove('open');pendingExtraType=null;}
@@ -959,9 +993,16 @@ async function finalizeWicket(){
   if(!pendingWicketType){cxiAlert('Select how the batsman was out');return;}
   const newBatName=document.getElementById('newBatsman').value||document.getElementById('newBatsmanCustom')?.value?.trim()||'';
   const fielder=document.getElementById('wicketFielder').value.trim();
-  if(!newBatName&&currentInnings.total_wickets<9){cxiAlert('Enter new batsman name (unless all out)');return;}
+  // Dynamic all-out: team size from match_players or battingCard
+  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
+  const maxWickets=teamSize-1;
+  if(!newBatName&&currentInnings.total_wickets<maxWickets){cxiAlert('Select or enter new batsman name');return;}
 
   document.getElementById('wicketModal').classList.remove('open');
+  if(isProcessing)return;
+  isProcessing=true;
+  try{
+  playSound('wicket');
 
   const isRunOut=pendingWicketType==='run_out';
   const outPlayer=isRunOut?(pendingRunOutWho==='nonstriker'?nonStriker:striker):striker;
@@ -1044,6 +1085,7 @@ async function finalizeWicket(){
   checkInningsEnd();
   renderScoreUI();
   addCommentary(savedBall.commentary);
+  }finally{isProcessing=false;}
 }
 
 function cancelWicket(){document.getElementById('wicketModal').classList.remove('open');}
@@ -1128,7 +1170,10 @@ function swapStrikeInternal(){
 // ══════════════════════════════════════════════════════════
 function checkInningsEnd(){
   const maxOvers=match.overs_per_side;
-  const allOut=currentInnings.total_wickets>=10;
+  // Dynamic all-out based on actual team size
+  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
+  const maxWickets=teamSize-1;
+  const allOut=currentInnings.total_wickets>=maxWickets;
   const oversComplete=currentInnings.current_over>=maxOvers&&currentInnings.current_over_balls===0;
 
   // 2nd innings: check if target chased

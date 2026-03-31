@@ -375,11 +375,12 @@ function renderAll(){
   const nameA=document.getElementById('scBatTeamName');const nameB=document.getElementById('scBowlTeamName');
   const logoA=document.getElementById('logoA');const logoB=document.getElementById('logoB');
   if(nameA)nameA.textContent=batName; if(nameB)nameB.textContent=bowlName;
-  // Logos from match data
-  const aLogo=matchData.team_a_logo||(inn.batting_team===matchData.team_a?matchData.team_a_logo:matchData.team_b_logo);
-  const bLogo=matchData.team_b_logo||(inn.batting_team===matchData.team_a?matchData.team_b_logo:matchData.team_a_logo);
-  if(logoA&&aLogo){logoA.src=aLogo;logoA.style.display='inline';}
-  if(logoB&&bLogo){logoB.src=bLogo;logoB.style.display='inline';}
+  // Logos from match data - map correctly based on which team is batting
+  const isBatTeamA=(inn.batting_team===matchData.team_a);
+  const aLogo=isBatTeamA?matchData.team_a_logo:matchData.team_b_logo;
+  const bLogo=isBatTeamA?matchData.team_b_logo:matchData.team_a_logo;
+  if(logoA&&aLogo){logoA.src=aLogo;logoA.style.display='inline';}else if(logoA){logoA.style.display='none';}
+  if(logoB&&bLogo){logoB.src=bLogo;logoB.style.display='inline';}else if(logoB){logoB.style.display='none';}
   // Branding
   if(matchData.branding_text){document.getElementById('brandingStrip').style.display='block';document.getElementById('brandingText').textContent=matchData.branding_text;}
   // Ad slot
