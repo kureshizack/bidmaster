@@ -595,20 +595,23 @@ function switchTab(name){
 
 async function shareScorecard(){
   if(!matchData)return;
-  const url=window.location.origin+'/scorecard.html?code='+(matchData.share_code||matchData.id);
+  const url='https://captainxi.com/scorecard.html?code='+(matchData.share_code||matchData.id);
 
   let msg='';
 
   for(const inn of allInnings){
     const innOvers=inn.current_over+'.'+inn.current_over_balls;
-    msg+='🏏 *'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+(inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+'\n';
+    msg+='*'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+(inn.innings_number===1?' - 1st Innings':' - 2nd Innings')+'\n';
 
     // Load batters for this innings
     const{data:batters}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
     if(batters&&batters.length){
       batters.forEach(b=>{
         const status=b.is_out?'':'*';
-        msg+=b.player_name+' '+b.runs+status+'('+b.balls_faced+') '+(b.fours?b.fours+'×4 ':'')+(b.sixes?b.sixes+'×6':'')+'\n';
+        msg+=b.player_name+' '+b.runs+status+'('+b.balls_faced+')';
+        if(b.fours)msg+=' '+b.fours+'x4';
+        if(b.sixes)msg+=' '+b.sixes+'x6';
+        msg+='\n';
       });
     }
     // Extras
@@ -620,7 +623,7 @@ async function shareScorecard(){
 
   // Match result
   if(matchData.result){
-    msg+='🏆 *'+matchData.result+'*\n';
+    msg+='*'+matchData.result+'*\n';
   } else if(inningsData&&inningsData.innings_number===2&&inningsData.target){
     const need=inningsData.target-inningsData.total_runs;
     msg+='Need '+need+' to win\n';
@@ -628,16 +631,16 @@ async function shareScorecard(){
 
   // Umpires
   if(matchData.umpire_1||matchData.umpire_2){
-    msg+='🧑‍⚖️ Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'\n';
+    msg+='Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'\n';
   }
 
-  msg+='\n🔗 '+url;
-  msg+='\ncaptainXI.com 🏏';
+  msg+='\n'+url;
+  msg+='\n_Powered by captainXI.com_';
 
   // Open WhatsApp directly
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
   const btn=document.querySelector('.share-btn-top');
-  if(btn){btn.textContent='✅ Shared!';setTimeout(()=>btn.textContent='📱 Share',2000);}
+  if(btn){btn.textContent='Shared!';setTimeout(()=>btn.textContent='Share',2000);}
 }
 </script>
 </body>

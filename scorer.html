@@ -781,6 +781,13 @@ async function recordBall(outcome){
   isProcessing=true;
   try{
 
+  // Guard: prevent recording more than 6 legal balls in current over
+  if(currentInnings.current_over_balls>=6){
+    await endOver();
+    isProcessing=false;
+    return;
+  }
+
   const runsBat=parseInt(outcome)||0;
   const isLegal=true;
   const isBoundary=outcome==='4'||outcome==='6';
@@ -1322,12 +1329,15 @@ async function endMatch(){
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   localStorage.removeItem('captainxi_active_match');
 
-  // Share on WhatsApp
-  shareScore();
+  // Show result and ask to share
+  await cxiAlert('Match Complete!\n\n'+result, '🏆');
+  const wantShare=await cxiConfirm('Share result on WhatsApp?', '📱');
+  if(wantShare){
+    shareScore();
+  }
 
-  // Redirect to scorecard after a short delay
+  // Redirect to scorecard
   const scUrl=window.location.origin+'/scorecard.html?'+(match.share_code?'code='+match.share_code:'match='+match.id);
-  await cxiAlert('🏆 Match Complete!\n\n'+result+'\n\nRedirecting to scorecard...');
   window.location.href=scUrl;
 }
 
@@ -1471,12 +1481,12 @@ function shareScore(){
   if(!match||!currentInnings)return;
   const inn=currentInnings;
   const overs=formatOvers(inn);
-  const url=window.location.origin+'/scorecard.html?code='+(match.share_code||match.id);
+  const url='https://captainxi.com/scorecard.html?code='+(match.share_code||match.id);
 
-  let msg='🏏 *'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+overs+' ov)';
+  let msg='*'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+overs+' ov)';
   if(inn.innings_number===2&&inn.target){
     if(inn.total_runs>=inn.target){
-      msg+=' — TARGET ACHIEVED!';
+      msg+=' - TARGET ACHIEVED!';
     } else {
       msg+=' | Need '+(inn.target-inn.total_runs)+' off '+(match.overs_per_side*6-inn.total_balls)+' balls';
     }
@@ -1484,10 +1494,12 @@ function shareScore(){
   msg+='\nvs '+inn.bowling_team;
 
   // All batsmen this innings
-  msg+='\n\n📊 *Batting:*';
+  msg+='\n\n*Batting:*';
   battingCard.forEach(b=>{
     const status=b.is_out?'':'*';
-    msg+='\n'+b.player_name+' '+b.runs+status+'('+b.balls_faced+') '+(b.fours?b.fours+'×4 ':'')+(b.sixes?b.sixes+'×6':'');
+    msg+='\n'+b.player_name+' '+b.runs+status+'('+b.balls_faced+')';
+    if(b.fours)msg+=' '+b.fours+'x4';
+    if(b.sixes)msg+=' '+b.sixes+'x6';
   });
 
   // Extras
@@ -1496,27 +1508,27 @@ function shareScore(){
   }
 
   // All bowlers this innings
-  msg+='\n\n🎳 *Bowling:*';
+  msg+='\n\n*Bowling:*';
   bowlingCard.forEach(b=>{
     msg+='\n'+b.player_name+' '+formatBowlerOvers(b);
   });
 
   // Umpires
   if(match.umpire_1||match.umpire_2){
-    msg+='\n\n🧑‍⚖️ Umpires: '+(match.umpire_1||'')+(match.umpire_2?' & '+match.umpire_2:'');
+    msg+='\n\nUmpires: '+(match.umpire_1||'')+(match.umpire_2?' & '+match.umpire_2:'');
   }
 
   // Match result if completed
   if(match.result){
-    msg+='\n\n🏆 *'+match.result+'*';
+    msg+='\n\n*'+match.result+'*';
   }
 
-  msg+='\n\n🔗 Live scorecard: '+url;
-  msg+='\n\nPowered by captainXI.com 🏏';
+  msg+='\n\nLive scorecard: '+url;
+  msg+='\n\n_Powered by captainXI.com_';
 
   // Open WhatsApp directly with the message
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  addCommentary('📱 WhatsApp opened with score!');
+  addCommentary('WhatsApp opened with score!');
 }
 
 // ══════════════════════════════════════════════════════════
