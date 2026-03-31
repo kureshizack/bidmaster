@@ -242,6 +242,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <!-- BACK: Sponsor ad (shown on over break flip) -->
     <div id="scoreHeaderBack" style="backface-visibility:hidden;transform:rotateX(180deg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a2538,#243248);border-radius:0;padding:16px;">
       <div style="text-align:center;">
+        <img id="sponsorFlipLogo" src="" style="display:none;max-height:40px;max-width:120px;margin:0 auto 8px;border-radius:6px;">
         <div style="font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:6px;">OVER BREAK</div>
         <div id="sponsorFlipText" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);letter-spacing:2px;">captainXI.com</div>
         <div id="sponsorFlipSub" style="font-size:12px;color:var(--muted);margin-top:4px;">My Game. My Rules.</div>
@@ -1758,11 +1759,14 @@ function showOverBreakSponsor(){
   const inner=document.getElementById('scoreHeaderInner');
   const flipText=document.getElementById('sponsorFlipText');
   const flipSub=document.getElementById('sponsorFlipSub');
+  const flipLogo=document.getElementById('sponsorFlipLogo');
   if(!inner)return;
-  // Set sponsor name
+  // Set sponsor name and logo
   const sponsor=(match&&match.sponsor_name)||'captainXI.com';
   flipText.textContent=sponsor;
   flipSub.textContent=match?.branding_text||'My Game. My Rules.';
+  if(match?.sponsor_logo){flipLogo.src=match.sponsor_logo;flipLogo.style.display='block';}
+  else{flipLogo.style.display='none';}
   // Flip to back
   inner.style.transform='rotateX(180deg)';
   // Flip back after 3 seconds

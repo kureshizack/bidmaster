@@ -74,6 +74,13 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .share-code{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);padding:3px 10px;border-radius:6px;cursor:pointer;}
 .share-code:hover{color:var(--accent);}
 
+/* FILE UPLOAD BOX */
+.file-upload-box{width:100%;height:80px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;overflow:hidden;position:relative;background:var(--surface2);}
+.file-upload-box:hover{border-color:var(--accent);background:rgba(245,158,11,0.05);}
+.file-upload-box:active{transform:scale(0.98);}
+.file-placeholder{font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:0.5px;text-align:center;}
+.file-preview{width:100%;height:100%;object-fit:contain;border-radius:8px;padding:4px;}
+
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
 .empty-state .icon{font-size:48px;margin-bottom:16px;}
@@ -263,12 +270,22 @@ select.form-input option{background:var(--surface2);}
       <div class="section-divider">Team Logos (Optional)</div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Team A Logo URL</label>
-          <input class="form-input" id="fLogoA" type="url" placeholder="https://...image.png">
+          <label class="form-label" id="labelLogoA">Team A Logo</label>
+          <div class="file-upload-box" id="uploadBoxA" onclick="document.getElementById('fLogoAFile').click()">
+            <img id="previewLogoA" class="file-preview" src="" style="display:none;">
+            <div id="uploadPlaceholderA" class="file-placeholder">📷 Tap to upload</div>
+          </div>
+          <input type="file" id="fLogoAFile" accept="image/*" style="display:none;" onchange="previewFile(this,'previewLogoA','uploadPlaceholderA')">
+          <input type="hidden" id="fLogoA">
         </div>
         <div class="form-group">
-          <label class="form-label">Team B Logo URL</label>
-          <input class="form-input" id="fLogoB" type="url" placeholder="https://...image.png">
+          <label class="form-label" id="labelLogoB">Team B Logo</label>
+          <div class="file-upload-box" id="uploadBoxB" onclick="document.getElementById('fLogoBFile').click()">
+            <img id="previewLogoB" class="file-preview" src="" style="display:none;">
+            <div id="uploadPlaceholderB" class="file-placeholder">📷 Tap to upload</div>
+          </div>
+          <input type="file" id="fLogoBFile" accept="image/*" style="display:none;" onchange="previewFile(this,'previewLogoB','uploadPlaceholderB')">
+          <input type="hidden" id="fLogoB">
         </div>
       </div>
 
@@ -283,13 +300,23 @@ select.form-input option{background:var(--surface2);}
           <input class="form-input" id="fSponsorName" type="text" placeholder="e.g. Star Sports" maxlength="40">
         </div>
         <div class="form-group">
+          <label class="form-label">Sponsor Logo</label>
+          <div class="file-upload-box" onclick="document.getElementById('fSponsorLogoFile').click()">
+            <img id="previewSponsorLogo" class="file-preview" src="" style="display:none;">
+            <div id="uploadPlaceholderSponsor" class="file-placeholder">📷 Tap to upload</div>
+          </div>
+          <input type="file" id="fSponsorLogoFile" accept="image/*" style="display:none;" onchange="previewFile(this,'previewSponsorLogo','uploadPlaceholderSponsor')">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
           <label class="form-label">Ad Text (footer)</label>
           <input class="form-input" id="fAdText" type="text" placeholder="Visit our website" maxlength="60">
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ad Link URL (optional)</label>
-        <input class="form-input" id="fAdUrl" type="url" placeholder="https://...">
+        <div class="form-group">
+          <label class="form-label">Ad Link URL (optional)</label>
+          <input class="form-input" id="fAdUrl" type="url" placeholder="https://...">
+        </div>
       </div>
 
       <div class="section-divider">Playing XI</div>
@@ -521,6 +548,16 @@ function openCreateModal() {
   document.getElementById('fAdUrl').value = '';
   document.getElementById('fUmpire1').value = '';
   document.getElementById('fUmpire2').value = '';
+  // Reset file uploads
+  document.getElementById('fLogoAFile').value = '';
+  document.getElementById('fLogoBFile').value = '';
+  if(document.getElementById('fSponsorLogoFile'))document.getElementById('fSponsorLogoFile').value = '';
+  document.getElementById('previewLogoA').style.display = 'none';
+  document.getElementById('previewLogoB').style.display = 'none';
+  document.getElementById('previewSponsorLogo').style.display = 'none';
+  document.getElementById('uploadPlaceholderA').style.display = 'block';
+  document.getElementById('uploadPlaceholderB').style.display = 'block';
+  document.getElementById('uploadPlaceholderSponsor').style.display = 'block';
   document.getElementById('modalErr').textContent = '';
   document.getElementById('tossDecisionGroup').style.display = 'none';
   document.getElementById('tBat').classList.remove('selected');
@@ -547,12 +584,59 @@ function updateTossOptions() {
   };
   document.getElementById('labelA').textContent = (a || 'Team A') + ' — Players';
   document.getElementById('labelB').textContent = (b || 'Team B') + ' — Players';
+  document.getElementById('labelLogoA').textContent = (a || 'Team A') + ' Logo';
+  document.getElementById('labelLogoB').textContent = (b || 'Team B') + ' Logo';
 }
 
 function selectToss(decision) {
   tossDecision = decision;
   document.getElementById('tBat').classList.toggle('selected', decision === 'bat');
   document.getElementById('tBowl').classList.toggle('selected', decision === 'bowl');
+}
+
+// ── FILE UPLOAD HELPERS ───────────────────────────────────
+function previewFile(input, previewId, placeholderId) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById(previewId);
+  const placeholder = document.getElementById(placeholderId);
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadFileToStorage(file, folder) {
+  if (!file) return null;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+  if (!allowed.includes(ext)) { cxiAlert('Only image files allowed (jpg, png, gif, webp)'); return null; }
+  if (file.size > 2 * 1024 * 1024) { cxiAlert('Image must be under 2MB'); return null; }
+
+  const fileName = folder + '/' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + '.' + ext;
+  const { data, error } = await sb.storage.from('player-photos').upload(fileName, file, {
+    cacheControl: '3600',
+    upsert: false
+  });
+  if (error) {
+    console.error('Upload error:', error);
+    // Fallback: convert to base64 data URL if storage fails
+    return await fileToDataUrl(file);
+  }
+  const { data: urlData } = sb.storage.from('player-photos').getPublicUrl(fileName);
+  return urlData?.publicUrl || null;
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { resolve(null); };
+    reader.readAsDataURL(file);
+  });
 }
 
 // ── SAVE MATCH ────────────────────────────────────────────
@@ -566,8 +650,36 @@ async function saveMatch() {
   if (teamA.toLowerCase() === teamB.toLowerCase()) { err.textContent = 'Team names must be different.'; return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Saving...';
+  btn.innerHTML = '<span class="spinner"></span> Uploading & Saving...';
   err.textContent = '';
+
+  // Upload files if selected
+  const logoAFile = document.getElementById('fLogoAFile').files[0];
+  const logoBFile = document.getElementById('fLogoBFile').files[0];
+  const sponsorLogoFile = document.getElementById('fSponsorLogoFile')?.files[0];
+
+  let logoAUrl = document.getElementById('fLogoA').value || null;
+  let logoBUrl = document.getElementById('fLogoB').value || null;
+  let sponsorLogoUrl = null;
+
+  try {
+    if (logoAFile) {
+      err.textContent = 'Uploading Team A logo...';
+      logoAUrl = await uploadFileToStorage(logoAFile, 'logos');
+    }
+    if (logoBFile) {
+      err.textContent = 'Uploading Team B logo...';
+      logoBUrl = await uploadFileToStorage(logoBFile, 'logos');
+    }
+    if (sponsorLogoFile) {
+      err.textContent = 'Uploading sponsor logo...';
+      sponsorLogoUrl = await uploadFileToStorage(sponsorLogoFile, 'sponsors');
+    }
+    err.textContent = 'Saving match...';
+  } catch (uploadErr) {
+    console.error('Upload failed:', uploadErr);
+    err.textContent = 'Upload failed, saving without images...';
+  }
 
   const overs = parseInt(document.getElementById('fOvers').value);
   const venue = document.getElementById('fVenue').value.trim();
@@ -592,10 +704,11 @@ async function saveMatch() {
     share_code: shareCode,
     auction_id: auctionId,
     created_by: currentUser.id,
-    team_a_logo: document.getElementById('fLogoA').value.trim() || null,
-    team_b_logo: document.getElementById('fLogoB').value.trim() || null,
+    team_a_logo: logoAUrl,
+    team_b_logo: logoBUrl,
     branding_text: document.getElementById('fBranding').value.trim() || null,
     sponsor_name: document.getElementById('fSponsorName').value.trim() || null,
+    sponsor_logo: sponsorLogoUrl,
     ad_text: document.getElementById('fAdText').value.trim() || null,
     ad_url: document.getElementById('fAdUrl').value.trim() || null,
     umpire_1: document.getElementById('fUmpire1').value.trim() || null,
@@ -606,9 +719,11 @@ async function saveMatch() {
     .insert(matchPayload).select().single();
 
   if (error) {
-    // created_by column might not exist — retry without it
-    if (error.message.includes('created_by')) {
+    // Column might not exist — retry without problematic columns
+    if (error.message.includes('created_by') || error.message.includes('sponsor_logo') || error.message.includes('umpire')) {
       delete matchPayload.created_by;
+      delete matchPayload.sponsor_logo;
+      if(error.message.includes('umpire')){delete matchPayload.umpire_1;delete matchPayload.umpire_2;}
       const { data: m2, error: e2 } = await sb.from('matches').insert(matchPayload).select().single();
       if (e2) { err.textContent = 'Error: ' + e2.message; btn.disabled = false; btn.textContent = 'Create Match'; return; }
       await saveMatchPlayers(m2.id, teamA, playersA, teamB, playersB);
