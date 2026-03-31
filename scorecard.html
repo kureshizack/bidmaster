@@ -198,10 +198,10 @@ footer a{color:var(--accent);text-decoration:none;}
     <!-- BACK: Sponsor (shown on over break flip) -->
     <div id="scFlipBack" style="backface-visibility:hidden;transform:rotateX(180deg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--surface),var(--surface2));padding:20px;border-bottom:2px solid var(--accent);">
       <div style="text-align:center;">
-        <img id="scSponsorFlipLogo" src="" style="display:none;max-height:60px;max-width:180px;margin:0 auto 10px;border-radius:8px;">
-        <div style="font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:6px;">OVER BREAK</div>
-        <div id="scSponsorFlipName" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);letter-spacing:2px;">captainXI.com</div>
-        <div id="scSponsorFlipSub" style="font-size:12px;color:var(--muted);margin-top:4px;">My Game. My Rules.</div>
+        <img id="scSponsorFlipLogo" src="" style="display:none;max-height:100px;max-width:280px;margin:0 auto 12px;border-radius:10px;">
+        <div style="font-size:12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:4px;">OVER BREAK</div>
+        <div id="scSponsorFlipName" style="font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--accent);letter-spacing:3px;">captainXI.com</div>
+        <div id="scSponsorFlipSub" style="font-size:14px;color:var(--muted);margin-top:6px;">My Game. My Rules.</div>
       </div>
     </div>
     </div><!-- end scFlipInner -->
@@ -260,9 +260,9 @@ footer a{color:var(--accent);text-decoration:none;}
         <!-- Fall of Wickets (enhanced) -->
         <div id="fallOfWickets" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
 
-        <!-- Man of the Match -->
+        <!-- Player of the Match -->
         <div id="momSection" style="display:none;margin-top:14px;background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:12px 14px;text-align:center;">
-          <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Man of the Match</div>
+          <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Player of the Match</div>
           <div id="momName" style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text);"></div>
           <div id="momStats" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
         </div>
@@ -378,6 +378,7 @@ function adSlotClick(){if(window._adUrl)window.open(window._adUrl,'_blank');}
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
 let allInnings=[]; // both innings
 let _lastOverNum=-1; // track over changes for flip
+let organizerPlan='free'; // for feature gating
 
 (async()=>{
   const _p=new URLSearchParams(window.location.search);
@@ -397,6 +398,12 @@ async function loadAll(){
   const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
   if(!m)return;
   matchData=m;
+
+  // Load organizer plan for feature gating
+  if(m.created_by&&organizerPlan==='free'){
+    const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',m.created_by).maybeSingle();
+    if(orgProfile)organizerPlan=orgProfile.plan||'free';
+  }
 
   // Load ALL innings (both 1st and 2nd)
   const{data:innings}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number');
@@ -433,6 +440,12 @@ async function loadAll(){
     flipScorecardSponsor();
   }
   if(inn)_lastOverNum=inn.current_over;
+
+  // Plan gating
+  const isPaid=organizerPlan==='matchday'||organizerPlan==='match_day'||organizerPlan==='club'||organizerPlan==='pro'||organizerPlan==='district'||organizerPlan==='national'||organizerPlan==='paid';
+  // Hide watermark for paid plans
+  const wm=document.getElementById('scorecardWatermark');
+  if(wm)wm.style.display=isPaid?'none':'block';
 
   renderAll();
 }
@@ -753,6 +766,13 @@ function computePartnerships(batters,balls){
 
 // ── DOWNLOAD SCORECARD AS IMAGE ──
 async function downloadScorecard(){
+  // Plan gate — Club+ only
+  const isPaid=organizerPlan!=='free'&&organizerPlan!=='gully';
+  if(!isPaid){
+    await cxiAlert('Scorecard Download is a Club plan feature.\n\nAsk the match organizer to upgrade to Club plan for watermark-free scorecard downloads.');
+    return;
+  }
+
   const area=document.getElementById('downloadableArea');
   if(!area){cxiAlert('Scorecard not loaded yet');return;}
 
@@ -804,46 +824,56 @@ async function shareScorecard(){
   const url='https://captainxi.com/scorecard.html?code='+(matchData.share_code||matchData.id);
 
   let msg='';
+  msg+='━━━━━━━━━━━━━━━━━\n';
+  msg+='  *'+matchData.team_a+'* vs *'+matchData.team_b+'*\n';
+  if(matchData.venue)msg+='  '+matchData.venue+'\n';
+  msg+='━━━━━━━━━━━━━━━━━\n\n';
 
   for(const inn of allInnings){
     const innOvers=inn.current_over+'.'+inn.current_over_balls;
-    msg+='*'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+(inn.innings_number===1?' - 1st Innings':' - 2nd Innings')+'\n';
+    msg+=(inn.innings_number===1?'1st':'2nd')+' Innings\n';
+    msg+='*'+inn.batting_team+'* - *'+inn.total_runs+'/'+inn.total_wickets+'* ('+innOvers+' ov)\n';
 
-    // Load batters for this innings
     const{data:batters}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
     if(batters&&batters.length){
+      msg+='-----------------------------\n';
       batters.forEach(b=>{
         const status=b.is_out?'':'*';
-        msg+=b.player_name+' '+b.runs+status+'('+b.balls_faced+')';
+        const dismissal=b.is_out?(b.dismissal_text||'out'):'not out';
+        msg+=b.player_name+' - '+b.runs+status+'('+b.balls_faced+'b)';
         if(b.fours)msg+=' '+b.fours+'x4';
         if(b.sixes)msg+=' '+b.sixes+'x6';
-        msg+='\n';
+        msg+=' ['+dismissal+']\n';
       });
     }
-    // Extras
     if(inn.extras_total>0){
       msg+='Extras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')\n';
+    }
+    const{data:bowlers}=await sb.from('bowling_card').select('*').eq('innings_id',inn.id);
+    if(bowlers&&bowlers.length){
+      msg+='\nBowling:\n';
+      bowlers.forEach(b=>{
+        const ov=Math.floor((b.overs_balls||0)/6)+'.'+(b.overs_balls||0)%6;
+        msg+=b.player_name+' '+ov+'-'+b.maidens+'-'+b.runs_conceded+'-'+b.wickets+'\n';
+      });
     }
     msg+='\n';
   }
 
-  // Match result
   if(matchData.result){
+    msg+='================================\n';
     msg+='*'+matchData.result+'*\n';
-  } else if(inningsData&&inningsData.innings_number===2&&inningsData.target){
-    const need=inningsData.target-inningsData.total_runs;
-    msg+='Need '+need+' to win\n';
+    msg+='================================\n';
   }
-
-  // Umpires
+  if(matchData.mom_name){
+    msg+='\nPlayer of the Match: *'+matchData.mom_name+'*\n';
+  }
   if(matchData.umpire_1||matchData.umpire_2){
-    msg+='Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'\n';
+    msg+='Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?', '+matchData.umpire_2:'')+'\n';
   }
+  msg+='\nFull Scorecard:\n'+url+'\n';
+  msg+='\n_Scored on captainXI.com_';
 
-  msg+='\n'+url;
-  msg+='\n_Powered by captainXI.com_';
-
-  // Open WhatsApp directly
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
   const btn=document.querySelector('.share-btn-top');
   if(btn){btn.textContent='Shared!';setTimeout(()=>btn.textContent='Share',2000);}

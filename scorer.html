@@ -242,10 +242,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <!-- BACK: Sponsor ad (shown on over break flip) -->
     <div id="scoreHeaderBack" style="backface-visibility:hidden;transform:rotateX(180deg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a2538,#243248);border-radius:0;padding:16px;">
       <div style="text-align:center;">
-        <img id="sponsorFlipLogo" src="" style="display:none;max-height:40px;max-width:120px;margin:0 auto 8px;border-radius:6px;">
-        <div style="font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:6px;">OVER BREAK</div>
-        <div id="sponsorFlipText" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);letter-spacing:2px;">captainXI.com</div>
-        <div id="sponsorFlipSub" style="font-size:12px;color:var(--muted);margin-top:4px;">My Game. My Rules.</div>
+        <img id="sponsorFlipLogo" src="" style="display:none;max-height:80px;max-width:240px;margin:0 auto 10px;border-radius:8px;">
+        <div style="font-size:12px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:4px;">OVER BREAK</div>
+        <div id="sponsorFlipText" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);letter-spacing:3px;">captainXI.com</div>
+        <div id="sponsorFlipSub" style="font-size:14px;color:var(--muted);margin-top:6px;">My Game. My Rules.</div>
       </div>
     </div>
     </div><!-- end scoreHeaderInner -->
@@ -394,14 +394,14 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- MAN OF THE MATCH MODAL                              -->
 <!-- ══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="momModal" style="display:none;">
+<div class="modal-overlay" id="pomModal" style="display:none;">
   <div class="modal">
-    <h3 style="color:var(--green);">🏆 Man of the Match</h3>
+    <h3 style="color:var(--green);">🏆 Player of the Match</h3>
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Select the best performer</div>
-    <div id="momPlayerList" style="max-height:300px;overflow-y:auto;margin-bottom:10px;"></div>
-    <input class="setup-input" id="momCustom" placeholder="Or type player name" style="margin-bottom:10px;">
-    <button class="modal-btn modal-btn-primary" onclick="confirmMoM()" style="background:var(--green);color:#000;">Confirm MoM</button>
-    <button class="modal-btn modal-btn-ghost" onclick="skipMoM()">Skip</button>
+    <div id="pomPlayerList" style="max-height:300px;overflow-y:auto;margin-bottom:10px;"></div>
+    <input class="setup-input" id="pomCustom" placeholder="Or type player name" style="margin-bottom:10px;">
+    <button class="modal-btn modal-btn-primary" onclick="confirmPoM()" style="background:var(--green);color:#000;">Confirm PoM</button>
+    <button class="modal-btn modal-btn-ghost" onclick="skipPoM()">Skip</button>
   </div>
 </div>
 
@@ -1344,31 +1344,44 @@ async function endMatch(){
   isMatchEnded=true;
   // Determine result
   let result='';
+  let winner=null;
   if(currentInnings.innings_number===2){
     const{data:inn1}=await sb.from('innings').select('total_runs,batting_team').eq('match_id',match.id).eq('innings_number',1).single();
-    if(currentInnings.total_runs>=currentInnings.target){
+    const inn1Runs=inn1.total_runs;
+    const inn2Runs=currentInnings.total_runs;
+
+    if(inn2Runs>inn1Runs){
+      // Chasing team won
       const teamPlayers=(allPlayersByTeam[currentInnings.batting_team]||[]);
       const teamSize=teamPlayers.length>=2?teamPlayers.length:11;
       const wicketsLeft=(teamSize-1)-currentInnings.total_wickets;
       result=currentInnings.batting_team+' won by '+wicketsLeft+' wicket'+(wicketsLeft>1?'s':'');
+      winner=currentInnings.batting_team;
+    } else if(inn2Runs===inn1Runs){
+      // TIE — scores level
+      result='Match Tied! '+inn1.batting_team+' '+inn1Runs+' - '+currentInnings.batting_team+' '+inn2Runs;
+      winner=null;
     } else {
-      const margin=inn1.total_runs-currentInnings.total_runs;
+      // Batting first team won
+      const margin=inn1Runs-inn2Runs;
       result=inn1.batting_team+' won by '+margin+' run'+(margin>1?'s':'');
+      winner=inn1.batting_team;
     }
   }
 
-  await sb.from('matches').update({status:'completed',result:result,winner:result.split(' won')[0]}).eq('id',match.id);
+  await sb.from('matches').update({status:'completed',result:result,winner:winner}).eq('id',match.id);
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   localStorage.removeItem('captainxi_active_match');
+  match.result=result;match.winner=winner;
 
   // Show result
   await cxiAlert('Match Complete!\n\n'+result, '🏆');
 
-  // Show MoM selector
-  showMoMSelector();
+  // Show Player of the Match selector
+  showPoMSelector();
 }
 
-async function showMoMSelector(){
+async function showPoMSelector(){
   // Load all innings data for impact calculation
   const{data:allInn}=await sb.from('innings').select('*').eq('match_id',match.id).order('innings_number');
   const playerImpact={};
@@ -1438,19 +1451,19 @@ async function showMoMSelector(){
   const topPick=ranked[0];
 
   // Build UI
-  const list=document.getElementById('momPlayerList');
+  const list=document.getElementById('pomPlayerList');
   let html='';
 
   // Auto-suggestion banner
   if(topPick&&topPick.impact>10){
     html+='<div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.04));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:12px;margin-bottom:12px;text-align:center;">';
-    html+='<div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">AI Suggested</div>';
+    html+='<div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">CaptainXI Suggests</div>';
     html+='<div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--text);">'+topPick.name+'</div>';
     html+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+topPick.statLine+'</div>';
     html+='<div style="font-size:10px;color:var(--green);margin-top:4px;">Impact Score: '+Math.round(topPick.impact)+'</div>';
-    html+='<button class="modal-btn modal-btn-primary wkt-selected mom-pick" onclick="selectMoM(this,\''+topPick.name.replace(/'/g,"\\'")+'\') " style="margin-top:8px;background:var(--green);color:#000;">Select '+topPick.name+'</button>';
+    html+='<button class="modal-btn modal-btn-primary wkt-selected pom-pick" onclick="selectPoM(this,\''+topPick.name.replace(/'/g,"\\'")+'\') " style="margin-top:8px;background:var(--green);color:#000;">Select '+topPick.name+'</button>';
     html+='</div>';
-    window._selectedMoM=topPick.name; // Pre-select
+    window._selectedPoM=topPick.name; // Pre-select
   }
 
   html+='<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Or choose manually:</div>';
@@ -1458,31 +1471,31 @@ async function showMoMSelector(){
   // All players ranked by impact
   ranked.forEach(p=>{
     const isTop=topPick&&p.name===topPick.name;
-    html+='<button class="modal-btn modal-btn-ghost mom-pick'+(isTop?' wkt-selected':'')+'" onclick="selectMoM(this,\''+p.name.replace(/'/g,"\\'")+'\')"><span style="font-weight:700;">'+p.name+'</span><br><span style="font-size:11px;color:var(--muted);">'+p.statLine+(p.impact>0?' | Impact: '+Math.round(p.impact):'')+'</span></button>';
+    html+='<button class="modal-btn modal-btn-ghost pom-pick'+(isTop?' wkt-selected':'')+'" onclick="selectPoM(this,\''+p.name.replace(/'/g,"\\'")+'\')"><span style="font-weight:700;">'+p.name+'</span><br><span style="font-size:11px;color:var(--muted);">'+p.statLine+(p.impact>0?' | Impact: '+Math.round(p.impact):'')+'</span></button>';
   });
 
   list.innerHTML=html;
-  document.getElementById('momCustom').value='';
-  document.getElementById('momModal').style.display='flex';
+  document.getElementById('pomCustom').value='';
+  document.getElementById('pomModal').style.display='flex';
 }
 
-function selectMoM(btn,name){
-  window._selectedMoM=name;
-  document.querySelectorAll('.mom-pick').forEach(b=>b.classList.remove('wkt-selected'));
+function selectPoM(btn,name){
+  window._selectedPoM=name;
+  document.querySelectorAll('.pom-pick').forEach(b=>b.classList.remove('wkt-selected'));
   btn.classList.add('wkt-selected');
 }
 
-async function confirmMoM(){
-  const mom=window._selectedMoM||document.getElementById('momCustom').value.trim();
-  document.getElementById('momModal').style.display='none';
+async function confirmPoM(){
+  const mom=window._selectedPoM||document.getElementById('pomCustom').value.trim();
+  document.getElementById('pomModal').style.display='none';
   if(mom){
     await sb.from('matches').update({mom_name:mom}).eq('id',match.id);
   }
   afterMatchEnd();
 }
 
-function skipMoM(){
-  document.getElementById('momModal').style.display='none';
+function skipPoM(){
+  document.getElementById('pomModal').style.display='none';
   afterMatchEnd();
 }
 
@@ -1629,58 +1642,78 @@ async function undoLastBall(){
 // ══════════════════════════════════════════════════════════
 // SHARE SCORE
 // ══════════════════════════════════════════════════════════
-function shareScore(){
-  if(!match||!currentInnings)return;
-  const inn=currentInnings;
-  const overs=formatOvers(inn);
+async function shareScore(){
+  if(!match)return;
   const url='https://captainxi.com/scorecard.html?code='+(match.share_code||match.id);
 
-  let msg='*'+inn.batting_team+'* '+inn.total_runs+'/'+inn.total_wickets+' ('+overs+' ov)';
-  if(inn.innings_number===2&&inn.target){
-    if(inn.total_runs>=inn.target){
-      msg+=' - TARGET ACHIEVED!';
-    } else {
-      msg+=' | Need '+(inn.target-inn.total_runs)+' off '+(match.overs_per_side*6-inn.total_balls)+' balls';
+  // Load all innings
+  const{data:allInn}=await sb.from('innings').select('*').eq('match_id',match.id).order('innings_number');
+
+  let msg='';
+
+  // Header
+  msg+='━━━━━━━━━━━━━━━━━\n';
+  msg+='  *'+match.team_a+'* vs *'+match.team_b+'*\n';
+  if(match.venue)msg+='  '+match.venue+'\n';
+  msg+='━━━━━━━━━━━━━━━━━\n\n';
+
+  for(const inn of (allInn||[])){
+    const innOvers=inn.current_over+'.'+inn.current_over_balls;
+    msg+=(inn.innings_number===1?'1st':'2nd')+' Innings\n';
+    msg+='*'+inn.batting_team+'* - *'+inn.total_runs+'/'+inn.total_wickets+'* ('+innOvers+' ov)\n';
+
+    // Load batters
+    const{data:batters}=await sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order');
+    if(batters&&batters.length){
+      msg+='-----------------------------\n';
+      batters.forEach(b=>{
+        const status=b.is_out?'':'*';
+        const dismissal=b.is_out?(b.dismissal_text||'out'):'not out';
+        msg+=b.player_name+' - '+b.runs+status+'('+b.balls_faced+'b)';
+        if(b.fours)msg+=' '+b.fours+'x4';
+        if(b.sixes)msg+=' '+b.sixes+'x6';
+        msg+=' ['+dismissal+']\n';
+      });
     }
+    // Extras
+    if(inn.extras_total>0){
+      msg+='Extras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')\n';
+    }
+
+    // Load bowlers
+    const{data:bowlers}=await sb.from('bowling_card').select('*').eq('innings_id',inn.id);
+    if(bowlers&&bowlers.length){
+      msg+='\nBowling:\n';
+      bowlers.forEach(b=>{
+        const ov=Math.floor((b.overs_balls||0)/6)+'.'+(b.overs_balls||0)%6;
+        msg+=b.player_name+' '+ov+'-'+b.maidens+'-'+b.runs_conceded+'-'+b.wickets+'\n';
+      });
+    }
+    msg+='\n';
   }
-  msg+='\nvs '+inn.bowling_team;
 
-  // All batsmen this innings
-  msg+='\n\n*Batting:*';
-  battingCard.forEach(b=>{
-    const status=b.is_out?'':'*';
-    msg+='\n'+b.player_name+' '+b.runs+status+'('+b.balls_faced+')';
-    if(b.fours)msg+=' '+b.fours+'x4';
-    if(b.sixes)msg+=' '+b.sixes+'x6';
-  });
-
-  // Extras
-  if(inn.extras_total>0){
-    msg+='\nExtras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')';
+  // Result
+  if(match.result){
+    msg+='================================\n';
+    msg+='*'+match.result+'*\n';
+    msg+='================================\n';
   }
 
-  // All bowlers this innings
-  msg+='\n\n*Bowling:*';
-  bowlingCard.forEach(b=>{
-    msg+='\n'+b.player_name+' '+formatBowlerOvers(b);
-  });
+  // Player of the Match
+  if(match.mom_name){
+    msg+='\nPlayer of the Match: *'+match.mom_name+'*\n';
+  }
 
   // Umpires
   if(match.umpire_1||match.umpire_2){
-    msg+='\n\nUmpires: '+(match.umpire_1||'')+(match.umpire_2?' & '+match.umpire_2:'');
+    msg+='Umpires: '+(match.umpire_1||'')+(match.umpire_2?', '+match.umpire_2:'')+'\n';
   }
 
-  // Match result if completed
-  if(match.result){
-    msg+='\n\n*'+match.result+'*';
-  }
+  msg+='\nFull Scorecard:\n'+url+'\n';
+  msg+='\n_Scored on captainXI.com_';
 
-  msg+='\n\nLive scorecard: '+url;
-  msg+='\n\n_Powered by captainXI.com_';
-
-  // Open WhatsApp directly with the message
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  addCommentary('WhatsApp opened with score!');
+  addCommentary('WhatsApp opened with full scorecard!');
 }
 
 // ══════════════════════════════════════════════════════════
