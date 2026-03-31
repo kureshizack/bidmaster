@@ -341,14 +341,34 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">Fielder (optional)</label>
-      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma" list="bowlingTeamPlayers">
+      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma" list="currentBowlingTeamPlayers">
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">New Batsman</label>
-      <input class="setup-input" id="newBatsman" placeholder="New batsman name" list="battingTeamPlayers">
+      <select class="setup-input" id="newBatsman" style="color:var(--text);"><option value="">-- Select new batsman --</option></select>
+      <input class="setup-input" id="newBatsmanCustom" placeholder="Or type name if not in list" style="margin-top:6px;font-size:13px;">
     </div>
     <button class="modal-btn modal-btn-primary" onclick="finalizeWicket()" style="margin-top:10px;">✅ Confirm Wicket</button>
     <button class="modal-btn modal-btn-ghost" onclick="cancelWicket()">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- 2ND INNINGS SETUP MODAL                               -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="inn2Modal" style="display:none;">
+  <div class="modal">
+    <h3 style="color:var(--accent);">🏏 2nd Innings Setup</h3>
+    <div id="inn2Info" style="font-size:14px;color:var(--green);margin-bottom:14px;font-weight:700;"></div>
+    <label class="setup-label">Striker</label>
+    <select class="setup-input" id="inn2Striker" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select striker --</option></select>
+    <label class="setup-label">Non-Striker</label>
+    <select class="setup-input" id="inn2NonStriker" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select non-striker --</option></select>
+    <label class="setup-label">Opening Bowler</label>
+    <select class="setup-input" id="inn2Bowler" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select bowler --</option></select>
+    <input class="setup-input" id="inn2BowlerCustom" placeholder="Or type new bowler name" style="margin-bottom:10px;">
+    <button class="modal-btn modal-btn-primary" onclick="confirmInn2Setup()" style="margin-top:6px;">🏏 Start 2nd Innings</button>
+    <button class="modal-btn modal-btn-ghost" onclick="document.getElementById('inn2Modal').style.display='none'">Cancel</button>
   </div>
 </div>
 
@@ -378,7 +398,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <h3>🎳 Change Bowler</h3>
     <div id="bowlerList" style="margin-bottom:10px;"></div>
     <label class="setup-label">Or enter new bowler</label>
-    <input class="setup-input" id="newBowlerName" placeholder="Bowler name" list="bowlingTeamPlayers">
+    <input class="setup-input" id="newBowlerName" placeholder="Bowler name" list="currentBowlingTeamPlayers">
+    <datalist id="currentBowlingTeamPlayers"></datalist>
     <button class="modal-btn modal-btn-primary" onclick="confirmBowlerChange()" style="margin-top:10px;">✅ Set Bowler</button>
     <button class="modal-btn modal-btn-ghost" onclick="closeBowlerModal()">Cancel</button>
   </div>
@@ -555,6 +576,54 @@ function updatePlayerSuggestions(){
   const bowlDl=document.getElementById('bowlingTeamPlayers');
   const bowlPlayers=allPlayersByTeam[b]||allPlayerNames;
   bowlDl.innerHTML=bowlPlayers.map(n=>'<option value="'+n+'">').join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// DYNAMIC PLAYER HELPERS (for correct team during innings)
+// ══════════════════════════════════════════════════════════
+function getCurrentBattingTeamPlayers(){
+  if(!currentInnings)return allPlayerNames;
+  return allPlayersByTeam[currentInnings.batting_team]||allPlayerNames;
+}
+
+function getCurrentBowlingTeamPlayers(){
+  if(!currentInnings)return allPlayerNames;
+  return allPlayersByTeam[currentInnings.bowling_team]||allPlayerNames;
+}
+
+function getAvailableBatsmen(){
+  const teamPlayers=getCurrentBattingTeamPlayers();
+  const alreadyBatted=battingCard.map(b=>b.player_name.toLowerCase());
+  return teamPlayers.filter(p=>!alreadyBatted.includes(p.toLowerCase()));
+}
+
+function populateNewBatsmanDropdown(){
+  const sel=document.getElementById('newBatsman');
+  const available=getAvailableBatsmen();
+  sel.innerHTML='<option value="">-- Select new batsman --</option>';
+  available.forEach(p=>{
+    sel.innerHTML+='<option value="'+p+'">'+p+'</option>';
+  });
+  // If no pre-loaded players, allow typing via adding a text input fallback
+  if(available.length===0){
+    sel.innerHTML='<option value="">-- Type name below --</option>';
+  }
+}
+
+function updateBowlerDatalist(){
+  const dl=document.getElementById('currentBowlingTeamPlayers');
+  if(!dl)return;
+  const bowlPlayers=getCurrentBowlingTeamPlayers();
+  // Filter out already used bowlers
+  const usedNames=bowlingCard.map(b=>b.player_name.toLowerCase());
+  const available=bowlPlayers.filter(p=>!usedNames.includes(p.toLowerCase()));
+  dl.innerHTML=available.map(n=>'<option value="'+n+'">').join('');
+}
+
+function populateSelectWithPlayers(selId,players,placeholder){
+  const sel=document.getElementById(selId);
+  sel.innerHTML='<option value="">'+placeholder+'</option>';
+  players.forEach(p=>{sel.innerHTML+='<option value="'+p+'">'+p+'</option>';});
 }
 
 let tossDecision=null;
@@ -856,6 +925,10 @@ function recordWicket(){
     cxiAlert('Free Hit! Only Run Out is possible. Tap Run Out if the batsman was run out, otherwise record the ball normally.');
     return;
   }
+  // Populate new batsman dropdown with only available players
+  populateNewBatsmanDropdown();
+  // Update fielder suggestions with bowling team players
+  updateBowlerDatalist();
   document.getElementById('wicketModal').classList.add('open');
   document.getElementById('wicketRunOutExtra').style.display='none';
   document.getElementById('newBatsman').value='';
@@ -884,7 +957,7 @@ function setRunOutWho(who){
 
 async function finalizeWicket(){
   if(!pendingWicketType){cxiAlert('Select how the batsman was out');return;}
-  const newBatName=document.getElementById('newBatsman').value.trim();
+  const newBatName=document.getElementById('newBatsman').value||document.getElementById('newBatsmanCustom')?.value?.trim()||'';
   const fielder=document.getElementById('wicketFielder').value.trim();
   if(!newBatName&&currentInnings.total_wickets<9){cxiAlert('Enter new batsman name (unless all out)');return;}
 
@@ -1005,6 +1078,8 @@ async function endOver(){
 // BOWLER CHANGE
 // ══════════════════════════════════════════════════════════
 function changeBowler(){
+  // Update datalist with bowling (fielding) team players
+  updateBowlerDatalist();
   const list=document.getElementById('bowlerList');
   list.innerHTML=bowlingCard.filter(b=>b.id!==bowler.id).map(b=>
     '<button class="modal-btn modal-btn-ghost" onclick="selectExistingBowler(\''+b.id+'\')">'+b.player_name+' ('+formatBowlerOvers(b)+')</button>'
@@ -1082,15 +1157,44 @@ async function endInnings(){
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   const target=currentInnings.total_runs+1;
 
-  // Prompt for 2nd innings openers
+  // 2nd innings: batting team = 1st innings bowling team
   const battingTeam=currentInnings.bowling_team;
   const bowlingTeam=currentInnings.batting_team;
-  const s=await cxiPrompt('2nd Innings — '+battingTeam+' need '+target+' to win.\n\nEnter Striker name:');
-  if(!s)return;
-  const ns=await cxiPrompt('Enter Non-Striker name:');
-  if(!ns)return;
-  const bw=await cxiPrompt('Enter Opening Bowler ('+bowlingTeam+'):');
-  if(!bw)return;
+  window._inn2Target=target;
+  window._inn2BatTeam=battingTeam;
+  window._inn2BowlTeam=bowlingTeam;
+
+  // Show 2nd innings modal with player dropdowns
+  document.getElementById('inn2Info').textContent=battingTeam+' need '+target+' runs to win';
+
+  // Populate striker/non-striker with batting team players
+  const batPlayers=allPlayersByTeam[battingTeam]||[];
+  populateSelectWithPlayers('inn2Striker',batPlayers,'-- Select striker --');
+  populateSelectWithPlayers('inn2NonStriker',batPlayers,'-- Select non-striker --');
+
+  // Populate bowler with bowling (fielding) team players
+  const bowlPlayers=allPlayersByTeam[bowlingTeam]||[];
+  populateSelectWithPlayers('inn2Bowler',bowlPlayers,'-- Select bowler --');
+  document.getElementById('inn2BowlerCustom').value='';
+
+  document.getElementById('inn2Modal').style.display='flex';
+}
+
+async function confirmInn2Setup(){
+  const s=document.getElementById('inn2Striker').value;
+  const ns=document.getElementById('inn2NonStriker').value;
+  const bw=document.getElementById('inn2Bowler').value||document.getElementById('inn2BowlerCustom').value.trim();
+
+  if(!s){cxiAlert('Select striker');return;}
+  if(!ns){cxiAlert('Select non-striker');return;}
+  if(s===ns){cxiAlert('Striker and non-striker must be different');return;}
+  if(!bw){cxiAlert('Select or enter opening bowler');return;}
+
+  document.getElementById('inn2Modal').style.display='none';
+
+  const target=window._inn2Target;
+  const battingTeam=window._inn2BatTeam;
+  const bowlingTeam=window._inn2BowlTeam;
 
   // Create 2nd innings
   const{data:inn}=await sb.from('innings').insert({
@@ -1109,7 +1213,7 @@ async function endInnings(){
   const{data:b1}=await sb.from('bowling_card').insert({match_id:match.id,innings_id:inn.id,player_name:bw,is_current:true}).select().single();
   bowler=b1;bowlingCard=[b1];
 
-  ballSequence=0;overBalls=[];allBalls=[];isNextFreeHit=false;
+  ballSequence=0;overBalls=[];allBalls=[];isNextFreeHit=false;isMatchEnded=false;
   renderScoreUI();
   addCommentary('🏏 2nd Innings! '+battingTeam+' need '+target+' to win.');
 }
@@ -1134,8 +1238,13 @@ async function endMatch(){
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   localStorage.removeItem('captainxi_active_match');
 
-  cxiAlert('🏆 Match Complete!\n\n'+result+'\n\nShare the scorecard link with everyone!');
+  // Share on WhatsApp
   shareScore();
+
+  // Redirect to scorecard after a short delay
+  const scUrl=window.location.origin+'/scorecard.html?'+(match.share_code?'code='+match.share_code:'match='+match.id);
+  await cxiAlert('🏆 Match Complete!\n\n'+result+'\n\nRedirecting to scorecard...');
+  window.location.href=scUrl;
 }
 
 // ══════════════════════════════════════════════════════════
