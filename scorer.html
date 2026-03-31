@@ -392,6 +392,20 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
+<!-- MAN OF THE MATCH MODAL                              -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="momModal" style="display:none;">
+  <div class="modal">
+    <h3 style="color:var(--green);">🏆 Man of the Match</h3>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Select the best performer</div>
+    <div id="momPlayerList" style="max-height:300px;overflow-y:auto;margin-bottom:10px;"></div>
+    <input class="setup-input" id="momCustom" placeholder="Or type player name" style="margin-bottom:10px;">
+    <button class="modal-btn modal-btn-primary" onclick="confirmMoM()" style="background:var(--green);color:#000;">Confirm MoM</button>
+    <button class="modal-btn modal-btn-ghost" onclick="skipMoM()">Skip</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
 <!-- EXTRA RUNS MODAL (for wide/noball/bye with extra runs)-->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="extraModal">
@@ -1333,7 +1347,9 @@ async function endMatch(){
   if(currentInnings.innings_number===2){
     const{data:inn1}=await sb.from('innings').select('total_runs,batting_team').eq('match_id',match.id).eq('innings_number',1).single();
     if(currentInnings.total_runs>=currentInnings.target){
-      const wicketsLeft=10-currentInnings.total_wickets;
+      const teamPlayers=(allPlayersByTeam[currentInnings.batting_team]||[]);
+      const teamSize=teamPlayers.length>=2?teamPlayers.length:11;
+      const wicketsLeft=(teamSize-1)-currentInnings.total_wickets;
       result=currentInnings.batting_team+' won by '+wicketsLeft+' wicket'+(wicketsLeft>1?'s':'');
     } else {
       const margin=inn1.total_runs-currentInnings.total_runs;
@@ -1345,14 +1361,58 @@ async function endMatch(){
   await sb.from('innings').update({status:'completed'}).eq('id',currentInnings.id);
   localStorage.removeItem('captainxi_active_match');
 
-  // Show result and ask to share
+  // Show result
   await cxiAlert('Match Complete!\n\n'+result, '🏆');
-  const wantShare=await cxiConfirm('Share result on WhatsApp?', '📱');
-  if(wantShare){
-    shareScore();
-  }
 
-  // Redirect to scorecard
+  // Show MoM selector
+  showMoMSelector();
+}
+
+function showMoMSelector(){
+  // Collect all players from both innings
+  const list=document.getElementById('momPlayerList');
+  let allPlayers=[];
+  // Collect from allPlayersByTeam
+  Object.keys(allPlayersByTeam).forEach(team=>{
+    allPlayersByTeam[team].forEach(p=>{
+      if(!allPlayers.includes(p))allPlayers.push(p);
+    });
+  });
+  // Also from battingCard and bowlingCard
+  battingCard.forEach(b=>{if(!allPlayers.includes(b.player_name))allPlayers.push(b.player_name);});
+  bowlingCard.forEach(b=>{if(!allPlayers.includes(b.player_name))allPlayers.push(b.player_name);});
+
+  window._selectedMoM=null;
+  list.innerHTML=allPlayers.map(p=>
+    '<button class="modal-btn modal-btn-ghost mom-pick" onclick="selectMoM(this,\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>'
+  ).join('');
+  document.getElementById('momCustom').value='';
+  document.getElementById('momModal').style.display='flex';
+}
+
+function selectMoM(btn,name){
+  window._selectedMoM=name;
+  document.querySelectorAll('.mom-pick').forEach(b=>b.classList.remove('wkt-selected'));
+  btn.classList.add('wkt-selected');
+}
+
+async function confirmMoM(){
+  const mom=window._selectedMoM||document.getElementById('momCustom').value.trim();
+  document.getElementById('momModal').style.display='none';
+  if(mom){
+    await sb.from('matches').update({mom_name:mom}).eq('id',match.id);
+  }
+  afterMatchEnd();
+}
+
+function skipMoM(){
+  document.getElementById('momModal').style.display='none';
+  afterMatchEnd();
+}
+
+async function afterMatchEnd(){
+  const wantShare=await cxiConfirm('Share result on WhatsApp?');
+  if(wantShare)shareScore();
   const scUrl=window.location.origin+'/scorecard.html?'+(match.share_code?'code='+match.share_code:'match='+match.id);
   window.location.href=scUrl;
 }

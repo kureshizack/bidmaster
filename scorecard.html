@@ -10,6 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 [data-theme="light"]{--bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf3;--border:#c8d5e2;--accent:#d97706;--text:#1a2535;--muted:#64748b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#7c3aed;}
@@ -124,6 +125,20 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 
 footer{text-align:center;padding:16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);}
 footer a{color:var(--accent);text-decoration:none;}
+
+/* PARTNERSHIP BAR */
+.partnership-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(42,58,85,0.2);font-size:12px;}
+.partnership-row:last-child{border-bottom:none;}
+.p-names{min-width:80px;font-weight:600;color:var(--text);font-size:11px;}
+.p-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:16px;overflow:hidden;position:relative;}
+.p-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:#000;min-width:20px;}
+.p-bar.bar-a{background:var(--accent);}
+.p-bar.bar-b{background:var(--green);}
+.p-runs{min-width:30px;text-align:right;font-weight:700;color:var(--accent);font-family:'Rajdhani',sans-serif;font-size:14px;}
+.p-balls{min-width:24px;text-align:right;font-size:11px;color:var(--muted);}
+
+/* SECTION HEADERS */
+.sc-section-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -222,10 +237,46 @@ footer a{color:var(--accent);text-decoration:none;}
 
     <!-- SCORECARD TAB -->
     <div class="sc-tab-content" id="tab-scorecard">
-      <div style="padding:10px 14px;">
+      <!-- Match Info Header -->
+      <div id="matchInfoHeader" style="background:var(--surface);padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);display:none;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+          <span id="miVenue"></span>
+          <span id="miDate"></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-top:4px;">
+          <span id="miToss"></span>
+          <span id="miUmpires"></span>
+        </div>
+      </div>
+
+      <!-- Downloadable Scorecard Area -->
+      <div id="downloadableArea" style="padding:10px 14px;">
         <div id="fullBattingCard"></div>
         <div id="fullBowlingCard" style="margin-top:12px;"></div>
+
+        <!-- Partnerships -->
+        <div id="partnershipSection" style="margin-top:14px;"></div>
+
+        <!-- Fall of Wickets (enhanced) -->
         <div id="fallOfWickets" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
+
+        <!-- Man of the Match -->
+        <div id="momSection" style="display:none;margin-top:14px;background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:12px 14px;text-align:center;">
+          <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Man of the Match</div>
+          <div id="momName" style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text);"></div>
+          <div id="momStats" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+        </div>
+
+        <!-- Watermark (hidden for Club+) -->
+        <div id="scorecardWatermark" style="text-align:center;margin-top:14px;padding:8px;font-size:11px;color:var(--muted);">
+          Powered by <a href="https://captainxi.com" style="color:var(--accent);text-decoration:none;font-weight:700;">captainXI.com</a>
+        </div>
+      </div>
+
+      <!-- Download & Share Actions -->
+      <div style="padding:8px 14px 16px;display:flex;gap:8px;">
+        <button onclick="downloadScorecard()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--accent);background:rgba(245,158,11,0.08);color:var(--accent);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Download Image</button>
+        <button onclick="shareScorecard()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Share WhatsApp</button>
       </div>
     </div>
 
@@ -560,12 +611,23 @@ async function renderFullScorecard(){
   const container=document.getElementById('fullBattingCard');
   const bowlContainer=document.getElementById('fullBowlingCard');
   const fowEl=document.getElementById('fallOfWickets');
+  const partEl=document.getElementById('partnershipSection');
   let fullHtml='';
   let fullBowlHtml='';
   let fowHtml='';
+  let partHtml='';
+
+  // Match info header
+  const miHeader=document.getElementById('matchInfoHeader');
+  if(matchData.venue||matchData.match_date||matchData.toss_winner){
+    miHeader.style.display='block';
+    document.getElementById('miVenue').textContent=matchData.venue?'Venue: '+matchData.venue:'';
+    document.getElementById('miDate').textContent=matchData.match_date?new Date(matchData.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+    document.getElementById('miToss').textContent=matchData.toss_winner?'Toss: '+matchData.toss_winner+(matchData.toss_decision==='bat'?' (bat first)':matchData.toss_decision==='bowl'?' (bowl first)':''):'';
+    document.getElementById('miUmpires').textContent=(matchData.umpire_1||matchData.umpire_2)?'Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?', '+matchData.umpire_2:''):'';
+  }
 
   for(const inn of allInnings){
-    // Load batting, bowling, balls for this innings
     const[batRes,bowlRes,ballRes]=await Promise.all([
       sb.from('batting_card').select('*').eq('innings_id',inn.id).order('batting_order'),
       sb.from('bowling_card').select('*').eq('innings_id',inn.id).order('created_at'),
@@ -577,62 +639,144 @@ async function renderFullScorecard(){
 
     // Innings header
     const innOvers=inn.current_over+'.'+inn.current_over_balls;
-    fullHtml+='<div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">'+
-      inn.batting_team+' — '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+
-      (inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+
-      '</div>';
+    fullHtml+='<div class="sc-section-title">'+inn.batting_team+' - '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' ov)'+(inn.innings_number===1?' - 1st Innings':' - 2nd Innings')+'</div>';
 
     // Batting table
     fullHtml+='<table class="sc-table"><thead><tr><th>Batsman</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
     batters.forEach(b=>{
       const cls=b.is_out?'out':'not-out';
       const dismissal=b.is_out?(b.dismissal_text||b.dismissal_type||'out'):'not out';
-      fullHtml+='<tr><td class="'+cls+'">'+b.player_name+'<span class="dismissal">'+dismissal+'</span></td>';
+      fullHtml+='<tr><td class="'+cls+'"><b>'+b.player_name+'</b><span class="dismissal">'+dismissal+'</span></td>';
       fullHtml+='<td class="'+cls+'" style="font-weight:700;">'+b.runs+'</td>';
-      fullHtml+='<td>'+b.balls_faced+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td>';
-      fullHtml+='<td>'+(b.strike_rate>0?Number(b.strike_rate).toFixed(1):'—')+'</td></tr>';
+      fullHtml+='<td>'+b.balls_faced+'</td><td style="color:var(--green);">'+b.fours+'</td><td style="color:var(--accent);">'+b.sixes+'</td>';
+      fullHtml+='<td>'+(b.strike_rate>0?Number(b.strike_rate).toFixed(1):'-')+'</td></tr>';
     });
     fullHtml+='</tbody></table>';
 
     // Extras
     fullHtml+='<div style="font-size:12px;color:var(--muted);padding:6px 0;">Extras: '+inn.extras_total+' (wd '+inn.extras_wides+', nb '+inn.extras_noballs+', b '+inn.extras_byes+', lb '+inn.extras_legbyes+')</div>';
-
     // Total
-    fullHtml+='<div style="font-size:13px;font-weight:700;color:var(--text);padding:4px 0;border-top:1px solid var(--border);">Total: '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' overs)</div>';
+    fullHtml+='<div style="font-size:13px;font-weight:700;color:var(--text);padding:4px 0;border-top:1px solid var(--border);">Total: '+inn.total_runs+'/'+inn.total_wickets+' ('+innOvers+' overs)'+(inn.run_rate?' | RR: '+inn.run_rate:'')+'</div>';
 
-    // Bowling header
-    fullBowlHtml+='<div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--blue);margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;">'+
-      inn.bowling_team+' Bowling'+(inn.innings_number===1?' · 1st Innings':' · 2nd Innings')+'</div>';
-
+    // Bowling
+    fullBowlHtml+='<div class="sc-section-title">'+inn.bowling_team+' Bowling'+(inn.innings_number===1?' - 1st Inn':' - 2nd Inn')+'</div>';
     fullBowlHtml+='<table class="sc-table"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th></tr></thead><tbody>';
     bowlers.forEach(b=>{
       const ov=Math.floor((b.overs_balls||0)/6)+'.'+(b.overs_balls||0)%6;
       fullBowlHtml+='<tr><td style="font-weight:600;color:var(--blue);">'+b.player_name+'</td>';
       fullBowlHtml+='<td>'+ov+'</td><td>'+b.maidens+'</td><td>'+b.runs_conceded+'</td>';
       fullBowlHtml+='<td style="color:var(--red);font-weight:700;">'+b.wickets+'</td>';
-      fullBowlHtml+='<td>'+(b.economy||'—')+'</td></tr>';
+      fullBowlHtml+='<td>'+(b.economy||'-')+'</td></tr>';
     });
     fullBowlHtml+='</tbody></table>';
 
-    // Fall of wickets
+    // ── PARTNERSHIPS ──
+    if(batters.length>=2&&balls.length>0){
+      partHtml+='<div class="sc-section-title">Partnerships - '+inn.batting_team+(inn.innings_number===1?' (1st)':' (2nd)')+'</div>';
+      const partnerships=computePartnerships(batters,balls);
+      partnerships.forEach((p,i)=>{
+        const maxRuns=Math.max(...partnerships.map(x=>x.runs),1);
+        const barPct=Math.max((p.runs/maxRuns)*100,8);
+        partHtml+='<div class="partnership-row">';
+        partHtml+='<div class="p-names">'+(i+1)+'. '+p.bat1.split(' ')[0]+' & '+p.bat2.split(' ')[0]+'</div>';
+        partHtml+='<div class="p-bar-wrap"><div class="p-bar bar-a" style="width:'+barPct+'%;">'+p.runs+'</div></div>';
+        partHtml+='<div class="p-balls">('+p.balls+'b)</div>';
+        partHtml+='</div>';
+      });
+    }
+
+    // ── FALL OF WICKETS (enhanced) ──
     const wicketBalls=balls.filter(b=>b.is_wicket);
     if(wicketBalls.length){
-      const fowText=wicketBalls.map((b,i)=>{
+      fowHtml+='<div style="margin-top:4px;font-size:12px;"><b style="color:var(--red);">FOW ('+inn.batting_team+'):</b> ';
+      fowHtml+=wicketBalls.map((b,i)=>{
         const runsSoFar=balls.filter(bb=>bb.ball_sequence<=b.ball_sequence).reduce((s,bb)=>s+bb.runs_total,0);
-        return (i+1)+'-'+runsSoFar;
+        const overStr=(b.over_number+1)+'.'+b.ball_number;
+        return (i+1)+'-'+runsSoFar+' ('+overStr+' ov)';
       }).join(', ');
-      fowHtml+='<div style="margin-top:4px;"><b>FOW ('+inn.batting_team+'):</b> '+fowText+'</div>';
+      fowHtml+='</div>';
     }
   }
 
-  // Umpires
-  if(matchData.umpire_1||matchData.umpire_2){
-    fowHtml+='<div style="margin-top:10px;font-size:12px;color:var(--muted);">🧑‍⚖️ Umpires: '+(matchData.umpire_1||'')+(matchData.umpire_2?' & '+matchData.umpire_2:'')+'</div>';
+  // ── MAN OF THE MATCH ──
+  if(matchData.mom_name){
+    const momSec=document.getElementById('momSection');
+    momSec.style.display='block';
+    document.getElementById('momName').textContent=matchData.mom_name;
+    // Try to find MoM stats from batting/bowling data
+    let momStatText='';
+    for(const inn of allInnings){
+      const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',inn.id);
+      const bat=(bc||[]).find(b=>b.player_name===matchData.mom_name);
+      if(bat&&bat.runs>0)momStatText+=bat.runs+'('+bat.balls_faced+') ';
+      const{data:bwc}=await sb.from('bowling_card').select('*').eq('innings_id',inn.id);
+      const bowl=(bwc||[]).find(b=>b.player_name===matchData.mom_name);
+      if(bowl&&bowl.wickets>0)momStatText+=bowl.wickets+'/'+bowl.runs_conceded+' ';
+    }
+    if(momStatText)document.getElementById('momStats').textContent=momStatText.trim();
   }
 
   container.innerHTML=fullHtml;
   bowlContainer.innerHTML=fullBowlHtml;
   fowEl.innerHTML=fowHtml;
+  partEl.innerHTML=partHtml;
+}
+
+// ── PARTNERSHIP COMPUTATION ──
+function computePartnerships(batters,balls){
+  const partnerships=[];
+  let currentPair=null;
+  let pRuns=0,pBalls=0;
+
+  // Track who is at crease through each ball
+  const batMap={};
+  batters.forEach(b=>{batMap[b.id]=b.player_name;});
+
+  let onCrease=[];
+  balls.forEach(ball=>{
+    // Build crease state
+    if(ball.striker_id&&ball.nonstriker_id){
+      const pair=[batMap[ball.striker_id]||'?',batMap[ball.nonstriker_id]||'?'].sort().join(' & ');
+      if(pair!==currentPair){
+        if(currentPair){partnerships.push({bat1:currentPair.split(' & ')[0],bat2:currentPair.split(' & ')[1],runs:pRuns,balls:pBalls});}
+        currentPair=pair;pRuns=0;pBalls=0;
+      }
+      pRuns+=ball.runs_total;
+      if(ball.is_legal)pBalls++;
+    }
+  });
+  if(currentPair&&(pRuns>0||pBalls>0)){
+    partnerships.push({bat1:currentPair.split(' & ')[0],bat2:currentPair.split(' & ')[1],runs:pRuns,balls:pBalls});
+  }
+  return partnerships;
+}
+
+// ── DOWNLOAD SCORECARD AS IMAGE ──
+async function downloadScorecard(){
+  const area=document.getElementById('downloadableArea');
+  if(!area){cxiAlert('Scorecard not loaded yet');return;}
+
+  // Switch to scorecard tab if not active
+  switchTab('scorecard');
+
+  // Brief delay for render
+  await new Promise(r=>setTimeout(r,300));
+
+  try{
+    const canvas=await html2canvas(area,{
+      backgroundColor:getComputedStyle(document.body).getPropertyValue('--bg')||'#0f1724',
+      scale:2,
+      useCORS:true,
+      logging:false
+    });
+    const link=document.createElement('a');
+    link.download='CaptainXI_Scorecard_'+(matchData?.team_a||'Match')+'_vs_'+(matchData?.team_b||'')+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){
+    console.error('Download error:',e);
+    cxiAlert('Could not generate image. Try taking a screenshot instead.');
+  }
 }
 
 function renderCommentary(){
