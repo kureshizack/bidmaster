@@ -631,13 +631,10 @@ async function shareScorecard(){
   msg+='\n🔗 '+url;
   msg+='\ncaptainXI.com 🏏';
 
-  navigator.clipboard.writeText(msg).then(()=>{
-    const btn=document.querySelector('.share-btn-top');
-    btn.textContent='✅ Copied!';
-    setTimeout(()=>btn.textContent='📱 Share',2000);
-  }).catch(()=>{
-    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  });
+  // Open WhatsApp directly
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  const btn=document.querySelector('.share-btn-top');
+  if(btn){btn.textContent='✅ Shared!';setTimeout(()=>btn.textContent='📱 Share',2000);}
 }
 </script>
 </body>

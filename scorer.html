@@ -652,7 +652,7 @@ async function startMatch(){
   bowler=b1;
   bowlingCard=[b1];
 
-  ballSequence=0;overBalls=[];allBalls=[];isNextFreeHit=false;
+  ballSequence=0;overBalls=[];allBalls=[];isNextFreeHit=false;isMatchEnded=false;
 
   // Show scoring screen
   document.getElementById('setupScreen').style.display='none';
@@ -1144,34 +1144,131 @@ async function endMatch(){
 async function undoLastBall(){
   if(!allBalls.length){cxiAlert('Nothing to undo');return;}
   if(!await cxiConfirm('Undo last ball?'))return;
-  const lastBall=allBalls.pop();
-  overBalls=overBalls.filter(b=>b.id!==lastBall.id);
+  const lb=allBalls.pop();
+  overBalls=overBalls.filter(b=>b.id!==lb.id);
 
-  // Delete from DB
-  await sb.from('balls').delete().eq('id',lastBall.id);
-
-  // Reverse effects (simplified — full implementation would track all changes)
-  currentInnings.total_runs-=lastBall.runs_total;
-  if(lastBall.is_legal){
-    currentInnings.total_balls-=1;
-    currentInnings.current_over_balls=Math.max(0,currentInnings.current_over_balls-1);
+  // If match was ended, allow undo
+  if(isMatchEnded){
+    isMatchEnded=false;
+    await sb.from('matches').update({status:'live',result:null,winner:null}).eq('id',match.id);
+    await sb.from('innings').update({status:'in_progress'}).eq('id',currentInnings.id);
+    localStorage.setItem('captainxi_active_match',match.id);
   }
-  if(lastBall.is_wicket)currentInnings.total_wickets-=1;
 
-  // Reload batting/bowling card from DB for accuracy
+  // Delete ball from DB
+  await sb.from('balls').delete().eq('id',lb.id);
+
+  // ── REVERSE BATSMAN STATS ──
+  const bat=battingCard.find(b=>b.id===lb.striker_id);
+  if(bat){
+    if(lb.runs_bat>0){
+      bat.runs-=lb.runs_bat;
+      if(lb.runs_bat===4)bat.fours=Math.max(0,bat.fours-1);
+      if(lb.runs_bat===6)bat.sixes=Math.max(0,bat.sixes-1);
+    }
+    // Legal balls and no-balls count as balls faced
+    if(lb.is_legal||lb.outcome==='noball'){
+      bat.balls_faced=Math.max(0,bat.balls_faced-1);
+    }
+    // Byes/legbyes: batsman faced ball but no runs_bat
+    if((lb.outcome==='bye'||lb.outcome==='legbye')&&lb.is_legal){
+      bat.balls_faced=Math.max(0,bat.balls_faced-1);
+    }
+    bat.strike_rate=bat.balls_faced>0?((bat.runs/bat.balls_faced)*100):0;
+    await sb.from('batting_card').update({runs:bat.runs,balls_faced:bat.balls_faced,fours:bat.fours,sixes:bat.sixes,strike_rate:bat.strike_rate}).eq('id',bat.id);
+  }
+
+  // ── REVERSE BOWLER STATS ──
+  const bwl=bowlingCard.find(b=>b.id===lb.bowler_id);
+  if(bwl){
+    if(lb.is_legal){
+      bwl.overs_balls=Math.max(0,bwl.overs_balls-1);
+    }
+    if(lb.outcome==='dot'&&lb.runs_bat===0&&lb.is_legal)bwl.dot_balls=Math.max(0,bwl.dot_balls-1);
+    // Bowler concedes runs on normal deliveries, wides, noballs (not byes/legbyes)
+    if(lb.outcome!=='bye'&&lb.outcome!=='legbye'){
+      bwl.runs_conceded=Math.max(0,bwl.runs_conceded-lb.runs_total);
+    }
+    if(lb.outcome==='wide')bwl.wides=Math.max(0,bwl.wides-1);
+    if(lb.outcome==='noball')bwl.noballs=Math.max(0,bwl.noballs-1);
+    if(lb.is_wicket&&lb.wicket_type!=='run_out')bwl.wickets=Math.max(0,bwl.wickets-1);
+    // Recalculate overs and economy
+    const cOvers=Math.floor(bwl.overs_balls/6);
+    const rBalls=bwl.overs_balls%6;
+    bwl.overs=cOvers+(rBalls/10);
+    bwl.economy=bwl.overs_balls>0?((bwl.runs_conceded/(bwl.overs_balls/6))).toFixed(2):0;
+    await sb.from('bowling_card').update({overs_balls:bwl.overs_balls,overs:bwl.overs,runs_conceded:bwl.runs_conceded,wickets:bwl.wickets,wides:bwl.wides,noballs:bwl.noballs,economy:bwl.economy,dot_balls:bwl.dot_balls}).eq('id',bwl.id);
+  }
+
+  // ── REVERSE WICKET ──
+  if(lb.is_wicket&&lb.wicket_player_id){
+    const outBat=battingCard.find(b=>b.id===lb.wicket_player_id);
+    if(outBat){
+      outBat.is_out=false;outBat.is_on_crease=true;outBat.dismissal_type=null;outBat.dismissal_text=null;
+      await sb.from('batting_card').update({is_out:false,is_on_crease:true,dismissal_type:null,dismissal_text:null}).eq('id',outBat.id);
+    }
+    // Remove the new batsman who came in (last entry in battingCard)
+    const newBat=battingCard[battingCard.length-1];
+    if(newBat&&newBat.id!==lb.striker_id&&newBat.id!==lb.wicket_player_id&&newBat.runs===0&&newBat.balls_faced===0){
+      await sb.from('batting_card').delete().eq('id',newBat.id);
+      battingCard=battingCard.filter(b=>b.id!==newBat.id);
+    }
+    currentInnings.total_wickets=Math.max(0,currentInnings.total_wickets-1);
+  }
+
+  // ── REVERSE INNINGS TOTALS ──
+  currentInnings.total_runs=Math.max(0,currentInnings.total_runs-lb.runs_total);
+
+  // Reverse extras
+  if(lb.outcome==='wide')currentInnings.extras_wides=Math.max(0,currentInnings.extras_wides-lb.runs_total);
+  if(lb.outcome==='noball')currentInnings.extras_noballs=Math.max(0,currentInnings.extras_noballs-(lb.is_legal?0:1));
+  if(lb.outcome==='bye')currentInnings.extras_byes=Math.max(0,currentInnings.extras_byes-lb.runs_extra);
+  if(lb.outcome==='legbye')currentInnings.extras_legbyes=Math.max(0,currentInnings.extras_legbyes-lb.runs_extra);
+  if(lb.outcome==='wide'||lb.outcome==='noball'||lb.outcome==='bye'||lb.outcome==='legbye'){
+    currentInnings.extras_total=Math.max(0,currentInnings.extras_total-lb.runs_extra-(lb.outcome==='noball'?1:0));
+  }
+
+  // ── RECALCULATE OVERS FROM REMAINING LEGAL BALLS ──
+  if(lb.is_legal){
+    currentInnings.total_balls=Math.max(0,currentInnings.total_balls-1);
+  }
+  // Count legal balls in current innings to get accurate over state
+  const legalBallCount=allBalls.filter(b=>b.is_legal).length;
+  currentInnings.current_over=Math.floor(legalBallCount/6);
+  currentInnings.current_over_balls=legalBallCount%6;
+  currentInnings.total_balls=legalBallCount;
+
+  // Recalculate overBalls for display
+  overBalls=allBalls.filter(b=>b.over_number===currentInnings.current_over);
+
+  // ── REVERSE STRIKE SWAP ──
+  if(lb.runs_total%2===1){
+    swapStrikeInternal();
+  }
+
+  // Free hit handling
+  if(lb.is_free_hit){isNextFreeHit=false;document.getElementById('freeHitBanner').style.display='none';}
+  // If undo reveals the previous ball was a no-ball, restore free hit
+  if(allBalls.length>0){
+    const prevBall=allBalls[allBalls.length-1];
+    if(prevBall.outcome==='noball'){isNextFreeHit=true;document.getElementById('freeHitBanner').style.display='block';}
+  }
+
+  ballSequence=allBalls.length;
+  updateRunRate();
+  await saveInningsState();
+
+  // Reload cards from DB for safety
   const{data:bc}=await sb.from('batting_card').select('*').eq('innings_id',currentInnings.id).order('batting_order');
   battingCard=bc||[];
   striker=battingCard.find(b=>b.is_striker&&b.is_on_crease);
   nonStriker=battingCard.find(b=>!b.is_striker&&b.is_on_crease);
-
   const{data:bwc}=await sb.from('bowling_card').select('*').eq('innings_id',currentInnings.id);
   bowlingCard=bwc||[];
   bowler=bowlingCard.find(b=>b.is_current);
 
-  updateRunRate();
-  await saveInningsState();
   renderScoreUI();
-  addCommentary('↩ Last ball undone');
+  addCommentary('↩ Last ball undone — all stats reversed');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1224,11 +1321,9 @@ function shareScore(){
   msg+='\n\n🔗 Live scorecard: '+url;
   msg+='\n\nPowered by captainXI.com 🏏';
 
-  navigator.clipboard.writeText(msg).then(()=>{
-    addCommentary('📱 Score shared! Paste on WhatsApp.');
-  }).catch(()=>{
-    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  });
+  // Open WhatsApp directly with the message
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  addCommentary('📱 WhatsApp opened with score!');
 }
 
 // ══════════════════════════════════════════════════════════
