@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 [data-theme="light"]{--bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf3;--border:#c8d5e2;--accent:#d97706;--text:#1a2535;--muted:#64748b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#7c3aed;}
@@ -146,6 +147,26 @@ footer a{color:var(--accent);text-decoration:none;}
 .chart-title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;}
 .chart-sub{font-size:11px;color:var(--muted);margin-bottom:10px;}
 .chart-wrap{position:relative;width:100%;height:220px;}
+
+/* SPONSOR MARQUEE */
+.sponsor-marquee{background:linear-gradient(90deg,#1a2538,#243248);border-bottom:1px solid var(--border);overflow:hidden;white-space:nowrap;height:28px;display:flex;align-items:center;position:relative;}
+[data-theme="light"] .sponsor-marquee{background:linear-gradient(90deg,#e8edf3,#dce4ee);}
+.marquee-track{display:inline-block;animation:marqueeScroll 20s linear infinite;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px;}
+@keyframes marqueeScroll{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+
+/* AD-FREE BADGE */
+.adfree-btn{position:fixed;bottom:16px;right:16px;z-index:50;background:var(--surface);border:1px solid var(--accent);border-radius:20px;padding:6px 14px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.3);letter-spacing:0.5px;}
+.adfree-btn:hover{background:var(--accent);color:#000;}
+
+/* VIEWER PAYWALL */
+.viewer-paywall{text-align:center;padding:32px 20px;}
+.paywall-icon{font-size:44px;margin-bottom:10px;}
+.paywall-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.paywall-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;}
+.paywall-price{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);letter-spacing:2px;}
+.paywall-unit{font-size:12px;color:var(--muted);}
+.paywall-btn{display:inline-block;margin-top:14px;padding:12px 28px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;letter-spacing:0.5px;}
+.paywall-btn:hover{filter:brightness(1.1);}
 </style>
 </head>
 <body>
@@ -164,6 +185,14 @@ footer a{color:var(--accent);text-decoration:none;}
     </div>
 
     <!-- Sponsor banner (removed from static position - now in flip) -->
+
+    <!-- SPONSOR MARQUEE (news ticker style) -->
+    <div class="sponsor-marquee" id="sponsorMarquee" style="display:none;">
+      <div class="marquee-track" id="marqueeText"></div>
+    </div>
+
+    <!-- AD-FREE FLOATING BUTTON -->
+    <button class="adfree-btn" id="adFreeBtn" onclick="showAdFreeOffer()" style="display:none;">Remove Ads</button>
 
     <div class="live-strip">
       <div class="live-dot" id="liveStatus">LIVE</div>
@@ -290,11 +319,16 @@ footer a{color:var(--accent);text-decoration:none;}
 
     <!-- STATS TAB (Club+ Feature) -->
     <div class="sc-tab-content" id="tab-stats">
-      <div id="statsLocked" style="display:none;text-align:center;padding:40px 20px;">
-        <div style="font-size:48px;margin-bottom:12px;">📊</div>
-        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;">Match Analytics</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Worm Chart, Manhattan, Run Rate graphs<br>are available on Club plan and above.</div>
-        <a href="upgrade.html?plan=club" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#000;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;text-decoration:none;">Upgrade to Club</a>
+      <div id="statsLocked" style="display:none;">
+        <div class="viewer-paywall">
+          <div class="paywall-icon">📊</div>
+          <div class="paywall-title">Match Analytics</div>
+          <div class="paywall-desc">Worm Chart, Manhattan, Run Rate comparison,<br>Scoring Breakdown — IPL-style match analysis</div>
+          <div class="paywall-price">₹9</div>
+          <div class="paywall-unit">one-time · this match only</div>
+          <button class="paywall-btn" onclick="unlockStats()">Unlock Stats</button>
+          <div style="font-size:11px;color:var(--muted);margin-top:10px;">Secure payment via Razorpay</div>
+        </div>
       </div>
       <div id="statsContent" style="padding:14px;">
         <!-- WORM CHART -->
@@ -516,7 +550,144 @@ async function loadAll(){
   renderAll();
 }
 
+// ══════════════════════════════════════════════════════════
+// VIEWER MONETIZATION — Marquee, Ad-Free, Stats Unlock
+// ══════════════════════════════════════════════════════════
+window._currentUserId=null;
+window._isAdFree=false;
+
+// Check if viewer is logged in (to detect organizer)
+(async()=>{
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    if(session)window._currentUserId=session.user.id;
+  }catch(e){}
+  // Check ad-free status
+  if(localStorage.getItem('cxi_adfree_'+matchId)==='true')window._isAdFree=true;
+})();
+
+function renderMarquee(){
+  if(!matchData)return;
+  if(window._isAdFree)return; // ad-free viewer
+  const sponsor=matchData.sponsor_name;
+  const branding=matchData.branding_text;
+  const adText=matchData.ad_text;
+  // Build marquee text from all available sponsor/branding data
+  let texts=[];
+  if(sponsor)texts.push('Sponsored by '+sponsor);
+  if(branding)texts.push(branding);
+  if(adText)texts.push(adText);
+  if(!texts.length)texts.push('Scored on captainXI.com — My Game. My Rules.');
+
+  const fullText=texts.join('     ★     ');
+  const marquee=document.getElementById('sponsorMarquee');
+  const track=document.getElementById('marqueeText');
+  if(marquee&&track){
+    track.textContent=fullText+'     ★     '+fullText; // double for seamless loop
+    marquee.style.display='flex';
+    // Adjust speed based on text length
+    const duration=Math.max(12,fullText.length*0.3);
+    track.style.animationDuration=duration+'s';
+  }
+
+  // Show ad-free button for non-organizers
+  const isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
+  if(!isOrg&&!window._isAdFree){
+    document.getElementById('adFreeBtn').style.display='block';
+  }
+}
+
+function showAdFreeOffer(){
+  // Show ad-free modal
+  const existing=document.getElementById('adFreeModal');
+  if(existing)existing.remove();
+  const modal=document.createElement('div');
+  modal.id='adFreeModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML=`
+    <div style="background:var(--surface,#1a2538);border:1px solid var(--border,#3d5474);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center;">
+      <div style="font-size:36px;margin-bottom:8px;">✨</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text,#f5f7ff);margin-bottom:6px;">Ad-Free Experience</div>
+      <div style="font-size:13px;color:var(--muted,#9ab0cc);line-height:1.6;margin-bottom:16px;">Remove sponsor marquee, over-break ads,<br>and all banners from this scorecard.</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--accent,#f59e0b);letter-spacing:2px;">₹29</div>
+      <div style="font-size:11px;color:var(--muted);">one-time · this tournament</div>
+      <button onclick="unlockAdFree()" style="width:100%;margin-top:16px;padding:14px;background:var(--accent,#f59e0b);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Go Ad-Free</button>
+      <div onclick="document.getElementById('adFreeModal').remove()" style="font-size:12px;color:var(--muted);margin-top:10px;cursor:pointer;">No thanks</div>
+    </div>`;
+  modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  document.body.appendChild(modal);
+}
+
+function unlockStats(){
+  // For now: Razorpay micro-payment for ₹9
+  if(typeof Razorpay==='undefined'){
+    // Razorpay not loaded — unlock directly for testing
+    localStorage.setItem('cxi_stats_'+matchId,'unlocked');
+    chartsRendered=false;
+    renderCharts();
+    return;
+  }
+  const options={
+    key:'rzp_live_SV1EehZnBUYxh7',
+    amount:900, // ₹9 in paise
+    currency:'INR',
+    name:'CaptainXI',
+    description:'Match Stats Unlock',
+    image:'/favicon.svg',
+    theme:{color:'#f59e0b'},
+    handler:function(response){
+      localStorage.setItem('cxi_stats_'+matchId,'unlocked');
+      chartsRendered=false;
+      renderCharts();
+    }
+  };
+  const rzp=new Razorpay(options);
+  rzp.open();
+}
+
+function unlockAdFree(){
+  const modal=document.getElementById('adFreeModal');
+  if(modal)modal.remove();
+
+  if(typeof Razorpay==='undefined'){
+    // Testing mode
+    activateAdFree();
+    return;
+  }
+  const options={
+    key:'rzp_live_SV1EehZnBUYxh7',
+    amount:2900, // ₹29 in paise
+    currency:'INR',
+    name:'CaptainXI',
+    description:'Ad-Free Scorecard',
+    image:'/favicon.svg',
+    theme:{color:'#f59e0b'},
+    handler:function(response){
+      activateAdFree();
+    }
+  };
+  const rzp=new Razorpay(options);
+  rzp.open();
+}
+
+function activateAdFree(){
+  window._isAdFree=true;
+  localStorage.setItem('cxi_adfree_'+matchId,'true');
+  // Hide all ad elements
+  const marquee=document.getElementById('sponsorMarquee');
+  if(marquee)marquee.style.display='none';
+  const adFreeBtn=document.getElementById('adFreeBtn');
+  if(adFreeBtn)adFreeBtn.style.display='none';
+  const adSlot=document.getElementById('adSlot');
+  if(adSlot)adSlot.style.display='none';
+  // Stop sponsor flip
+  clearTimeout(window._scFlipTimer);
+  const inner=document.getElementById('scFlipInner');
+  if(inner)inner.style.transform='rotateX(0deg)';
+}
+
 function flipScorecardSponsor(){
+  if(window._isAdFree)return; // ad-free viewer
   const inner=document.getElementById('scFlipInner');
   if(!inner)return;
   inner.style.transform='rotateX(180deg)';
@@ -652,6 +823,9 @@ function renderAll(){
 
   // Commentary
   renderCommentary();
+
+  // Sponsor marquee (render once)
+  if(!window._marqueeRendered){renderMarquee();window._marqueeRendered=true;}
 }
 
 function renderOvers(){
@@ -888,9 +1062,20 @@ async function renderCharts(){
   if(chartsRendered)return;
   if(!allInnings.length)return;
 
-  // Plan gate
-  const isPaid=organizerPlan!=='free'&&organizerPlan!=='gully';
-  if(!isPaid){
+  // Check if organizer has Club+ (features exist)
+  const orgHasClub=organizerPlan!=='free'&&organizerPlan!=='gully';
+  if(!orgHasClub){
+    // Organizer on free — stats don't exist at all, hide tab
+    const statsTab=document.querySelector('.sc-tab[onclick="switchTab(\'stats\')"]');
+    if(statsTab)statsTab.style.display='none';
+    return;
+  }
+
+  // Check if VIEWER has paid for stats (or is the organizer)
+  const viewerUnlocked=localStorage.getItem('cxi_stats_'+matchId)==='unlocked';
+  const isOrganizer=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
+
+  if(!viewerUnlocked&&!isOrganizer){
     document.getElementById('statsLocked').style.display='block';
     document.getElementById('statsContent').style.display='none';
     return;
