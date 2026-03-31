@@ -763,9 +763,14 @@ async function deleteMatch(id) {
 }
 
 // ── SHARE ─────────────────────────────────────────────────
-function copyShareLink(code) {
+async function copyShareLink(code) {
   const url = `https://captainxi.com/scorecard.html?code=${code}`;
-  navigator.clipboard.writeText(url).then(() => cxiAlert('Share link copied!\n\n' + url));
+  await navigator.clipboard.writeText(url).catch(()=>{});
+  const shareOnWA = await cxiConfirm('Link copied!\n\n'+url+'\n\nShare on WhatsApp?');
+  if(shareOnWA){
+    const msg='Check out this live scorecard!\n\n'+url+'\n\n_Powered by captainXI.com_';
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  }
 }
 
 // ── SIGN OUT ──────────────────────────────────────────────

@@ -141,12 +141,7 @@ footer a{color:var(--accent);text-decoration:none;}
       <span id="brandingText" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;color:var(--accent);"></span>
     </div>
 
-    <!-- Sponsor banner (full width with logo) -->
-    <div id="sponsorFullBanner" style="display:none;background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.03));border-bottom:1px solid var(--border);padding:12px 14px;text-align:center;">
-      <img id="sponsorBannerLogo" src="" style="display:none;max-height:50px;max-width:160px;margin:0 auto 6px;border-radius:8px;">
-      <div id="sponsorBannerName" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);letter-spacing:2px;"></div>
-      <div id="sponsorBannerSub" style="font-size:11px;color:var(--muted);">Sponsor</div>
-    </div>
+    <!-- Sponsor banner (removed from static position - now in flip) -->
 
     <div class="live-strip">
       <div class="live-dot" id="liveStatus">LIVE</div>
@@ -156,7 +151,11 @@ footer a{color:var(--accent);text-decoration:none;}
       </div>
     </div>
 
-    <!-- Main score -->
+    <!-- Main score with flip animation -->
+    <div style="perspective:800px;">
+    <div id="scFlipInner" style="transition:transform 0.6s;transform-style:preserve-3d;position:relative;">
+    <!-- FRONT: Score -->
+    <div id="scFlipFront" style="backface-visibility:hidden;">
     <div class="sc-main">
       <div class="sc-teams">
         <div class="sc-team batting" id="scBatTeam" style="display:flex;align-items:center;gap:8px;">
@@ -180,6 +179,18 @@ footer a{color:var(--accent);text-decoration:none;}
       <div id="scUmpires" style="display:none;font-size:11px;color:var(--muted);margin-top:6px;">🧑‍⚖️</div>
       <div class="sc-result" id="scResult" style="display:none;"></div>
     </div>
+    </div><!-- end scFlipFront -->
+    <!-- BACK: Sponsor (shown on over break flip) -->
+    <div id="scFlipBack" style="backface-visibility:hidden;transform:rotateX(180deg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--surface),var(--surface2));padding:20px;border-bottom:2px solid var(--accent);">
+      <div style="text-align:center;">
+        <img id="scSponsorFlipLogo" src="" style="display:none;max-height:60px;max-width:180px;margin:0 auto 10px;border-radius:8px;">
+        <div style="font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:6px;">OVER BREAK</div>
+        <div id="scSponsorFlipName" style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);letter-spacing:2px;">captainXI.com</div>
+        <div id="scSponsorFlipSub" style="font-size:12px;color:var(--muted);margin-top:4px;">My Game. My Rules.</div>
+      </div>
+    </div>
+    </div><!-- end scFlipInner -->
+    </div><!-- end perspective -->
 
     <!-- Tabs -->
     <div class="sc-tabs">
@@ -315,6 +326,7 @@ function adSlotClick(){if(window._adUrl)window.open(window._adUrl,'_blank');}
 
 let matchData=null,inningsData=null,battingData=[],bowlingData=[],ballsData=[];
 let allInnings=[]; // both innings
+let _lastOverNum=-1; // track over changes for flip
 
 (async()=>{
   const _p=new URLSearchParams(window.location.search);
@@ -364,7 +376,24 @@ async function loadAll(){
 
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('scoreScreen').style.display='block';
+
+  // Detect over change for sponsor flip
+  if(inn&&_lastOverNum>=0&&inn.current_over>_lastOverNum&&inn.current_over_balls===0){
+    flipScorecardSponsor();
+  }
+  if(inn)_lastOverNum=inn.current_over;
+
   renderAll();
+}
+
+function flipScorecardSponsor(){
+  const inner=document.getElementById('scFlipInner');
+  if(!inner)return;
+  inner.style.transform='rotateX(180deg)';
+  clearTimeout(window._scFlipTimer);
+  window._scFlipTimer=setTimeout(()=>{
+    inner.style.transform='rotateX(0deg)';
+  },4000);
 }
 
 function subscribeRealtime(){
@@ -406,15 +435,14 @@ function renderAll(){
   if(logoA&&batLogo){logoA.src=batLogo;logoA.style.display='inline';}else if(logoA){logoA.style.display='none';}
   if(logoB&&bowlLogo){logoB.src=bowlLogo;logoB.style.display='inline';}else if(logoB){logoB.style.display='none';}
 
-  // Sponsor banner
-  const sBanner=document.getElementById('sponsorFullBanner');
+  // Sponsor flip setup (for over break animation)
   if(matchData.sponsor_name){
-    sBanner.style.display='block';
-    document.getElementById('sponsorBannerName').textContent=matchData.sponsor_name;
+    document.getElementById('scSponsorFlipName').textContent=matchData.sponsor_name;
     if(matchData.sponsor_logo){
-      const sLogo=document.getElementById('sponsorBannerLogo');
+      const sLogo=document.getElementById('scSponsorFlipLogo');
       sLogo.src=matchData.sponsor_logo;sLogo.style.display='block';
     }
+    if(matchData.branding_text)document.getElementById('scSponsorFlipSub').textContent=matchData.branding_text;
   }
   // Branding
   if(matchData.branding_text){document.getElementById('brandingStrip').style.display='block';document.getElementById('brandingText').textContent=matchData.branding_text;}

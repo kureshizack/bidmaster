@@ -1023,11 +1023,20 @@ async function finalizeWicket(){
   if(!pendingWicketType){cxiAlert('Select how the batsman was out');return;}
   const newBatName=document.getElementById('newBatsman').value||document.getElementById('newBatsmanCustom')?.value?.trim()||'';
   const fielder=document.getElementById('wicketFielder').value.trim();
-  // Dynamic all-out: team size from match_players or battingCard
-  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
-  const maxWickets=teamSize-1;
-  // Check if THIS wicket will cause all-out (total_wickets hasn't been incremented yet)
-  const willBeAllOut=(currentInnings.total_wickets+1)>=maxWickets;
+
+  // Robust all-out detection
+  const teamPlayers=(allPlayersByTeam[currentInnings.batting_team]||[]);
+  const hasPlayerData=teamPlayers.length>=2;
+  const availBatsmen=getAvailableBatsmen();
+  let willBeAllOut=false;
+  if(hasPlayerData){
+    // We know team size — no more batsmen available means all out
+    willBeAllOut=availBatsmen.length===0;
+  } else {
+    // No player data — fall back to standard 10 wickets
+    willBeAllOut=(currentInnings.total_wickets+1)>=10;
+  }
+
   if(!newBatName&&!willBeAllOut){cxiAlert('Select or enter new batsman name');return;}
 
   document.getElementById('wicketModal').classList.remove('open');
@@ -1149,13 +1158,12 @@ async function endOver(){
 
   // Skip bowler change if innings is ending
   const maxOvers=match.overs_per_side;
-  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
-  const maxWickets=teamSize-1;
+  const teamPlayers2=(allPlayersByTeam[currentInnings.batting_team]||[]);
+  const allOut2=teamPlayers2.length>=2?currentInnings.total_wickets>=(teamPlayers2.length-1):currentInnings.total_wickets>=10;
   const oversComplete=currentInnings.current_over>=maxOvers;
-  const allOut=currentInnings.total_wickets>=maxWickets;
   const targetChased=currentInnings.innings_number===2&&currentInnings.target&&currentInnings.total_runs>=currentInnings.target;
 
-  if(oversComplete||allOut||targetChased||isMatchEnded){
+  if(oversComplete||allOut2||targetChased||isMatchEnded){
     // Don't prompt bowler change — innings/match is ending
     return;
   }
@@ -1218,10 +1226,16 @@ function swapStrikeInternal(){
 // ══════════════════════════════════════════════════════════
 function checkInningsEnd(){
   const maxOvers=match.overs_per_side;
-  // Dynamic all-out based on actual team size
-  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
-  const maxWickets=teamSize-1;
-  const allOut=currentInnings.total_wickets>=maxWickets;
+
+  // Robust all-out detection
+  const teamPlayers=(allPlayersByTeam[currentInnings.batting_team]||[]);
+  const hasPlayerData=teamPlayers.length>=2;
+  let allOut=false;
+  if(hasPlayerData){
+    allOut=currentInnings.total_wickets>=(teamPlayers.length-1);
+  } else {
+    allOut=currentInnings.total_wickets>=10;
+  }
   const oversComplete=currentInnings.current_over>=maxOvers&&currentInnings.current_over_balls===0;
 
   // 2nd innings: check if target chased
