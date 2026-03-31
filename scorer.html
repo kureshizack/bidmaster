@@ -1026,7 +1026,9 @@ async function finalizeWicket(){
   // Dynamic all-out: team size from match_players or battingCard
   const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
   const maxWickets=teamSize-1;
-  if(!newBatName&&currentInnings.total_wickets<maxWickets){cxiAlert('Select or enter new batsman name');return;}
+  // Check if THIS wicket will cause all-out (total_wickets hasn't been incremented yet)
+  const willBeAllOut=(currentInnings.total_wickets+1)>=maxWickets;
+  if(!newBatName&&!willBeAllOut){cxiAlert('Select or enter new batsman name');return;}
 
   document.getElementById('wicketModal').classList.remove('open');
   if(isProcessing)return;
@@ -1096,8 +1098,8 @@ async function finalizeWicket(){
   updateRunRate();
   await saveInningsState();
 
-  // Bring in new batsman
-  if(newBatName&&currentInnings.total_wickets<10){
+  // Bring in new batsman (only if not all out)
+  if(newBatName&&!willBeAllOut){
     const order=battingCard.length+1;
     const{data:newBat}=await sb.from('batting_card').insert({
       match_id:match.id,innings_id:currentInnings.id,player_name:newBatName,
