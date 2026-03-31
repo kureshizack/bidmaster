@@ -20,7 +20,7 @@ body{transition:background 0.3s,color 0.3s;}
 @keyframes slideDown{from{transform:translateY(-100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
 @keyframes slideUp{from{transform:translateY(0);opacity:1;}to{transform:translateY(-100%);opacity:0;}}
 /* Team logos */
-.team-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;border:2px solid var(--border);}
+.team-logo{width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px;border:2px solid var(--accent);box-shadow:0 2px 8px rgba(245,158,11,0.3);}
 .sc-teams-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
 .sc-team-block{display:flex;align-items:center;max-width:42%;}
 .sc-team-block.right{flex-direction:row-reverse;}
@@ -114,6 +114,7 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 .sc-table .out{color:var(--muted);}
 .sc-table .not-out{color:var(--text);font-weight:600;}
 .sc-table .dismissal{font-size:10px;color:var(--muted);display:block;margin-top:1px;}
+.sc-table .not-out .dismissal{color:var(--green);font-weight:600;}
 
 .loading{text-align:center;padding:60px 20px;color:var(--muted);}
 @keyframes celebPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0;}20%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}70%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-70%) scale(0.8);opacity:0;}}
@@ -152,12 +153,12 @@ footer a{color:var(--accent);text-decoration:none;}
     <div class="sc-main">
       <div class="sc-teams">
         <div class="sc-team batting" id="scBatTeam" style="display:flex;align-items:center;gap:6px;">
-          <img id="logoA" src="" style="display:none;width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.4);">
+          <img id="logoA" src="" style="display:none;width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);box-shadow:0 2px 8px rgba(245,158,11,0.3);">
           <span id="scBatTeamName">Team A</span>
         </div>
         <div class="sc-vs">VS</div>
         <div class="sc-team bowling" id="scBowlTeam" style="display:flex;align-items:center;gap:6px;flex-direction:row-reverse;">
-          <img id="logoB" src="" style="display:none;width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2);">
+          <img id="logoB" src="" style="display:none;width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.3);">
           <span id="scBowlTeamName">Team B</span>
         </div>
       </div>
@@ -523,7 +524,8 @@ async function renderFullScorecard(){
     fullHtml+='<table class="sc-table"><thead><tr><th>Batsman</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>';
     batters.forEach(b=>{
       const cls=b.is_out?'out':'not-out';
-      fullHtml+='<tr><td class="'+cls+'">'+b.player_name+(b.dismissal_text?'<span class="dismissal">'+b.dismissal_text+'</span>':'')+'</td>';
+      const dismissal=b.is_out?(b.dismissal_text||b.dismissal_type||'out'):'not out';
+      fullHtml+='<tr><td class="'+cls+'">'+b.player_name+'<span class="dismissal">'+dismissal+'</span></td>';
       fullHtml+='<td class="'+cls+'" style="font-weight:700;">'+b.runs+'</td>';
       fullHtml+='<td>'+b.balls_faced+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td>';
       fullHtml+='<td>'+(b.strike_rate>0?Number(b.strike_rate).toFixed(1):'—')+'</td></tr>';

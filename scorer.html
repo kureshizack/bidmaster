@@ -86,14 +86,16 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
 
 /* MODALS */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,36,0.92);z-index:500;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,36,0.7);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
 .modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:420px;max-height:85vh;overflow-y:auto;animation:slideUpModal 0.25s ease;}
+@keyframes slideUpModal{from{transform:translateY(100%);opacity:0.5;}to{transform:translateY(0);opacity:1;}}
 .modal h3{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:14px;}
-.modal-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;margin-bottom:8px;transition:all .1s;}
+.modal-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;margin-bottom:8px;transition:all .15s;}
 .modal-btn:active{transform:scale(0.97);}
 .modal-btn-primary{background:var(--accent);color:#000;}
 .modal-btn-ghost{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.modal-btn.wkt-selected{border:2px solid var(--green) !important;background:rgba(34,211,153,0.12) !important;color:var(--green) !important;}
 
 .commentary-feed{background:var(--surface2);border-radius:8px;padding:8px 12px;margin:0 10px 8px;max-height:60px;overflow-y:auto;}
 .commentary-line{font-size:11px;color:var(--muted);padding:2px 0;border-bottom:1px solid rgba(42,58,85,0.3);}
@@ -211,10 +213,16 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   </style>
 
   <!-- Score header -->
-  <div class="score-header">
-    <div style="display:flex;justify-content:flex-end;padding:4px 10px 0;gap:8px;">
-      <a href="upgrade.html" id="scorerPlanBadge" style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;font-family:'Rajdhani',sans-serif;color:var(--muted);text-decoration:none;letter-spacing:0.5px;transition:all 0.2s;">FREE</a>
-      <button class="theme-btn" onclick="toggleScorerTheme()" id="scorerThemeBtn">☀️</button>
+  <div class="score-header" id="scoreHeaderWrap" style="perspective:800px;">
+    <div id="scoreHeaderInner" style="transition:transform 0.6s;transform-style:preserve-3d;position:relative;">
+    <!-- FRONT: Score display -->
+    <div id="scoreHeaderFront" style="backface-visibility:hidden;">
+    <div style="display:flex;justify-content:space-between;padding:4px 10px 0;gap:8px;align-items:center;">
+      <a href="dashboard.html" style="color:var(--muted);font-size:12px;font-family:'Rajdhani',sans-serif;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:4px;">← Back</a>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="upgrade.html" id="scorerPlanBadge" style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;font-family:'Rajdhani',sans-serif;color:var(--muted);text-decoration:none;letter-spacing:0.5px;transition:all 0.2s;">FREE</a>
+        <button class="theme-btn" onclick="toggleScorerTheme()" id="scorerThemeBtn">☀️</button>
+      </div>
     </div>
     <div class="score-teams">
       <div class="score-team batting" id="hBattingTeam">Team A</div>
@@ -230,6 +238,16 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
       <div class="score-overs" id="hOvers">(0.0)</div>
     </div>
     <div class="score-extras" id="hExtras">Extras: 0 (wd 0, nb 0, b 0, lb 0)</div>
+    </div><!-- end scoreHeaderFront -->
+    <!-- BACK: Sponsor ad (shown on over break flip) -->
+    <div id="scoreHeaderBack" style="backface-visibility:hidden;transform:rotateX(180deg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a2538,#243248);border-radius:0;padding:16px;">
+      <div style="text-align:center;">
+        <div style="font-size:14px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:6px;">OVER BREAK</div>
+        <div id="sponsorFlipText" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);letter-spacing:2px;">captainXI.com</div>
+        <div id="sponsorFlipSub" style="font-size:12px;color:var(--muted);margin-top:4px;">My Game. My Rules.</div>
+      </div>
+    </div>
+    </div><!-- end scoreHeaderInner -->
   </div>
 
   <!-- Batsmen -->
@@ -973,7 +991,11 @@ function recordWicket(){
 
 function confirmWicket(type){
   pendingWicketType=type;
-  document.querySelectorAll('#wicketModal .modal-btn-primary').forEach(b=>b.style.opacity=b.textContent.toLowerCase().includes(type.replace('_',' '))?'1':'0.4');
+  // Highlight selected wicket type with green border
+  document.querySelectorAll('#wicketModal .modal-btn-primary').forEach(b=>{
+    b.classList.remove('wkt-selected');
+    if(b.textContent.toLowerCase().includes(type.replace('_',' ')))b.classList.add('wkt-selected');
+  });
   if(type==='run_out'){
     document.getElementById('wicketRunOutExtra').style.display='block';
     document.getElementById('roStriker').textContent=striker.player_name;
@@ -1111,6 +1133,22 @@ async function endOver(){
   swapStrikeInternal();
 
   await saveInningsState();
+
+  // Show sponsor flip between overs
+  showOverBreakSponsor();
+
+  // Skip bowler change if innings is ending
+  const maxOvers=match.overs_per_side;
+  const teamSize=Math.max((allPlayersByTeam[currentInnings.batting_team]||[]).length, battingCard.length+1, 2);
+  const maxWickets=teamSize-1;
+  const oversComplete=currentInnings.current_over>=maxOvers;
+  const allOut=currentInnings.total_wickets>=maxWickets;
+  const targetChased=currentInnings.innings_number===2&&currentInnings.target&&currentInnings.total_runs>=currentInnings.target;
+
+  if(oversComplete||allOut||targetChased||isMatchEnded){
+    // Don't prompt bowler change — innings/match is ending
+    return;
+  }
 
   // Prompt bowler change (can't bowl consecutive overs)
   changeBowler();
@@ -1715,6 +1753,25 @@ function toggleScorerTheme(){
 }
 
 // ── SPONSOR BANNER ────────────────────────────────────────────────────
+// ── OVER BREAK SPONSOR FLIP ──────────────────────────────
+function showOverBreakSponsor(){
+  const inner=document.getElementById('scoreHeaderInner');
+  const flipText=document.getElementById('sponsorFlipText');
+  const flipSub=document.getElementById('sponsorFlipSub');
+  if(!inner)return;
+  // Set sponsor name
+  const sponsor=(match&&match.sponsor_name)||'captainXI.com';
+  flipText.textContent=sponsor;
+  flipSub.textContent=match?.branding_text||'My Game. My Rules.';
+  // Flip to back
+  inner.style.transform='rotateX(180deg)';
+  // Flip back after 3 seconds
+  clearTimeout(window._flipTimer);
+  window._flipTimer=setTimeout(()=>{
+    inner.style.transform='rotateX(0deg)';
+  },3000);
+}
+
 function showSponsorBanner(event){
   const banner=document.getElementById('sponsorBanner');
   const txt=document.getElementById('sponsorBannerText');
