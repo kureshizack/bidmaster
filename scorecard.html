@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 [data-theme="light"]{--bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf3;--border:#c8d5e2;--accent:#d97706;--text:#1a2535;--muted:#64748b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#7c3aed;}
@@ -139,6 +140,12 @@ footer a{color:var(--accent);text-decoration:none;}
 
 /* SECTION HEADERS */
 .sc-section-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+
+/* CHART CARDS */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;}
+.chart-title{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.chart-sub{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.chart-wrap{position:relative;width:100%;height:220px;}
 </style>
 </head>
 <body>
@@ -211,6 +218,7 @@ footer a{color:var(--accent);text-decoration:none;}
     <div class="sc-tabs">
       <div class="sc-tab active" onclick="switchTab('live')">Live</div>
       <div class="sc-tab" onclick="switchTab('scorecard')">Scorecard</div>
+      <div class="sc-tab" onclick="switchTab('stats')">Stats</div>
       <div class="sc-tab" onclick="switchTab('commentary')">Commentary</div>
     </div>
 
@@ -277,6 +285,48 @@ footer a{color:var(--accent);text-decoration:none;}
       <div style="padding:8px 14px 16px;display:flex;gap:8px;">
         <button onclick="downloadScorecard()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--accent);background:rgba(245,158,11,0.08);color:var(--accent);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Download Image</button>
         <button onclick="shareScorecard()" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;">Share WhatsApp</button>
+      </div>
+    </div>
+
+    <!-- STATS TAB (Club+ Feature) -->
+    <div class="sc-tab-content" id="tab-stats">
+      <div id="statsLocked" style="display:none;text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">📊</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;">Match Analytics</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Worm Chart, Manhattan, Run Rate graphs<br>are available on Club plan and above.</div>
+        <a href="upgrade.html?plan=club" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#000;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;text-decoration:none;">Upgrade to Club</a>
+      </div>
+      <div id="statsContent" style="padding:14px;">
+        <!-- WORM CHART -->
+        <div class="chart-card">
+          <div class="chart-title">Worm Chart — Run Progression</div>
+          <div class="chart-sub">Cumulative runs over time for both innings</div>
+          <div class="chart-wrap"><canvas id="wormChart"></canvas></div>
+        </div>
+
+        <!-- MANHATTAN CHART -->
+        <div class="chart-card">
+          <div class="chart-title">Manhattan — Runs Per Over</div>
+          <div class="chart-sub">Scoring pattern across each over</div>
+          <div class="chart-wrap"><canvas id="manhattanChart"></canvas></div>
+        </div>
+
+        <!-- RUN RATE COMPARISON (only shown for 2nd innings) -->
+        <div class="chart-card" id="rrChartCard" style="display:none;">
+          <div class="chart-title">Run Rate — CRR vs RRR</div>
+          <div class="chart-sub">Current Run Rate vs Required Run Rate during the chase</div>
+          <div class="chart-wrap"><canvas id="runRateChart"></canvas></div>
+        </div>
+
+        <!-- SCORING BREAKDOWN -->
+        <div class="chart-card">
+          <div class="chart-title">Scoring Breakdown</div>
+          <div class="chart-sub">Where did the runs come from?</div>
+          <div style="display:flex;gap:10px;">
+            <div class="chart-wrap" style="flex:1;"><canvas id="scoringPie1"></canvas></div>
+            <div class="chart-wrap" style="flex:1;"><canvas id="scoringPie2"></canvas></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -430,6 +480,10 @@ async function loadAll(){
     }
     _lastBallCount=newBalls.length;
     ballsData=newBalls;
+    // Reset charts if data changed so they re-render on next Stats tab click
+    if(chartsRendered&&document.getElementById('tab-stats')?.classList.contains('active')){
+      chartsRendered=false;renderCharts();
+    } else {chartsRendered=false;}
   }
 
   document.getElementById('loadingScreen').style.display='none';
@@ -812,11 +866,229 @@ function renderCommentary(){
   }).join('');
 }
 
+// ══════════════════════════════════════════════════════════
+// CHARTS — Worm, Manhattan, Run Rate, Scoring Breakdown
+// ══════════════════════════════════════════════════════════
+let chartsRendered=false;
+let wormChartObj=null,manhattanChartObj=null,rrChartObj=null,pie1Obj=null,pie2Obj=null;
+
+async function renderCharts(){
+  if(chartsRendered)return;
+  if(!allInnings.length)return;
+
+  // Plan gate
+  const isPaid=organizerPlan!=='free'&&organizerPlan!=='gully';
+  if(!isPaid){
+    document.getElementById('statsLocked').style.display='block';
+    document.getElementById('statsContent').style.display='none';
+    return;
+  }
+  document.getElementById('statsLocked').style.display='none';
+  document.getElementById('statsContent').style.display='block';
+
+  // Chart.js theme
+  const isDark=document.documentElement.getAttribute('data-theme')!=='light';
+  const gridColor=isDark?'rgba(61,84,116,0.3)':'rgba(200,213,226,0.5)';
+  const textColor=isDark?'#9ab0cc':'#64748b';
+  Chart.defaults.color=textColor;
+  Chart.defaults.borderColor=gridColor;
+
+  // Load balls for ALL innings
+  const innData=[];
+  for(const inn of allInnings){
+    const{data:balls}=await sb.from('balls').select('*').eq('innings_id',inn.id).order('ball_sequence');
+    innData.push({inn:inn,balls:balls||[]});
+  }
+
+  // ── WORM CHART (Cumulative runs per over) ──
+  const wormDatasets=[];
+  const colors=['#f59e0b','#60a5fa','#34d399','#f87171'];
+  let maxOvers=0;
+
+  innData.forEach((d,i)=>{
+    const overs={};
+    let cumRuns=0;
+    d.balls.forEach(b=>{
+      cumRuns+=b.runs_total;
+      overs[b.over_number]=cumRuns;
+    });
+    const overNums=Object.keys(overs).map(Number).sort((a,b)=>a-b);
+    if(overNums.length)maxOvers=Math.max(maxOvers,overNums[overNums.length-1]+1);
+    const data=[];
+    for(let o=0;o<=maxOvers;o++){data.push(overs[o]!==undefined?overs[o]:(data.length?data[data.length-1]:0));}
+    wormDatasets.push({
+      label:d.inn.batting_team+(d.inn.innings_number===1?' (1st)':' (2nd)'),
+      data:data,
+      borderColor:colors[i%4],
+      backgroundColor:colors[i%4]+'20',
+      fill:true,
+      tension:0.3,
+      borderWidth:2.5,
+      pointRadius:0,
+      pointHitRadius:8
+    });
+  });
+
+  const wormLabels=[];
+  for(let o=0;o<=maxOvers;o++)wormLabels.push('Ov '+(o+1));
+
+  const wormCtx=document.getElementById('wormChart');
+  if(wormChartObj)wormChartObj.destroy();
+  wormChartObj=new Chart(wormCtx,{
+    type:'line',
+    data:{labels:wormLabels,datasets:wormDatasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:11,family:'Rajdhani',weight:'700'}}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{beginAtZero:true,title:{display:true,text:'Runs',font:{size:11,family:'Rajdhani'}},ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  // ── MANHATTAN CHART (Runs per over - grouped bars) ──
+  const manhattanDatasets=[];
+  innData.forEach((d,i)=>{
+    const overRuns={};
+    d.balls.forEach(b=>{
+      if(!overRuns[b.over_number])overRuns[b.over_number]=0;
+      overRuns[b.over_number]+=b.runs_total;
+    });
+    const data=[];
+    for(let o=0;o<maxOvers;o++)data.push(overRuns[o]||0);
+    manhattanDatasets.push({
+      label:d.inn.batting_team+(d.inn.innings_number===1?' (1st)':' (2nd)'),
+      data:data,
+      backgroundColor:colors[i%4]+'90',
+      borderColor:colors[i%4],
+      borderWidth:1,
+      borderRadius:4
+    });
+  });
+
+  const manhattanLabels=[];
+  for(let o=0;o<maxOvers;o++)manhattanLabels.push('Ov '+(o+1));
+
+  const manCtx=document.getElementById('manhattanChart');
+  if(manhattanChartObj)manhattanChartObj.destroy();
+  manhattanChartObj=new Chart(manCtx,{
+    type:'bar',
+    data:{labels:manhattanLabels,datasets:manhattanDatasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:11,family:'Rajdhani',weight:'700'}}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{beginAtZero:true,title:{display:true,text:'Runs',font:{size:11,family:'Rajdhani'}},ticks:{font:{size:10},stepSize:2}}
+      }
+    }
+  });
+
+  // ── RUN RATE CHART (CRR vs RRR — 2nd innings only) ──
+  if(innData.length>=2){
+    const inn2=innData[1];
+    const target=inn2.inn.target;
+    if(target){
+      document.getElementById('rrChartCard').style.display='block';
+      const totalOvers=matchData.overs_per_side;
+      const crrData=[];const rrrData=[];const rrLabels=[];
+      let cumRuns=0;let legalBalls=0;
+      const overRuns2={};const overBalls2={};
+      inn2.balls.forEach(b=>{
+        cumRuns+=b.runs_total;
+        if(b.is_legal)legalBalls++;
+        const ov=b.over_number;
+        overRuns2[ov]=cumRuns;
+        overBalls2[ov]=legalBalls;
+      });
+      for(let o=0;o<totalOvers;o++){
+        rrLabels.push('Ov '+(o+1));
+        const cr=overRuns2[o]!==undefined?overRuns2[o]:cumRuns;
+        const ob=overBalls2[o]!==undefined?overBalls2[o]:legalBalls;
+        const oversCompleted=ob/6;
+        crrData.push(oversCompleted>0?(cr/oversCompleted).toFixed(2):0);
+        const remaining=target-cr;
+        const ballsLeft=(totalOvers*6)-ob;
+        const oversLeft=ballsLeft/6;
+        rrrData.push(oversLeft>0?(remaining/oversLeft).toFixed(2):0);
+      }
+
+      const rrCtx=document.getElementById('runRateChart');
+      if(rrChartObj)rrChartObj.destroy();
+      rrChartObj=new Chart(rrCtx,{
+        type:'line',
+        data:{
+          labels:rrLabels,
+          datasets:[
+            {label:'CRR (Actual)',data:crrData,borderColor:'#34d399',backgroundColor:'#34d39920',fill:true,tension:0.3,borderWidth:2.5,pointRadius:0},
+            {label:'RRR (Required)',data:rrrData,borderColor:'#f87171',backgroundColor:'#f8717120',fill:true,tension:0.3,borderWidth:2,borderDash:[5,3],pointRadius:0}
+          ]
+        },
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:8,font:{size:11,family:'Rajdhani',weight:'700'}}}},
+          scales:{
+            x:{grid:{display:false},ticks:{font:{size:10}}},
+            y:{beginAtZero:true,title:{display:true,text:'Run Rate',font:{size:11,family:'Rajdhani'}},ticks:{font:{size:10}}}
+          }
+        }
+      });
+    }
+  }
+
+  // ── SCORING BREAKDOWN (Doughnut per innings) ──
+  innData.forEach((d,i)=>{
+    if(i>1)return; // max 2 innings
+    let singles=0,doubles=0,triples=0,fours=0,sixes=0,extras=0,dots=0;
+    d.balls.forEach(b=>{
+      if(b.is_wicket&&b.runs_bat===0){dots++;return;}
+      if(b.outcome==='wide'||b.outcome==='noball'||b.outcome==='bye'||b.outcome==='legbye'){extras+=b.runs_total;return;}
+      if(b.runs_bat===0)dots++;
+      else if(b.runs_bat===1)singles++;
+      else if(b.runs_bat===2)doubles++;
+      else if(b.runs_bat===3)triples++;
+      else if(b.runs_bat===4)fours++;
+      else if(b.runs_bat===6)sixes++;
+    });
+
+    const canvasId=i===0?'scoringPie1':'scoringPie2';
+    const ctx=document.getElementById(canvasId);
+    if(!ctx)return;
+    const obj=i===0?pie1Obj:pie2Obj;
+    if(obj)obj.destroy();
+
+    const chart=new Chart(ctx,{
+      type:'doughnut',
+      data:{
+        labels:['Dots','1s','2s','3s','4s','6s','Extras'],
+        datasets:[{
+          data:[dots,singles,doubles,triples,fours,sixes,extras],
+          backgroundColor:['#3d5474','#60a5fa','#7cb3f5','#b4a0f5','#34d399','#f59e0b','#f87171'],
+          borderWidth:0
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:true,
+        plugins:{
+          legend:{position:'bottom',labels:{boxWidth:8,padding:5,font:{size:9,family:'Rajdhani',weight:'600'}}},
+          title:{display:true,text:d.inn.batting_team+(d.inn.innings_number===1?' (1st)':' (2nd)'),font:{size:13,family:'Rajdhani',weight:'700'},color:colors[i%4]}
+        }
+      }
+    });
+    if(i===0)pie1Obj=chart;else pie2Obj=chart;
+  });
+
+  chartsRendered=true;
+}
+
 function switchTab(name){
   document.querySelectorAll('.sc-tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.sc-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   document.querySelector('.sc-tab[onclick="switchTab(\''+name+'\')"]').classList.add('active');
+  // Render charts on first Stats tab click
+  if(name==='stats'&&!chartsRendered)renderCharts();
 }
 
 async function shareScorecard(){
