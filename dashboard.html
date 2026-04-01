@@ -109,14 +109,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 </nav>
 
 <div class="container">
-  <!-- TOURNAMENT CARD -->
-  <div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.05));border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);">🏆 Tournament Mode</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:2px;">Create full tournament — teams, schedule, scoring, standings</div>
-    </div>
-    <a href="tournament.html" style="background:var(--accent);color:#000;padding:8px 18px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;">Create Tournament →</a>
-  </div>
+  <!-- TOURNAMENT HUB -->
+  <div id="tournamentHub"></div>
 
   <!-- MATCH SCORING CARD -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
@@ -425,6 +419,7 @@ let userProfile = null;
     planBadge.className = 'plan-badge free';
   }
   loadAuctions();
+  loadTournaments();
 })();
 
 // ── LOAD AUCTIONS ─────────────────────────────────────────
@@ -447,6 +442,111 @@ async function loadAuctions() {
     </div>`; return;
   }
   el.innerHTML = `<div class="auctions-grid">${auctions.map(a => auctionCard(a)).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// TOURNAMENT HUB
+// ═══════════════════════════════════════════════════
+async function loadTournaments(){
+  const hub=document.getElementById('tournamentHub');
+  const{data:tourneys}=await sb.from('tournaments').select('*').eq('owner_id',currentUser.id).order('created_at',{ascending:false});
+
+  if(!tourneys||!tourneys.length){
+    // No tournaments — show create card
+    hub.innerHTML=`<div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.05));border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);">🏆 Tournament Mode</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px;">Create full tournament — teams, schedule, scoring, standings</div></div>
+      <a href="tournament.html" style="background:var(--accent);color:#000;padding:8px 18px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;">Create Tournament →</a>
+    </div>`;
+    return;
+  }
+
+  let html='<div style="margin-bottom:14px;">';
+
+  for(const t of tourneys){
+    const isActive=t.status==='live'||t.status==='registration'||t.status==='setup';
+    const sc={setup:'var(--blue)',registration:'var(--accent)',live:'var(--green)',completed:'var(--muted)'};
+    const statusColor=sc[t.status]||'var(--muted)';
+
+    // Load matches for active tournaments
+    let matchesHtml='';
+    if(isActive){
+      const{data:matches}=await sb.from('matches').select('*').eq('tournament_id',t.id).order('match_number');
+      if(matches&&matches.length){
+        const upcoming=matches.filter(m=>m.status==='scheduled');
+        const live=matches.filter(m=>m.status==='live');
+        const completed=matches.filter(m=>m.status==='completed');
+        const total=matches.length;
+
+        // Progress bar
+        matchesHtml+=`<div style="display:flex;align-items:center;gap:8px;margin:8px 0 6px;">
+          <div style="flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;background:var(--green);width:${Math.round(completed.length/total*100)}%;border-radius:2px;"></div>
+          </div>
+          <span style="font-size:10px;color:var(--muted);">${completed.length}/${total} played</span>
+        </div>`;
+
+        // Live matches first
+        live.forEach(m=>{
+          matchesHtml+=`<a href="scorer.html?match=${m.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,0.08);border:1px solid var(--green);border-radius:8px;margin-bottom:4px;text-decoration:none;">
+            <div><div style="font-size:9px;color:var(--green);font-weight:700;font-family:Rajdhani,sans-serif;">LIVE NOW</div>
+            <div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--text);">${m.team_a} vs ${m.team_b}</div></div>
+            <span style="font-size:10px;background:var(--green);color:#000;padding:2px 10px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;">Resume</span>
+          </a>`;
+        });
+
+        // Next 3 upcoming matches
+        upcoming.slice(0,3).forEach(m=>{
+          const isTBD=m.team_a.includes('Winner')||m.team_a.includes('1st ')||m.team_a.includes('2nd ');
+          const dt=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+          matchesHtml+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:3px;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;color:${isTBD?'var(--muted)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.team_a} vs ${m.team_b}</div>
+              <div style="font-size:9px;color:var(--muted);">M${m.match_number}${m.stage?' · '+m.stage:''}${dt?' · '+dt:''}</div>
+            </div>
+            ${isTBD?'<span style="font-size:9px;color:var(--muted);padding:2px 6px;border:1px solid var(--border);border-radius:4px;">TBD</span>':'<a href="scorer.html?match='+m.id+'" style="font-size:9px;background:var(--green);color:#000;padding:2px 10px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Score</a>'}
+          </div>`;
+        });
+
+        if(upcoming.length>3){
+          matchesHtml+=`<div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;">+${upcoming.length-3} more matches</div>`;
+        }
+
+        // Last completed result
+        if(completed.length){
+          const last=completed[completed.length-1];
+          matchesHtml+=`<div style="padding:5px 10px;background:rgba(139,148,158,0.06);border:1px solid var(--border);border-radius:6px;margin-top:4px;">
+            <div style="font-size:9px;color:var(--green);font-weight:700;">Last Result</div>
+            <div style="font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;">${last.team_a} vs ${last.team_b}</div>
+            ${last.result?'<div style="font-size:9px;color:var(--muted);">'+last.result+'</div>':''}
+          </div>`;
+        }
+      }
+    }
+
+    // Tournament card
+    html+=`<div style="background:var(--surface);border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:10px;padding:12px 14px;margin-bottom:8px;${isActive?'border-left:3px solid var(--accent);':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${matchesHtml?'4':'0'}px;">
+        <div style="min-width:0;flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);">🏆 ${t.name}</span>
+            <span style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid ${statusColor};color:${statusColor};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          ${isActive?'<a href="standings.html?t='+t.share_code+'" style="font-size:9px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
+          <a href="tournament.html?id=${t.id}" style="font-size:9px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
+        </div>
+      </div>
+      ${matchesHtml}
+    </div>`;
+  }
+
+  // Add "Create New" at bottom
+  html+=`<a href="tournament.html" style="display:block;text-align:center;padding:10px;background:var(--surface);border:1px dashed var(--accent);border-radius:8px;color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;margin-bottom:14px;">+ Create New Tournament</a>`;
+  html+='</div>';
+  hub.innerHTML=html;
 }
 
 function auctionCard(a) {

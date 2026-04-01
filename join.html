@@ -173,8 +173,12 @@ function renderLogo(u,sz){if(!u)return '';if(u.startsWith('logo:')){const id=par
   tournament=tourn;
 
   // Check if registration is closed
-  if(tourn.status==='live'||tourn.status==='completed'){
-    showError('Registration for '+tourn.name+' is closed. Contact your organizer for details.');
+  if(tourn.status==='live'){
+    showClosedError(tourn,'Registration for <strong>'+tourn.name+'</strong> is closed because the tournament is now <strong>LIVE</strong>. Contact your organizer if you need to register late.','LIVE — Registration Closed');
+    return;
+  }
+  if(tourn.status==='completed'){
+    showClosedError(tourn,'<strong>'+tourn.name+'</strong> has ended. Registration is no longer available.','Tournament Completed');
     return;
   }
 
@@ -213,6 +217,23 @@ function showError(msg){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('errorMsg').textContent=msg;
   document.getElementById('errorCard').style.display='block';
+}
+
+function showClosedError(tourn,msg,title){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('errorCard').style.display='block';
+  const card=document.getElementById('errorCard');
+  card.innerHTML=`<div style="font-size:48px;text-align:center;margin-bottom:12px;">${tourn.status==='completed'?'🏁':'🔒'}</div>
+    <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent);text-align:center;margin-bottom:8px;">${title}</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:16px;">${msg}</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+      <div style="font-family:Rajdhani,sans-serif;font-size:16px;font-weight:700;color:var(--text);">🏆 ${tourn.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">${tourn.teams_count} teams · ${tourn.overs_per_match} overs · ${tourn.format.replace(/_/g,' ')}</div>
+      ${tourn.venue?'<div style="font-size:11px;color:var(--muted);">📍 '+tourn.venue+'</div>':''}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <a href="standings.html?t=${tourn.share_code}" style="padding:10px 20px;background:var(--accent);color:#000;border-radius:8px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:14px;">View Standings & Scores</a>
+    </div>`;
 }
 
 async function loadTeamPlayers(){
