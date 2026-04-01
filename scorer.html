@@ -1500,10 +1500,149 @@ function skipPoM(){
 }
 
 async function afterMatchEnd(){
+  // Update tournament standings if this is a tournament match
+  if(match.tournament_id){
+    await updateTournamentStats();
+  }
   const wantShare=await cxiConfirm('Share result on WhatsApp?');
-  if(wantShare)shareScore();
+  if(wantShare)await shareScore();
   const scUrl=window.location.origin+'/scorecard.html?'+(match.share_code?'code='+match.share_code:'match='+match.id);
   window.location.href=scUrl;
+}
+
+// ═══════════════════════════════════════════════════
+// TOURNAMENT STATS AUTO-UPDATE
+// ═══════════════════════════════════════════════════
+async function updateTournamentStats(){
+  if(!match.tournament_id)return;
+  try{
+    // Load both innings for NRR calculation
+    const{data:allInn}=await sb.from('innings').select('*').eq('match_id',match.id).order('innings_number');
+    if(!allInn||allInn.length<2)return;
+    const inn1=allInn[0];const inn2=allInn[1];
+
+    // Determine teams
+    const teamA=match.team_a;const teamB=match.team_b;
+    const winner=match.winner;
+
+    // Load tournament teams
+    const{data:ttA}=await sb.from('tournament_teams').select('*').eq('tournament_id',match.tournament_id).eq('team_name',teamA).maybeSingle();
+    const{data:ttB}=await sb.from('tournament_teams').select('*').eq('tournament_id',match.tournament_id).eq('team_name',teamB).maybeSingle();
+    if(!ttA||!ttB)return;
+
+    // Calculate overs faced (convert balls to overs decimal)
+    function ballsToOvers(b){return Math.floor(b/6)+(b%6)/10;}
+
+    // Figure out which innings belongs to which team
+    const innA=inn1.batting_team===teamA?inn1:inn2;
+    const innB=inn1.batting_team===teamB?inn1:inn2;
+
+    // Update Team A
+    const updA={
+      matches_played:(ttA.matches_played||0)+1,
+      runs_scored:(ttA.runs_scored||0)+innA.total_runs,
+      overs_faced:parseFloat(ttA.overs_faced||0)+ballsToOvers(innA.total_balls),
+      runs_conceded:(ttA.runs_conceded||0)+innB.total_runs,
+      overs_bowled:parseFloat(ttA.overs_bowled||0)+ballsToOvers(innB.total_balls)
+    };
+    if(winner===teamA){updA.wins=(ttA.wins||0)+1;updA.points=(ttA.points||0)+2;}
+    else if(winner===teamB){updA.losses=(ttA.losses||0)+1;}
+    else if(match.result&&match.result.includes('Tied')){updA.ties=(ttA.ties||0)+1;updA.points=(ttA.points||0)+1;}
+    else{updA.no_results=(ttA.no_results||0)+1;updA.points=(ttA.points||0)+1;}
+    // Calculate NRR
+    if(updA.overs_faced>0&&updA.overs_bowled>0){
+      updA.nrr=((updA.runs_scored/updA.overs_faced)-(updA.runs_conceded/updA.overs_bowled)).toFixed(3);
+    }
+    await sb.from('tournament_teams').update(updA).eq('id',ttA.id);
+
+    // Update Team B
+    const updB={
+      matches_played:(ttB.matches_played||0)+1,
+      runs_scored:(ttB.runs_scored||0)+innB.total_runs,
+      overs_faced:parseFloat(ttB.overs_faced||0)+ballsToOvers(innB.total_balls),
+      runs_conceded:(ttB.runs_conceded||0)+innA.total_runs,
+      overs_bowled:parseFloat(ttB.overs_bowled||0)+ballsToOvers(innA.total_balls)
+    };
+    if(winner===teamB){updB.wins=(ttB.wins||0)+1;updB.points=(ttB.points||0)+2;}
+    else if(winner===teamA){updB.losses=(ttB.losses||0)+1;}
+    else if(match.result&&match.result.includes('Tied')){updB.ties=(ttB.ties||0)+1;updB.points=(ttB.points||0)+1;}
+    else{updB.no_results=(ttB.no_results||0)+1;updB.points=(ttB.points||0)+1;}
+    if(updB.overs_faced>0&&updB.overs_bowled>0){
+      updB.nrr=((updB.runs_scored/updB.overs_faced)-(updB.runs_conceded/updB.overs_bowled)).toFixed(3);
+    }
+    await sb.from('tournament_teams').update(updB).eq('id',ttB.id);
+
+    // Check if all group matches are done → auto-fill knockout teams
+    await autoFillKnockouts();
+  }catch(e){console.error('Tournament stats update error:',e);}
+}
+
+async function autoFillKnockouts(){
+  if(!match.tournament_id)return;
+  // Load all matches for this tournament
+  const{data:allM}=await sb.from('matches').select('*').eq('tournament_id',match.tournament_id).order('match_number');
+  if(!allM)return;
+  const groupMatches=allM.filter(m=>m.stage==='group'||m.stage==='league');
+  const koMatches=allM.filter(m=>m.stage!=='group'&&m.stage!=='league');
+  // Check if all group/league matches are completed
+  const allGroupsDone=groupMatches.every(m=>m.status==='completed');
+  if(!allGroupsDone||!koMatches.length)return;
+
+  // Load standings sorted by points then NRR
+  const{data:standings}=await sb.from('tournament_teams').select('*').eq('tournament_id',match.tournament_id).order('points',{ascending:false}).order('nrr',{ascending:false});
+  if(!standings)return;
+
+  // Group standings by group_name
+  const byGroup={};
+  standings.forEach(t=>{
+    const g=t.group_name||'ALL';
+    if(!byGroup[g])byGroup[g]=[];
+    byGroup[g].push(t);
+  });
+
+  // Fill knockout matches
+  for(const m of koMatches){
+    if(m.status!=='scheduled')continue;
+    let newA=m.team_a;let newB=m.team_b;
+    // Replace placeholder team names
+    const groups=Object.keys(byGroup).sort();
+    groups.forEach(g=>{
+      const gt=byGroup[g];
+      if(gt.length>=1){
+        newA=newA.replace('1st '+g,gt[0].team_name).replace('Top '+g,gt[0].team_name);
+        newB=newB.replace('1st '+g,gt[0].team_name).replace('Top '+g,gt[0].team_name);
+      }
+      if(gt.length>=2){
+        newA=newA.replace('2nd '+g,gt[1].team_name);
+        newB=newB.replace('2nd '+g,gt[1].team_name);
+      }
+    });
+    // For RR format: 1st Place / 2nd Place
+    if(standings.length>=2){
+      newA=newA.replace('1st Place',standings[0].team_name);
+      newB=newB.replace('2nd Place',standings[1].team_name);
+    }
+    // For winner references: check completed KO matches
+    const completedKO=allM.filter(x=>x.status==='completed'&&x.stage!=='group'&&x.stage!=='league');
+    completedKO.forEach(ck=>{
+      newA=newA.replace('Winner M'+ck.match_number,ck.winner||ck.team_a);
+      newB=newB.replace('Winner M'+ck.match_number,ck.winner||ck.team_b);
+      // Also handle SF references
+      if(ck.stage&&ck.stage.includes('Semi Final 1'))newA=newA.replace('Winner SF1',ck.winner||'TBD');
+      if(ck.stage&&ck.stage.includes('Semi Final 2'))newB=newB.replace('Winner SF2',ck.winner||'TBD');
+      if(ck.stage&&ck.stage.includes('SF 1')){newA=newA.replace('Winner SF1',ck.winner||'TBD');}
+      if(ck.stage&&ck.stage.includes('SF 2')){newB=newB.replace('Winner SF2',ck.winner||'TBD');}
+      // QF references
+      if(ck.stage&&ck.stage.includes('Quarter Final 1'))newA=newA.replace('Winner QF1',ck.winner||'TBD');
+      if(ck.stage&&ck.stage.includes('Quarter Final 2'))newB=newB.replace('Winner QF2',ck.winner||'TBD');
+      if(ck.stage&&ck.stage.includes('Quarter Final 3'))newA=newA.replace('Winner QF3',ck.winner||'TBD');
+      if(ck.stage&&ck.stage.includes('Quarter Final 4'))newB=newB.replace('Winner QF4',ck.winner||'TBD');
+    });
+
+    if(newA!==m.team_a||newB!==m.team_b){
+      await sb.from('matches').update({team_a:newA,team_b:newB}).eq('id',m.id);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════

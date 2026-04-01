@@ -193,17 +193,154 @@ async function addP(){const n=document.getElementById('apN').value.trim();if(!n)
   if(error){cxiAlert(error.message);return;}document.getElementById('apN').value='';document.getElementById('apM').value='';document.getElementById('apPhoto').value='';showToast(n+' added!');renderPlayers();}
 async function delP(id){await sb.from('tournament_players').delete().eq('id',id);showToast('Removed');renderPlayers();}
 
-async function loadSched(){const{data:m}=await sb.from('matches').select('*').eq('tournament_id',T.id).order('match_number');const el=document.getElementById('schedCon');if(!m||!m.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">Click Auto-Generate</div>';return;}
-el.innerHTML=m.map(x=>{
-  const dt=x.match_date?new Date(x.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-  const tm=x.match_time||'';
-  return '<div class="match-row" data-id="'+x.id+'" draggable="true"><div style="display:flex;align-items:center;gap:8px;flex:1;"><span style="cursor:grab;font-size:18px;color:var(--muted);user-select:none;">⠿</span><div style="flex:1;"><div class="match-num">Match '+x.match_number+(x.stage?' · '+x.stage:'')+(x.group_name?' · Grp '+x.group_name:'')+'</div><div class="match-teams-label">'+x.team_a+' vs '+x.team_b+'</div>'+(dt?'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+dt+(tm?' · '+tm:'')+'</div>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;"><span style="font-size:11px;color:'+(x.status==='completed'?'var(--green)':'var(--muted)')+';font-weight:700;">'+x.status.toUpperCase()+'</span><input type="datetime-local" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px 4px;width:130px;" value="'+(x.match_date?x.match_date.substring(0,16):'')+'" onchange="setMatchTime(\''+x.id+'\',this.value)"></div></div>';
-}).join('');
+async function loadSched(){
+  const{data:m}=await sb.from('matches').select('*').eq('tournament_id',T.id).order('match_number');
+  const el=document.getElementById('schedCon');
+  if(!m||!m.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">Click Auto-Generate</div>';return;}
+  // Separate league/group matches from knockouts
+  const league=m.filter(x=>x.stage==='league'||x.stage==='group');
+  const ko=m.filter(x=>x.stage!=='league'&&x.stage!=='group');
+
+  function matchCard(x){
+    const dt=x.match_date?new Date(x.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+    const isKO=x.stage&&(x.stage.includes('SF')||x.stage.includes('Semi')||x.stage.includes('Final')||x.stage.includes('Quarter')||x.stage.includes('Qualifier'));
+    const borderColor=isKO?(x.stage.includes('Final')?'var(--gold)':'var(--green)'):(x.group_name==='A'?'var(--accent)':x.group_name==='B'?'var(--blue)':x.group_name==='C'?'var(--green)':x.group_name==='D'?'var(--purple)':'var(--border)');
+    const isTBD=x.team_a.includes('Winner')||x.team_a.includes('1st ')||x.team_a.includes('2nd ')||x.team_a.includes('W ');
+    let scoreBtn='';
+    if(x.status==='scheduled'&&!isTBD){
+      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:10px;background:var(--green);color:#000;padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>';
+    } else if(x.status==='completed'){
+      scoreBtn='<a href="scorecard.html?match='+x.id+'" style="font-size:10px;background:var(--surface2);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;border:1px solid var(--border);">Card</a>';
+    } else if(x.status==='live'){
+      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:10px;background:var(--green);color:#000;padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;animation:pulse 2s infinite;">LIVE</a>';
+    }
+    const resultLine=x.result?'<div style="font-size:10px;color:var(--green);margin-top:2px;">'+x.result+'</div>':'';
+    return '<div class="match-row" data-id="'+x.id+'" draggable="true" style="border-left:3px solid '+borderColor+';"><div style="display:flex;align-items:center;gap:8px;flex:1;"><span style="cursor:grab;font-size:16px;color:var(--muted);user-select:none;">⠿</span><div style="flex:1;"><div class="match-num">M'+x.match_number+(x.stage?' · '+x.stage:'')+(x.group_name?' · Grp '+x.group_name:'')+'</div><div class="match-teams-label"'+(isTBD?' style="color:var(--muted);"':'')+'>'+x.team_a+' vs '+x.team_b+'</div>'+resultLine+(dt?'<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+dt+'</div>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'+scoreBtn+'<input type="datetime-local" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:9px;padding:2px 3px;width:125px;" value="'+(x.match_date?x.match_date.substring(0,16):'')+'" onchange="setMatchTime(\''+x.id+'\',this.value)"></div></div>';
+  }
+
+  let html='';
+  if(league.length){
+    html+='<div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">League / Group Matches ('+league.length+')</div>';
+    html+=league.map(matchCard).join('');
+  }
+  if(ko.length){
+    html+='<div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--green);">Knockout Stage</div>';
+    html+=ko.map(matchCard).join('');
+  }
+  el.innerHTML=html;
+
   // Drag handlers
   el.querySelectorAll('.match-row').forEach(item=>{item.addEventListener('dragstart',function(){this.classList.add('dragging');});item.addEventListener('dragend',function(){this.classList.remove('dragging');});item.addEventListener('dragover',function(e){e.preventDefault();const d=el.querySelector('.dragging');if(d&&d!==this){const r=this.getBoundingClientRect();if(e.clientY<r.top+r.height/2)this.before(d);else this.after(d);}});let tEl=null;item.addEventListener('touchstart',function(){tEl=this;this.style.opacity='0.5';},{passive:true});item.addEventListener('touchmove',function(e){e.preventDefault();if(!tEl)return;const touch=e.touches[0];const target=document.elementFromPoint(touch.clientX,touch.clientY);if(target){const row=target.closest('.match-row');if(row&&row!==tEl){const r=row.getBoundingClientRect();if(touch.clientY<r.top+r.height/2)row.before(tEl);else row.after(tEl);}}},{passive:false});item.addEventListener('touchend',function(){if(tEl)tEl.style.opacity='1';tEl=null;});});
 }
 async function setMatchTime(id,val){if(!val)return;await sb.from('matches').update({match_date:val}).eq('id',id);showToast('Time set!');}
-async function genSched(){if(!await cxiConfirm('Generate schedule? Replaces existing.'))return;await sb.from('matches').delete().eq('tournament_id',T.id);const fmt=T.format;const tn=teams.map(t=>({n:t.team_name,g:t.group_name}));let fix=[];let mn=1;if(fmt==='round_robin'){for(let i=0;i<tn.length;i++)for(let j=i+1;j<tn.length;j++)fix.push({a:tn[i].n,b:tn[j].n,n:mn++,s:'league'});}else if(fmt==='round_robin_groups'){const gr={};tn.forEach(t=>{const g=t.g||'A';if(!gr[g])gr[g]=[];gr[g].push(t.n);});Object.keys(gr).sort().forEach(g=>{const gt=gr[g];for(let i=0;i<gt.length;i++)for(let j=i+1;j<gt.length;j++)fix.push({a:gt[i],b:gt[j],n:mn++,s:'group',g:g});});}else if(fmt==='knockout'){for(let i=0;i<tn.length;i+=2){fix.push({a:tn[i].n,b:tn[i+1]?tn[i+1].n:'BYE',n:mn++,s:tn.length<=2?'Final':tn.length<=4?'Semi':'Quarter'});}if(tn.length>2){fix.push({a:'W M1',b:'W M2',n:mn++,s:'Semi'});if(tn.length>4)fix.push({a:'W M3',b:'W M4',n:mn++,s:'Semi'});fix.push({a:'W SF1',b:'W SF2',n:mn++,s:'Final'});}}else if(fmt==='group_knockout'){const gr={};tn.forEach(t=>{const g=t.g||'A';if(!gr[g])gr[g]=[];gr[g].push(t.n);});Object.keys(gr).sort().forEach(g=>{const gt=gr[g];for(let i=0;i<gt.length;i++)for(let j=i+1;j<gt.length;j++)fix.push({a:gt[i],b:gt[j],n:mn++,s:'group',g:g});});fix.push({a:'1st A',b:'2nd B',n:mn++,s:'SF 1'});fix.push({a:'1st B',b:'2nd A',n:mn++,s:'SF 2'});fix.push({a:'W SF1',b:'W SF2',n:mn++,s:'Final'});}const rows=fix.map(f=>({tournament_id:T.id,team_a:f.a,team_b:f.b,match_number:f.n,stage:f.s,group_name:f.g||null,overs_per_side:T.overs_per_match,venue:T.venue||null,status:'scheduled',share_code:Math.random().toString(36).substring(2,7).toUpperCase(),created_by:user.id,sponsor_name:T.sponsor_name||null,branding_text:T.branding_text||null}));await sb.from('matches').insert(rows);showToast(fix.length+' matches!');loadSched();}
+
+// ═══════════════════════════════════════════════════
+// SMART SCHEDULE GENERATOR
+// ═══════════════════════════════════════════════════
+function getFormatSuggestion(n){
+  if(n<=3)return{desc:'Round Robin ('+n*(n-1)/2+' matches)',note:'Every team plays every other team.'};
+  if(n===4)return{desc:'Round Robin (6) + Final OR Knockout (3)',note:'RR gives everyone fair chance. KO is quicker.'};
+  if(n===5)return{desc:'Round Robin (10) + Top 2 Final = 11 matches',note:'All play all, top 2 meet in final.'};
+  if(n===6)return{desc:'RR Top 4 → SF → Final (18) OR 2 Groups of 3 → SF → Final (9)',note:'Groups reduce total matches by half.'};
+  if(n===7||n===8)return{desc:'2 Groups of '+(n/2|0)+' → SF → Final ('+(n*(n/2|0-1)/2+3)+') OR Knockout ('+(n-1)+')',note:'Groups + KO is the IPL format.'};
+  if(n<=10)return{desc:'2 Groups → SF → Final ('+((n/2|0)*((n/2|0)-1)/2*2+3)+' matches)',note:'Balanced groups ensure fair play.'};
+  if(n<=12)return{desc:'3 Groups → Top 2 per group → SF → Final',note:'6 teams qualify for knockouts.'};
+  return{desc:'4 Groups → QF → SF → Final',note:'IPL/World Cup style tournament.'};
+}
+
+async function genSched(){
+  const n=teams.length;
+  const suggestion=getFormatSuggestion(n);
+  if(!await cxiConfirm('Schedule for '+n+' teams:\n\n'+suggestion.desc+'\n\n'+suggestion.note+'\n\nGenerate now? (Replaces existing matches)'))return;
+
+  await sb.from('matches').delete().eq('tournament_id',T.id);
+  const fmt=T.format;
+  const tn=teams.map(t=>({n:t.team_name,g:t.group_name}));
+  let fix=[];let mn=1;
+
+  // ── GROUP / LEAGUE MATCHES ──
+  if(fmt==='round_robin'){
+    // All vs All
+    for(let i=0;i<tn.length;i++)
+      for(let j=i+1;j<tn.length;j++)
+        fix.push({a:tn[i].n,b:tn[j].n,n:mn++,s:'league'});
+    // Add Final if 4+ teams
+    if(n>=4){
+      fix.push({a:'1st Place',b:'2nd Place',n:mn++,s:'Final'});
+    }
+  }
+  else if(fmt==='round_robin_groups'||fmt==='group_knockout'){
+    // Group stage RR within each group
+    const gr={};tn.forEach(t=>{const g=t.g||'A';if(!gr[g])gr[g]=[];gr[g].push(t.n);});
+    const groupNames=Object.keys(gr).sort();
+    groupNames.forEach(g=>{
+      const gt=gr[g];
+      for(let i=0;i<gt.length;i++)
+        for(let j=i+1;j<gt.length;j++)
+          fix.push({a:gt[i],b:gt[j],n:mn++,s:'group',g:g});
+    });
+
+    // Knockout stage based on number of groups
+    if(groupNames.length===2){
+      fix.push({a:'1st '+groupNames[0],b:'2nd '+groupNames[1],n:mn++,s:'Semi Final 1'});
+      fix.push({a:'1st '+groupNames[1],b:'2nd '+groupNames[0],n:mn++,s:'Semi Final 2'});
+      fix.push({a:'Winner SF1',b:'Winner SF2',n:mn++,s:'Final'});
+    } else if(groupNames.length===3){
+      // Top 2 from each group = 6 teams → 2 directly to SF, 4 play QF
+      fix.push({a:'1st '+groupNames[0],b:'2nd '+groupNames[2],n:mn++,s:'Qualifier 1'});
+      fix.push({a:'1st '+groupNames[1],b:'2nd '+groupNames[0],n:mn++,s:'Qualifier 2'});
+      fix.push({a:'1st '+groupNames[2],b:'2nd '+groupNames[1],n:mn++,s:'Qualifier 3'});
+      fix.push({a:'Winner Q1',b:'Winner Q2',n:mn++,s:'Semi Final 1'});
+      fix.push({a:'Winner Q3',b:'Best 2nd',n:mn++,s:'Semi Final 2'});
+      fix.push({a:'Winner SF1',b:'Winner SF2',n:mn++,s:'Final'});
+    } else if(groupNames.length>=4){
+      // IPL/World Cup style: QF → SF → Final
+      fix.push({a:'1st '+groupNames[0],b:'2nd '+groupNames[1],n:mn++,s:'Quarter Final 1'});
+      fix.push({a:'1st '+groupNames[1],b:'2nd '+groupNames[0],n:mn++,s:'Quarter Final 2'});
+      fix.push({a:'1st '+groupNames[2],b:'2nd '+groupNames[3],n:mn++,s:'Quarter Final 3'});
+      fix.push({a:'1st '+groupNames[3],b:'2nd '+groupNames[2],n:mn++,s:'Quarter Final 4'});
+      fix.push({a:'Winner QF1',b:'Winner QF2',n:mn++,s:'Semi Final 1'});
+      fix.push({a:'Winner QF3',b:'Winner QF4',n:mn++,s:'Semi Final 2'});
+      fix.push({a:'Winner SF1',b:'Winner SF2',n:mn++,s:'Final'});
+    }
+  }
+  else if(fmt==='knockout'){
+    // Single elimination bracket
+    const rounds=[];let remaining=[...tn.map(t=>t.n)];
+    // Pad to power of 2 with BYE
+    while(remaining.length&(remaining.length-1))remaining.push('BYE');
+    // Generate bracket
+    for(let i=0;i<remaining.length;i+=2){
+      const stage=remaining.length<=2?'Final':remaining.length<=4?'Semi Final':remaining.length<=8?'Quarter Final':'Round 1';
+      fix.push({a:remaining[i],b:remaining[i+1],n:mn++,s:stage});
+    }
+    // Add subsequent rounds as TBD
+    let prevCount=remaining.length/2;
+    const stageNames=['Semi Final','Final'];
+    if(remaining.length>4)stageNames.unshift('Quarter Final');
+    if(remaining.length>8)stageNames.unshift('Round 2');
+    let stageIdx=0;
+    while(prevCount>1){
+      const stageName=stageNames[stageIdx]||'Round '+(stageIdx+2);
+      for(let i=0;i<prevCount;i+=2){
+        const mA=fix.length-prevCount+i;const mB=fix.length-prevCount+i+1;
+        fix.push({a:'Winner M'+(mA+1),b:'Winner M'+(mB+1),n:mn++,s:stageName+(prevCount>2?' '+(i/2+1):'')});
+      }
+      prevCount=prevCount/2;stageIdx++;
+    }
+  }
+
+  const rows=fix.map(f=>({
+    tournament_id:T.id,team_a:f.a,team_b:f.b,match_number:f.n,stage:f.s,group_name:f.g||null,
+    overs_per_side:T.overs_per_match,venue:T.venue||null,status:'scheduled',
+    share_code:Math.random().toString(36).substring(2,7).toUpperCase(),
+    created_by:user.id,sponsor_name:T.sponsor_name||null,branding_text:T.branding_text||null
+  }));
+  const{error}=await sb.from('matches').insert(rows);
+  if(error){cxiAlert(error.message);return;}
+  showToast(fix.length+' matches generated!');
+  loadSched();
+}
 async function saveOrder(){const items=document.querySelectorAll('#schedCon .match-row[data-id]');const ups=[];items.forEach((el,i)=>{ups.push(sb.from('matches').update({match_number:i+1}).eq('id',el.dataset.id));});await Promise.all(ups);showToast('Order saved!');loadSched();}
 
 async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;if(T.sponsor_name){document.getElementById('goSponsor').style.display='block';document.getElementById('goSName').textContent=T.sponsor_name;if(T.sponsor_logo){const l=document.getElementById('goSLogo');l.src=T.sponsor_logo;l.style.display='block';}if(T.branding_text)document.getElementById('goSSub').textContent=T.branding_text;}}
