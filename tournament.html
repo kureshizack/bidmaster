@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Tournament — captainXI.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--surface3:#2d333b;--border:#30363d;--accent:#f59e0b;--accent2:#fbbf24;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--purple:#bc8cff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:8px;flex-wrap:wrap;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);text-decoration:none;}
+.nav-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.nav-link{color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;}
+.nav-link:hover{color:var(--accent);}
+
+.container{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:10px;flex-wrap:wrap;}
+.page-header h1{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;}
+
+.btn{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;transition:all .15s;text-decoration:none;display:inline-block;text-align:center;}
+.btn-primary{background:var(--accent);color:#000;}.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-ghost:hover{color:var(--text);border-color:var(--muted);}
+.btn-sm{padding:6px 12px;font-size:13px;}
+.btn-green{background:var(--green);color:#000;}.btn-green:hover{filter:brightness(1.1);}
+.btn-blue{background:var(--blue);color:#000;}.btn-blue:hover{filter:brightness(1.1);}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* FORM */
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:8px;font-size:14px;outline:none;font-family:'Noto Sans',sans-serif;}
+.form-input:focus{border-color:var(--accent);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:500px){.form-row{grid-template-columns:1fr;}}
+.form-hint{font-size:11px;color:var(--muted);margin-top:3px;}
+.section-divider{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin:18px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+
+/* STEPS */
+.steps{display:flex;gap:0;margin-bottom:24px;overflow-x:auto;}
+.step{flex:1;text-align:center;padding:10px 8px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;color:var(--muted);border-bottom:3px solid var(--border);cursor:pointer;white-space:nowrap;min-width:80px;transition:all .2s;}
+.step.active{color:var(--accent);border-bottom-color:var(--accent);}
+.step.done{color:var(--green);border-bottom-color:var(--green);}
+.step-content{display:none;}.step-content.active{display:block;}
+
+/* TEAM CARDS */
+.team-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.team-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;}
+.team-count{font-size:12px;color:var(--muted);}
+.team-actions{display:flex;gap:6px;}
+
+/* PLAYER ROWS */
+.player-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(48,54,61,0.5);font-size:13px;}
+.player-row:last-child{border-bottom:none;}
+.player-name{font-weight:600;}
+.player-role{font-size:11px;color:var(--blue);background:rgba(88,166,255,0.1);padding:2px 8px;border-radius:4px;}
+
+/* SCHEDULE TABLE */
+.match-row{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.match-teams-label{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;}
+.match-num{font-size:11px;color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;z-index:999;display:none;animation:slideUp .3s ease;}
+@keyframes slideUp{from{transform:translate(-50%,20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+
+/* FILE UPLOAD */
+.file-upload-box{width:100%;height:80px;border:2px dashed var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;overflow:hidden;background:var(--surface2);}
+.file-upload-box:hover{border-color:var(--accent);}
+.file-placeholder{font-size:13px;color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:600;}
+.file-preview{width:100%;height:100%;object-fit:contain;border-radius:8px;padding:4px;}
+
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CXI Modal */
+.cxi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:cxiFadeIn .15s;}
+@keyframes cxiFadeIn{from{opacity:0}to{opacity:1}}
+.cxi-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:400px;width:100%;text-align:center;}
+.cxi-modal-icon{font-size:40px;margin-bottom:12px;}
+.cxi-modal-msg{color:var(--text);font-size:14px;line-height:1.7;margin-bottom:20px;white-space:pre-line;word-break:break-word;}
+.cxi-modal-btns{display:flex;gap:10px;}
+.cxi-modal-btn{flex:1;padding:12px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+.cxi-modal-btn-primary{background:var(--accent);color:#000;}.cxi-modal-btn-primary:hover{filter:brightness(1.1);}
+.cxi-modal-btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="dashboard.html" class="logo">captainXI.com</a>
+  <div class="nav-right">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="matches.html" class="nav-link">Matches</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <h1>🏆 Tournament</h1>
+    <button class="btn btn-primary" onclick="goStep(1)" id="newTournBtn" style="display:none;">+ New Tournament</button>
+  </div>
+
+  <!-- TOURNAMENT LIST (if user has tournaments) -->
+  <div id="tournamentList"></div>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps" id="stepsBar" style="display:none;">
+    <div class="step active" data-step="1" onclick="goStep(1)">1. Details</div>
+    <div class="step" data-step="2" onclick="goStep(2)">2. Teams</div>
+    <div class="step" data-step="3" onclick="goStep(3)">3. Players</div>
+    <div class="step" data-step="4" onclick="goStep(4)">4. Schedule</div>
+    <div class="step" data-step="5" onclick="goStep(5)">5. Go Live</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STEP 1: TOURNAMENT DETAILS             -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="step-content active" id="step1">
+    <div class="card">
+      <div class="card-title">Tournament Details</div>
+      <div class="form-group">
+        <label class="form-label">Tournament Name *</label>
+        <input class="form-input" id="tName" placeholder="e.g. Ramadan Night Cup 2026" maxlength="60">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Format</label>
+          <select class="form-input" id="tFormat">
+            <option value="round_robin">Round Robin</option>
+            <option value="knockout">Knockout</option>
+            <option value="group_knockout">Group + Knockout</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Overs Per Match</label>
+          <select class="form-input" id="tOvers">
+            <option value="5">5 overs</option>
+            <option value="6">6 overs</option>
+            <option value="8">8 overs</option>
+            <option value="10">10 overs (T10)</option>
+            <option value="15">15 overs</option>
+            <option value="20" selected>20 overs (T20)</option>
+            <option value="50">50 overs (ODI)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Number of Teams</label>
+          <input class="form-input" id="tTeamsCount" type="number" min="3" max="16" value="8">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Players Per Team</label>
+          <input class="form-input" id="tPlayersPerTeam" type="number" min="5" max="18" value="11">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input class="form-input" id="tStartDate" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input class="form-input" id="tEndDate" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Venue</label>
+        <input class="form-input" id="tVenue" placeholder="Ground/stadium name" maxlength="80">
+      </div>
+
+      <div class="section-divider">Team Formation</div>
+      <div class="form-group">
+        <label class="form-label">How will teams be formed?</label>
+        <select class="form-input" id="tFormation">
+          <option value="predefined">Predefined Teams (organizer adds teams)</option>
+          <option value="auction">Auction (IPL-style player auction)</option>
+        </select>
+        <div class="form-hint" id="formationHint">Players register to pre-assigned teams via WhatsApp links</div>
+      </div>
+
+      <div class="section-divider">Registration</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Registration Fee</label>
+          <select class="form-input" id="tFeeType" onchange="document.getElementById('tFeeAmount').style.display=this.value==='paid'?'block':'none'">
+            <option value="free">Free</option>
+            <option value="paid">Paid (via Razorpay)</option>
+          </select>
+        </div>
+        <div class="form-group" id="tFeeAmount" style="display:none;">
+          <label class="form-label">Fee Amount (₹)</label>
+          <input class="form-input" id="tFee" type="number" min="1" value="200" placeholder="₹">
+        </div>
+      </div>
+
+      <div class="section-divider">Sponsor (Optional)</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sponsor Name</label>
+          <input class="form-input" id="tSponsor" placeholder="e.g. Star Sports" maxlength="40">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sponsor Logo</label>
+          <div class="file-upload-box" onclick="document.getElementById('tSponsorFile').click()">
+            <img id="tSponsorPreview" class="file-preview" src="" style="display:none;">
+            <div id="tSponsorPlaceholder" class="file-placeholder">Tap to upload</div>
+          </div>
+          <input type="file" id="tSponsorFile" accept="image/*" style="display:none;" onchange="previewFile(this,'tSponsorPreview','tSponsorPlaceholder')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branding Text</label>
+        <input class="form-input" id="tBranding" placeholder="e.g. Presented by XYZ Club" maxlength="80">
+      </div>
+
+      <div id="step1Err" style="color:var(--red);font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;" onclick="saveStep1()">Next — Add Teams →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STEP 2: ADD TEAMS                      -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="step-content" id="step2">
+    <div class="card">
+      <div class="card-title">Add Teams</div>
+      <div id="teamsContainer"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <input class="form-input" id="newTeamName" placeholder="Team name" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="addTeam()">+ Add</button>
+      </div>
+      <div class="form-hint">Add <span id="teamsNeeded">8</span> teams. Added: <span id="teamsAdded">0</span></div>
+      <div id="step2Err" style="color:var(--red);font-size:13px;min-height:18px;margin:8px 0;"></div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:12px;" onclick="saveStep2()">Next — Player Registration →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STEP 3: PLAYERS / REGISTRATION         -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="step-content" id="step3">
+    <div class="card">
+      <div class="card-title">Player Registration</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;">Share the registration link for each team on WhatsApp. Players tap the link to register themselves.</div>
+      <div id="regLinksContainer"></div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+        <div class="card-title" style="font-size:16px;">Registered Players</div>
+        <div id="registeredPlayers"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;margin-top:16px;" onclick="saveStep3()">Next — Generate Schedule →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STEP 4: SCHEDULE                       -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="step-content" id="step4">
+    <div class="card">
+      <div class="card-title">Match Schedule</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button class="btn btn-primary btn-sm" onclick="generateSchedule()">Auto-Generate Schedule</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadSchedule()">Refresh</button>
+      </div>
+      <div id="scheduleContainer"></div>
+      <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin-top:16px;" onclick="saveStep4()">Next — Go Live →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- STEP 5: GO LIVE                        -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="step-content" id="step5">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:56px;margin-bottom:12px;">🏆</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--accent);" id="goLiveName">Tournament Name</div>
+      <div style="font-size:14px;color:var(--muted);margin:8px 0 20px;" id="goLiveInfo">8 teams · 20 overs · Round Robin</div>
+
+      <div class="form-row" style="margin-bottom:16px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);" id="goLiveTeams">0</div>
+          <div style="font-size:11px;color:var(--muted);">Teams</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--blue);" id="goLivePlayers">0</div>
+          <div style="font-size:11px;color:var(--muted);">Players</div>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:16px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);" id="goLiveMatches">0</div>
+          <div style="font-size:11px;color:var(--muted);">Matches</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--purple);" id="goLiveFormat">RR</div>
+          <div style="font-size:11px;color:var(--muted);">Format</div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Public Standings Page</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--accent);word-break:break-all;" id="goLiveUrl"></div>
+      </div>
+
+      <button class="btn btn-green" style="width:100%;padding:16px;font-size:18px;" onclick="goLive()">🚀 Go Live — Start Tournament</button>
+      <button class="btn btn-ghost" style="width:100%;padding:12px;font-size:14px;margin-top:8px;" onclick="shareStandingsLink()">Share on WhatsApp</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+// CXI Modals
+function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cxiAlert(msg,icon){icon=icon||'ℹ️';return new Promise(r=>{const o=document.createElement('div');o.className='cxi-modal-overlay';o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><button class="cxi-modal-btn cxi-modal-btn-primary" id="_cxiOk">OK</button></div>';document.body.appendChild(o);o.querySelector('#_cxiOk').onclick=()=>{o.remove();r();};o.onclick=e=>{if(e.target===o){o.remove();r();}};});}
+function cxiConfirm(msg,icon){icon=icon||'⚠️';return new Promise(r=>{const o=document.createElement('div');o.className='cxi-modal-overlay';o.innerHTML='<div class="cxi-modal-box"><div class="cxi-modal-icon">'+icon+'</div><div class="cxi-modal-msg">'+_cxiEsc(msg)+'</div><div class="cxi-modal-btns"><button class="cxi-modal-btn cxi-modal-btn-ghost" id="_n">Cancel</button><button class="cxi-modal-btn cxi-modal-btn-primary" id="_y">Confirm</button></div></div>';document.body.appendChild(o);o.querySelector('#_y').onclick=()=>{o.remove();r(true);};o.querySelector('#_n').onclick=()=>{o.remove();r(false);};o.onclick=e=>{if(e.target===o){o.remove();r(false);}};});}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+
+function previewFile(input,previewId,placeholderId){
+  const file=input.files[0];if(!file)return;
+  const p=document.getElementById(previewId);const ph=document.getElementById(placeholderId);
+  const r=new FileReader();r.onload=e=>{p.src=e.target.result;p.style.display='block';ph.style.display='none';};r.readAsDataURL(file);
+}
+
+async function uploadFile(file,folder){
+  if(!file)return null;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(file.size>2*1024*1024){cxiAlert('Image must be under 2MB');return null;}
+  const fileName=folder+'/'+Date.now()+'_'+Math.random().toString(36).substring(2,8)+'.'+ext;
+  const{error}=await sb.storage.from('player-photos').upload(fileName,file,{cacheControl:'3600',upsert:false});
+  if(error){console.error(error);const r=new FileReader();return new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
+  const{data:urlData}=sb.storage.from('player-photos').getPublicUrl(fileName);
+  return urlData?.publicUrl||null;
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let currentUser=null;
+let tournament=null; // current tournament being edited
+let teams=[]; // tournament_teams rows
+let allTournaments=[]; // user's tournaments
+let currentStep=1;
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+(async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='login.html?redirect=tournament';return;}
+  currentUser=session.user;
+
+  // Check URL for existing tournament
+  const tid=new URLSearchParams(window.location.search).get('id');
+  if(tid){
+    const{data:t}=await sb.from('tournaments').select('*').eq('id',tid).single();
+    if(t){tournament=t;await loadTournamentData();return;}
+  }
+
+  // Load all tournaments
+  await loadTournamentList();
+})();
+
+async function loadTournamentList(){
+  const{data}=await sb.from('tournaments').select('*').eq('owner_id',currentUser.id).order('created_at',{ascending:false});
+  allTournaments=data||[];
+  const el=document.getElementById('tournamentList');
+  document.getElementById('newTournBtn').style.display='inline-block';
+
+  if(!allTournaments.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">🏆</div><p>No tournaments yet</p><button class="btn btn-primary" onclick="startNewTournament()">Create Your First Tournament</button></div>';
+    document.getElementById('stepsBar').style.display='none';
+    return;
+  }
+
+  el.innerHTML=allTournaments.map(t=>{
+    const statusColors={setup:'var(--blue)',registration:'var(--accent)',live:'var(--green)',completed:'var(--muted)'};
+    return `<div class="team-card" style="cursor:pointer;" onclick="openTournament('${t.id}')">
+      <div>
+        <div class="team-name">${t.name}</div>
+        <div class="team-count">${t.teams_count} teams · ${t.overs_per_match} overs · ${t.format.replace('_',' ')}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid ${statusColors[t.status]||'var(--border)'};color:${statusColors[t.status]||'var(--muted)'};font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;">${t.status.toUpperCase()}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteTournament('${t.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function startNewTournament(){
+  tournament=null;teams=[];
+  document.getElementById('tournamentList').innerHTML='';
+  document.getElementById('newTournBtn').style.display='none';
+  document.getElementById('stepsBar').style.display='flex';
+  goStep(1);
+}
+
+function openTournament(id){
+  window.location.href='tournament.html?id='+id;
+}
+
+async function deleteTournament(id){
+  if(!await cxiConfirm('Delete this tournament? All teams and players will be removed.'))return;
+  await sb.from('tournaments').delete().eq('id',id);
+  allTournaments=allTournaments.filter(t=>t.id!==id);
+  loadTournamentList();
+  showToast('Tournament deleted');
+}
+
+async function loadTournamentData(){
+  // Load teams and show management view
+  const{data:t}=await sb.from('tournament_teams').select('*').eq('tournament_id',tournament.id).order('created_at');
+  teams=t||[];
+  document.getElementById('tournamentList').innerHTML='';
+  document.getElementById('newTournBtn').style.display='inline-block';
+  document.getElementById('stepsBar').style.display='flex';
+
+  // Fill form with existing data
+  document.getElementById('tName').value=tournament.name||'';
+  document.getElementById('tFormat').value=tournament.format||'round_robin';
+  document.getElementById('tOvers').value=tournament.overs_per_match||20;
+  document.getElementById('tTeamsCount').value=tournament.teams_count||8;
+  document.getElementById('tPlayersPerTeam').value=tournament.players_per_team||11;
+  document.getElementById('tStartDate').value=tournament.start_date||'';
+  document.getElementById('tEndDate').value=tournament.end_date||'';
+  document.getElementById('tVenue').value=tournament.venue||'';
+  document.getElementById('tFormation').value=tournament.team_formation||'predefined';
+  document.getElementById('tSponsor').value=tournament.sponsor_name||'';
+  document.getElementById('tBranding').value=tournament.branding_text||'';
+
+  // Determine which step to show
+  if(tournament.status==='setup')goStep(teams.length?2:1);
+  else if(tournament.status==='registration')goStep(3);
+  else if(tournament.status==='live'||tournament.status==='completed')goStep(5);
+  else goStep(1);
+}
+
+// ═══════════════════════════════════════════════════
+// STEP NAVIGATION
+// ═══════════════════════════════════════════════════
+function goStep(n){
+  currentStep=n;
+  document.querySelectorAll('.step-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.step').forEach(el=>{
+    const s=parseInt(el.dataset.step);
+    el.classList.remove('active','done');
+    if(s===n)el.classList.add('active');
+    else if(s<n)el.classList.add('done');
+  });
+  const el=document.getElementById('step'+n);
+  if(el)el.classList.add('active');
+
+  // Load step data
+  if(n===2)renderTeams();
+  if(n===3)renderRegLinks();
+  if(n===4)loadSchedule();
+  if(n===5)renderGoLive();
+}
+
+// ═══════════════════════════════════════════════════
+// STEP 1: SAVE TOURNAMENT
+// ═══════════════════════════════════════════════════
+async function saveStep1(){
+  const name=document.getElementById('tName').value.trim();
+  const err=document.getElementById('step1Err');
+  if(!name){err.textContent='Tournament name is required';return;}
+  err.textContent='';
+
+  const shareCode=Math.random().toString(36).substring(2,8).toUpperCase();
+  const feeType=document.getElementById('tFeeType').value;
+  const fee=feeType==='paid'?parseInt(document.getElementById('tFee').value)||0:0;
+
+  // Upload sponsor logo if selected
+  let sponsorLogo=tournament?.sponsor_logo||null;
+  const sponsorFile=document.getElementById('tSponsorFile').files[0];
+  if(sponsorFile)sponsorLogo=await uploadFile(sponsorFile,'sponsors');
+
+  const payload={
+    name:name,
+    format:document.getElementById('tFormat').value,
+    overs_per_match:parseInt(document.getElementById('tOvers').value),
+    teams_count:parseInt(document.getElementById('tTeamsCount').value),
+    players_per_team:parseInt(document.getElementById('tPlayersPerTeam').value),
+    start_date:document.getElementById('tStartDate').value||null,
+    end_date:document.getElementById('tEndDate').value||null,
+    venue:document.getElementById('tVenue').value.trim()||null,
+    team_formation:document.getElementById('tFormation').value,
+    free_registration:feeType==='free',
+    registration_fee:fee,
+    sponsor_name:document.getElementById('tSponsor').value.trim()||null,
+    sponsor_logo:sponsorLogo,
+    branding_text:document.getElementById('tBranding').value.trim()||null,
+    status:'setup'
+  };
+
+  if(tournament){
+    // Update existing
+    const{error}=await sb.from('tournaments').update(payload).eq('id',tournament.id);
+    if(error){err.textContent='Error: '+error.message;return;}
+    tournament={...tournament,...payload};
+  } else {
+    // Create new
+    payload.owner_id=currentUser.id;
+    payload.share_code=shareCode;
+    const{data,error}=await sb.from('tournaments').insert(payload).select().single();
+    if(error){err.textContent='Error: '+error.message;return;}
+    tournament=data;
+    // Update URL
+    history.replaceState(null,'','tournament.html?id='+tournament.id);
+  }
+  showToast('Tournament saved!');
+  goStep(2);
+}
+
+// ═══════════════════════════════════════════════════
+// STEP 2: TEAMS
+// ═══════════════════════════════════════════════════
+function renderTeams(){
+  const el=document.getElementById('teamsContainer');
+  document.getElementById('teamsNeeded').textContent=tournament?.teams_count||8;
+  document.getElementById('teamsAdded').textContent=teams.length;
+
+  if(!teams.length){
+    el.innerHTML='<div class="empty" style="padding:20px;"><div class="empty-icon">👥</div><p>No teams added yet</p></div>';
+    return;
+  }
+  el.innerHTML=teams.map(t=>`
+    <div class="team-card">
+      <div>
+        <div class="team-name">${t.team_name}</div>
+        <div class="team-count">Code: ${t.team_code}${t.group_name?' · Group '+t.group_name:''}</div>
+      </div>
+      <div class="team-actions">
+        <button class="btn btn-ghost btn-sm" onclick="shareTeamLink('${t.team_code}','${t.team_name}')">Share</button>
+        <button class="btn btn-ghost btn-sm" onclick="removeTeam('${t.id}')" style="color:var(--red);">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function addTeam(){
+  const inp=document.getElementById('newTeamName');
+  const name=inp.value.trim();
+  if(!name){return;}
+  if(teams.length>=(tournament?.teams_count||16)){cxiAlert('Maximum teams reached');return;}
+
+  // Auto-assign group for group_knockout
+  let groupName=null;
+  if(tournament?.format==='group_knockout'){
+    const groupSize=Math.ceil((tournament.teams_count||8)/4);
+    const groups=['A','B','C','D'];
+    const groupIdx=Math.floor(teams.length/groupSize);
+    groupName=groups[Math.min(groupIdx,3)];
+  }
+
+  const{data,error}=await sb.from('tournament_teams').insert({
+    tournament_id:tournament.id,team_name:name,group_name:groupName
+  }).select().single();
+  if(error){cxiAlert('Error: '+error.message);return;}
+  teams.push(data);
+  inp.value='';
+  renderTeams();
+  showToast(name+' added!');
+}
+
+async function removeTeam(id){
+  if(!await cxiConfirm('Remove this team?'))return;
+  await sb.from('tournament_teams').delete().eq('id',id);
+  teams=teams.filter(t=>t.id!==id);
+  renderTeams();
+}
+
+function shareTeamLink(code,name){
+  const url='https://captainxi.com/join.html?team='+code+'&t='+tournament.share_code;
+  const msg='*'+tournament.name+'*\nTeam: *'+name+'*\n\nRegister here:\n'+url+'\n\n'+(tournament.free_registration?'Entry: FREE':'Entry: Rs.'+tournament.registration_fee)+'\nVenue: '+(tournament.venue||'TBA')+'\n\n_Powered by captainXI.com_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+async function saveStep2(){
+  if(teams.length<2){document.getElementById('step2Err').textContent='Add at least 2 teams';return;}
+
+  // If auction mode, redirect to dashboard to create auction
+  if(tournament.team_formation==='auction'){
+    await cxiAlert('Auction mode selected.\n\nGo to Dashboard → Create Auction to set up the player auction for this tournament.');
+    window.location.href='dashboard.html';
+    return;
+  }
+
+  await sb.from('tournaments').update({status:'registration'}).eq('id',tournament.id);
+  tournament.status='registration';
+  goStep(3);
+}
+
+// ═══════════════════════════════════════════════════
+// STEP 3: REGISTRATION LINKS & PLAYERS
+// ═══════════════════════════════════════════════════
+async function renderRegLinks(){
+  const el=document.getElementById('regLinksContainer');
+  el.innerHTML=teams.map(t=>{
+    const url='https://captainxi.com/join.html?team='+t.team_code+'&t='+tournament.share_code;
+    return `<div class="team-card">
+      <div style="flex:1;">
+        <div class="team-name">${t.team_name}</div>
+        <div style="font-size:11px;color:var(--accent);word-break:break-all;">${url}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="shareTeamLink('${t.team_code}','${t.team_name}')">WhatsApp</button>
+    </div>`;
+  }).join('');
+
+  // Load registered players
+  const{data:players}=await sb.from('tournament_players').select('*,tournament_teams(team_name)').eq('tournament_id',tournament.id).order('registered_at');
+  const rp=document.getElementById('registeredPlayers');
+  if(!players||!players.length){
+    rp.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No players registered yet. Share the links above!</div>';
+    return;
+  }
+
+  // Group by team
+  const byTeam={};
+  players.forEach(p=>{
+    const tn=p.tournament_teams?.team_name||'Unknown';
+    if(!byTeam[tn])byTeam[tn]=[];
+    byTeam[tn].push(p);
+  });
+
+  rp.innerHTML=Object.keys(byTeam).map(tn=>{
+    return '<div style="margin-bottom:14px;"><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--accent);margin-bottom:6px;">'+tn+' ('+byTeam[tn].length+' players)</div>'+
+      byTeam[tn].map(p=>'<div class="player-row"><span class="player-name">'+p.player_name+'</span><span class="player-role">'+p.role+'</span></div>').join('')+'</div>';
+  }).join('');
+}
+
+async function saveStep3(){
+  goStep(4);
+}
+
+// ═══════════════════════════════════════════════════
+// STEP 4: SCHEDULE
+// ═══════════════════════════════════════════════════
+async function loadSchedule(){
+  const{data:matches}=await sb.from('matches').select('*').eq('tournament_id',tournament.id).order('match_number');
+  const el=document.getElementById('scheduleContainer');
+  if(!matches||!matches.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">No matches scheduled. Click "Auto-Generate" above.</div>';
+    return;
+  }
+  el.innerHTML=matches.map(m=>{
+    const statusColor=m.status==='completed'?'var(--green)':m.status==='live'?'var(--green)':'var(--muted)';
+    return `<div class="match-row">
+      <div>
+        <div class="match-num">Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Group '+m.group_name:''}</div>
+        <div class="match-teams-label">${m.team_a} vs ${m.team_b}</div>
+      </div>
+      <span style="font-size:11px;color:${statusColor};font-weight:700;">${m.status.toUpperCase()}</span>
+    </div>`;
+  }).join('');
+}
+
+async function generateSchedule(){
+  if(!await cxiConfirm('Generate match schedule? This will replace any existing schedule.'))return;
+
+  // Delete existing matches for this tournament
+  await sb.from('matches').delete().eq('tournament_id',tournament.id);
+
+  const format=tournament.format;
+  const teamNames=teams.map(t=>t.team_name);
+  let fixtures=[];
+
+  if(format==='round_robin'){
+    // Every team plays every other team
+    let matchNum=1;
+    for(let i=0;i<teamNames.length;i++){
+      for(let j=i+1;j<teamNames.length;j++){
+        fixtures.push({team_a:teamNames[i],team_b:teamNames[j],match_number:matchNum++,stage:'group'});
+      }
+    }
+  } else if(format==='knockout'){
+    // Single elimination bracket
+    let matchNum=1;
+    const rounds=Math.ceil(Math.log2(teamNames.length));
+    // First round
+    for(let i=0;i<teamNames.length;i+=2){
+      const b=teamNames[i+1]||'BYE';
+      let stage='Round 1';
+      if(teamNames.length<=2)stage='Final';
+      else if(teamNames.length<=4)stage=i<2?'Semi Final 1':'Semi Final 2';
+      fixtures.push({team_a:teamNames[i],team_b:b,match_number:matchNum++,stage:stage});
+    }
+    // Placeholder for later rounds
+    if(teamNames.length>2){
+      const semis=Math.ceil(teamNames.length/2);
+      for(let i=0;i<Math.floor(semis/2);i++){
+        fixtures.push({team_a:'Winner M'+(i*2+1),team_b:'Winner M'+(i*2+2),match_number:matchNum++,stage:'Semi Final'});
+      }
+      fixtures.push({team_a:'Winner SF1',team_b:'Winner SF2',match_number:matchNum++,stage:'Final'});
+    }
+  } else if(format==='group_knockout'){
+    // Group stage (round robin within groups) + knockout
+    const groups={};
+    teams.forEach(t=>{
+      const g=t.group_name||'A';
+      if(!groups[g])groups[g]=[];
+      groups[g].push(t.team_name);
+    });
+    let matchNum=1;
+    // Group matches
+    Object.keys(groups).sort().forEach(g=>{
+      const gt=groups[g];
+      for(let i=0;i<gt.length;i++){
+        for(let j=i+1;j<gt.length;j++){
+          fixtures.push({team_a:gt[i],team_b:gt[j],match_number:matchNum++,stage:'group',group_name:g});
+        }
+      }
+    });
+    // Semi-finals and final placeholders
+    fixtures.push({team_a:'Top A',team_b:'2nd B',match_number:matchNum++,stage:'Semi Final 1'});
+    fixtures.push({team_a:'Top B',team_b:'2nd A',match_number:matchNum++,stage:'Semi Final 2'});
+    fixtures.push({team_a:'Winner SF1',team_b:'Winner SF2',match_number:matchNum++,stage:'Final'});
+  }
+
+  // Insert all matches
+  const matchRows=fixtures.map(f=>({
+    tournament_id:tournament.id,
+    team_a:f.team_a,
+    team_b:f.team_b,
+    match_number:f.match_number,
+    stage:f.stage,
+    group_name:f.group_name||null,
+    overs_per_side:tournament.overs_per_match,
+    venue:tournament.venue||null,
+    status:'scheduled',
+    share_code:Math.random().toString(36).substring(2,8).toUpperCase(),
+    created_by:currentUser.id,
+    sponsor_name:tournament.sponsor_name||null,
+    branding_text:tournament.branding_text||null
+  }));
+
+  const{error}=await sb.from('matches').insert(matchRows);
+  if(error){cxiAlert('Error generating schedule: '+error.message);return;}
+
+  showToast(fixtures.length+' matches generated!');
+  loadSchedule();
+}
+
+async function saveStep4(){
+  goStep(5);
+}
+
+// ═══════════════════════════════════════════════════
+// STEP 5: GO LIVE
+// ═══════════════════════════════════════════════════
+async function renderGoLive(){
+  document.getElementById('goLiveName').textContent=tournament.name;
+  const fmtMap={round_robin:'Round Robin',knockout:'Knockout',group_knockout:'Group + Knockout'};
+  document.getElementById('goLiveInfo').textContent=tournament.teams_count+' teams · '+tournament.overs_per_match+' overs · '+(fmtMap[tournament.format]||tournament.format);
+  document.getElementById('goLiveTeams').textContent=teams.length;
+
+  // Count players
+  const{count}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',tournament.id);
+  document.getElementById('goLivePlayers').textContent=count||0;
+
+  // Count matches
+  const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',tournament.id);
+  document.getElementById('goLiveMatches').textContent=mc||0;
+
+  const fmtShort={round_robin:'RR',knockout:'KO',group_knockout:'G+KO'};
+  document.getElementById('goLiveFormat').textContent=fmtShort[tournament.format]||'RR';
+
+  document.getElementById('goLiveUrl').textContent='captainxi.com/standings.html?t='+tournament.share_code;
+}
+
+async function goLive(){
+  if(!await cxiConfirm('Launch tournament? This will make it visible to everyone.'))return;
+  await sb.from('tournaments').update({status:'live'}).eq('id',tournament.id);
+  tournament.status='live';
+  showToast('Tournament is LIVE!');
+
+  // Ask to share
+  const share=await cxiConfirm('Share tournament link on WhatsApp?');
+  if(share)shareStandingsLink();
+}
+
+function shareStandingsLink(){
+  const url='https://captainxi.com/standings.html?t='+tournament.share_code;
+  const msg='*'+tournament.name+'*\n\n'+(tournament.venue?'Venue: '+tournament.venue+'\n':'')+'Format: '+tournament.format.replace('_',' ')+'\nTeams: '+teams.length+'\n\nFollow live standings, scores & stats:\n'+url+'\n\n_Powered by captainXI.com_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// Formation hint
+document.getElementById('tFormation').addEventListener('change',function(){
+  const h=document.getElementById('formationHint');
+  h.textContent=this.value==='auction'?'Teams will be formed via IPL-style player auction':'Players register to pre-assigned teams via WhatsApp links';
+});
+</script>
+</body>
+</html>

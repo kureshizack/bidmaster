@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournament Standings — captainXI.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#f59e0b;--accent2:#fbbf24;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--orange:#f97316;--purple:#bc8cff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{overflow-x:hidden;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+.page{max-width:600px;margin:0 auto;padding-bottom:40px;}
+
+/* HEADER */
+.tourn-header{background:linear-gradient(135deg,var(--surface),var(--surface2));border-bottom:2px solid var(--accent);padding:20px;text-align:center;position:relative;}
+.tourn-sponsor{font-size:12px;color:var(--accent);margin-bottom:6px;}
+.tourn-sponsor img{max-height:36px;max-width:120px;border-radius:6px;margin-bottom:4px;display:block;margin:0 auto 4px;}
+.tourn-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);line-height:1;}
+.tourn-meta{font-size:12px;color:var(--muted);margin-top:6px;}
+.tourn-status{display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-top:8px;}
+.status-live{background:rgba(63,185,80,0.15);color:var(--green);border:1px solid var(--green);}
+.status-completed{background:rgba(139,148,158,0.15);color:var(--muted);border:1px solid var(--border);}
+.status-reg{background:rgba(245,158,11,0.15);color:var(--accent);border:1px solid var(--accent);}
+.share-btn{position:absolute;top:16px;right:16px;padding:6px 12px;border-radius:6px;border:1px solid var(--accent);background:rgba(245,158,11,0.08);color:var(--accent);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;}
+
+/* TABS */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+.tab{flex:1;padding:10px;text-align:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-content{display:none;}.tab-content.active{display:block;}
+
+/* POINTS TABLE */
+.points-table{width:100%;border-collapse:collapse;font-size:12px;background:var(--surface);}
+.points-table th{background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);}
+.points-table th:first-child{text-align:left;padding-left:14px;}
+.points-table td{padding:10px 8px;text-align:center;border-bottom:1px solid rgba(48,54,61,0.5);}
+.points-table td:first-child{text-align:left;padding-left:14px;font-weight:700;font-size:13px;}
+.points-table tr:last-child td{border-bottom:none;}
+.pt-pos{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700;margin-right:6px;}
+.pt-pos.top{background:var(--green);color:#000;}
+.pt-pos.mid{background:var(--surface2);color:var(--muted);}
+.pt-nrr{color:var(--green);font-weight:700;font-family:'Rajdhani',sans-serif;}
+.pt-nrr.neg{color:var(--red);}
+
+/* CAP HOLDERS */
+.cap-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin:10px 14px;}
+.cap-icon{font-size:32px;}
+.cap-name{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text);}
+.cap-stats{font-size:12px;color:var(--muted);}
+.cap-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:4px;font-family:'Rajdhani',sans-serif;}
+.cap-orange{color:#000;background:var(--orange);}
+.cap-purple{color:#000;background:var(--purple);}
+
+/* MATCH CARDS */
+.fixture{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 14px;}
+.fixture-header{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px;}
+.fixture-teams{display:flex;align-items:center;justify-content:space-between;}
+.fixture-team{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;max-width:40%;}
+.fixture-vs{font-size:11px;color:var(--muted);font-weight:700;}
+.fixture-result{font-size:12px;color:var(--green);font-weight:600;margin-top:6px;}
+.fixture-score{font-size:12px;color:var(--muted);margin-top:4px;}
+.fixture-link{font-size:11px;color:var(--accent);text-decoration:none;font-weight:700;}
+
+/* LEADERBOARD TABLE */
+.leader-table{width:100%;border-collapse:collapse;font-size:12px;background:var(--surface);}
+.leader-table th{background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:11px;text-transform:uppercase;padding:8px 6px;text-align:center;border-bottom:1px solid var(--border);}
+.leader-table th:first-child{text-align:left;padding-left:14px;}
+.leader-table td{padding:8px 6px;text-align:center;border-bottom:1px solid rgba(48,54,61,0.5);}
+.leader-table td:first-child{text-align:left;padding-left:14px;font-weight:600;}
+.leader-table tr:nth-child(1) td:first-child{color:var(--accent);}
+
+.section-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;padding:14px 14px 6px;border-bottom:1px solid var(--border);margin-bottom:0;}
+
+.loading{text-align:center;padding:60px 20px;color:var(--muted);}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{text-align:center;padding:16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);}
+footer a{color:var(--accent);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div id="loadingScreen" class="loading"><div class="spinner"></div>Loading tournament...</div>
+  <div id="errorScreen" style="display:none;text-align:center;padding:60px 20px;color:var(--red);font-size:16px;">Tournament not found.</div>
+
+  <div id="mainContent" style="display:none;">
+    <!-- HEADER -->
+    <div class="tourn-header">
+      <button class="share-btn" onclick="shareTournament()">Share</button>
+      <div class="tourn-sponsor" id="sponsorArea" style="display:none;">
+        <img id="sponsorLogo" src="" style="display:none;">
+        <span id="sponsorName"></span>
+      </div>
+      <div class="tourn-name" id="tName"></div>
+      <div class="tourn-meta" id="tMeta"></div>
+      <div class="tourn-status" id="tStatus"></div>
+    </div>
+
+    <!-- CAP HOLDERS -->
+    <div id="capHolders"></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('standings')">Standings</div>
+      <div class="tab" onclick="switchTab('fixtures')">Fixtures</div>
+      <div class="tab" onclick="switchTab('stats')">Stats</div>
+    </div>
+
+    <!-- STANDINGS TAB -->
+    <div class="tab-content active" id="tab-standings">
+      <div id="pointsTable"></div>
+    </div>
+
+    <!-- FIXTURES TAB -->
+    <div class="tab-content" id="tab-fixtures">
+      <div id="fixturesContent"></div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="tab-content" id="tab-stats">
+      <div id="statsContent"></div>
+    </div>
+  </div>
+</div>
+
+<footer>Powered by <a href="https://captainxi.com">captainXI.com</a></footer>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let tournament=null;
+let teams=[];
+let matches=[];
+let allBatting=[];
+let allBowling=[];
+
+(async()=>{
+  const code=new URLSearchParams(window.location.search).get('t');
+  if(!code){document.getElementById('loadingScreen').style.display='none';document.getElementById('errorScreen').style.display='block';return;}
+
+  const{data:t}=await sb.from('tournaments').select('*').eq('share_code',code).maybeSingle();
+  if(!t){document.getElementById('loadingScreen').style.display='none';document.getElementById('errorScreen').style.display='block';return;}
+  tournament=t;
+
+  // Load teams
+  const{data:tm}=await sb.from('tournament_teams').select('*').eq('tournament_id',t.id).order('points',{ascending:false});
+  teams=tm||[];
+
+  // Load matches
+  const{data:m}=await sb.from('matches').select('*').eq('tournament_id',t.id).order('match_number');
+  matches=m||[];
+
+  // Load batting/bowling data from completed matches
+  const completedIds=matches.filter(m=>m.status==='completed').map(m=>m.id);
+  if(completedIds.length){
+    const{data:innings}=await sb.from('innings').select('id,match_id,batting_team').in('match_id',completedIds);
+    const innIds=(innings||[]).map(i=>i.id);
+    if(innIds.length){
+      const{data:bat}=await sb.from('batting_card').select('*').in('innings_id',innIds);
+      const{data:bowl}=await sb.from('bowling_card').select('*').in('innings_id',innIds);
+      allBatting=bat||[];
+      allBowling=bowl||[];
+    }
+  }
+
+  // Render
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('mainContent').style.display='block';
+  renderHeader();
+  renderPointsTable();
+  renderFixtures();
+  renderStats();
+  renderCapHolders();
+})();
+
+function renderHeader(){
+  document.getElementById('tName').textContent=tournament.name;
+  let meta=[];
+  if(tournament.venue)meta.push(tournament.venue);
+  if(tournament.start_date)meta.push(new Date(tournament.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}));
+  meta.push(tournament.overs_per_match+' overs');
+  meta.push(tournament.format.replace(/_/g,' '));
+  document.getElementById('tMeta').textContent=meta.join(' · ');
+
+  const statusEl=document.getElementById('tStatus');
+  const sMap={live:['LIVE','status-live'],completed:['COMPLETED','status-completed'],registration:['REGISTRATION OPEN','status-reg'],setup:['SETUP','status-reg']};
+  const s=sMap[tournament.status]||['UNKNOWN',''];
+  statusEl.textContent=s[0];statusEl.className='tourn-status '+s[1];
+
+  if(tournament.sponsor_name){
+    const sa=document.getElementById('sponsorArea');sa.style.display='block';
+    document.getElementById('sponsorName').textContent='Presented by '+tournament.sponsor_name;
+    if(tournament.sponsor_logo){const l=document.getElementById('sponsorLogo');l.src=tournament.sponsor_logo;l.style.display='block';}
+  }
+}
+
+function renderPointsTable(){
+  // Calculate points from matches
+  const teamStats={};
+  teams.forEach(t=>{teamStats[t.team_name]={...t,mp:0,w:0,l:0,t:0,nr:0,pts:0,rs:0,of:0,rc:0,ob:0};});
+
+  matches.filter(m=>m.status==='completed').forEach(m=>{
+    const a=teamStats[m.team_a];const b=teamStats[m.team_b];
+    if(!a||!b)return;
+    a.mp++;b.mp++;
+    if(m.winner===m.team_a){a.w++;a.pts+=2;b.l++;}
+    else if(m.winner===m.team_b){b.w++;b.pts+=2;a.l++;}
+    else if(m.result&&m.result.includes('Tied')){a.t++;b.t++;a.pts++;b.pts++;}
+    else{a.nr++;b.nr++;a.pts++;b.pts++;}
+  });
+
+  // Sort by points, then NRR
+  const sorted=Object.values(teamStats).sort((a,b)=>b.pts-a.pts||(b.nrr||0)-(a.nrr||0));
+  const qualifyCount=tournament.format==='group_knockout'?Math.min(4,Math.ceil(sorted.length/2)):sorted.length;
+
+  let html='<table class="points-table"><thead><tr><th>Team</th><th>MP</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th></tr></thead><tbody>';
+  sorted.forEach((t,i)=>{
+    const posClass=i<qualifyCount?'top':'mid';
+    const nrr=Number(t.nrr||0);
+    html+='<tr><td><span class="pt-pos '+posClass+'">'+(i+1)+'</span>'+t.team_name+'</td>';
+    html+='<td>'+t.mp+'</td><td>'+t.w+'</td><td>'+t.l+'</td><td>'+t.t+'</td>';
+    html+='<td style="font-weight:700;color:var(--accent);">'+t.pts+'</td>';
+    html+='<td class="pt-nrr'+(nrr<0?' neg':'')+'">'+nrr.toFixed(3)+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('pointsTable').innerHTML=html;
+}
+
+function renderFixtures(){
+  const el=document.getElementById('fixturesContent');
+  if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">No matches scheduled yet</div>';return;}
+
+  // Separate upcoming and completed
+  const upcoming=matches.filter(m=>m.status==='scheduled'||m.status==='live');
+  const completed=matches.filter(m=>m.status==='completed');
+
+  let html='';
+  if(upcoming.length){
+    html+='<div class="section-title">Upcoming</div>';
+    html+=upcoming.map(m=>`<div class="fixture">
+      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span>${m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':''}</div>
+      <div class="fixture-teams"><div class="fixture-team">${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team">${m.team_b}</div></div>
+      ${m.venue?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+m.venue+'</div>':''}
+      ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link">View Live Score →</a>':''}
+    </div>`).join('');
+  }
+  if(completed.length){
+    html+='<div class="section-title">Results</div>';
+    html+=completed.reverse().map(m=>`<div class="fixture">
+      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}</span></div>
+      <div class="fixture-teams"><div class="fixture-team" style="${m.winner===m.team_a?'color:var(--green);':''}">${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${m.winner===m.team_b?'color:var(--green);':''}">${m.team_b}</div></div>
+      ${m.result?'<div class="fixture-result">'+m.result+'</div>':''}
+      ${m.mom_name?'<div style="font-size:11px;color:var(--purple);margin-top:2px;">PoM: '+m.mom_name+'</div>':''}
+      <a href="scorecard.html?code=${m.share_code}" class="fixture-link" style="display:inline-block;margin-top:4px;">View Scorecard →</a>
+    </div>`).join('');
+  }
+  el.innerHTML=html;
+}
+
+function renderCapHolders(){
+  const el=document.getElementById('capHolders');
+  if(!allBatting.length&&!allBowling.length){el.innerHTML='';return;}
+
+  // Orange Cap — most runs
+  const batAgg={};
+  allBatting.forEach(b=>{
+    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,innings:0};
+    const p=batAgg[b.player_name];p.runs+=b.runs;p.balls+=b.balls_faced;p.fours+=b.fours;p.sixes+=b.sixes;p.innings++;
+  });
+  const topBat=Object.entries(batAgg).sort((a,b)=>b[1].runs-a[1].runs)[0];
+
+  // Purple Cap — most wickets
+  const bowlAgg={};
+  allBowling.forEach(b=>{
+    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wickets:0,runs:0,balls:0,overs:0,innings:0};
+    const p=bowlAgg[b.player_name];p.wickets+=b.wickets;p.runs+=b.runs_conceded;p.balls+=(b.overs_balls||0);p.innings++;
+  });
+  const topBowl=Object.entries(bowlAgg).sort((a,b)=>b[1].wickets-a[1].wickets)[0];
+
+  let html='';
+  if(topBat&&topBat[1].runs>0){
+    const b=topBat[1];const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):'0';
+    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBat[0]+'</div><div class="cap-stats">'+b.runs+' runs ('+b.innings+' inn, SR '+sr+', '+b.sixes+' sixes)</div></div><span class="cap-label cap-orange">Orange Cap</span></div>';
+  }
+  if(topBowl&&topBowl[1].wickets>0){
+    const b=topBowl[1];const econ=b.balls>0?((b.runs/(b.balls/6))).toFixed(2):'0';
+    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBowl[0]+'</div><div class="cap-stats">'+b.wickets+' wkts ('+b.innings+' inn, Econ '+econ+')</div></div><span class="cap-label cap-purple">Purple Cap</span></div>';
+  }
+  el.innerHTML=html;
+}
+
+function renderStats(){
+  const el=document.getElementById('statsContent');
+  if(!allBatting.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">Stats will appear after matches are completed</div>';return;}
+
+  // Aggregate batting
+  const batAgg={};
+  allBatting.forEach(b=>{
+    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,inn:0,hs:0,notOuts:0};
+    const p=batAgg[b.player_name];p.runs+=b.runs;p.balls+=b.balls_faced;p.fours+=b.fours;p.sixes+=b.sixes;p.inn++;
+    if(!b.is_out)p.notOuts++;
+    if(b.runs>p.hs)p.hs=b.runs;
+  });
+  const batRanked=Object.entries(batAgg).sort((a,b)=>b[1].runs-a[1].runs);
+
+  // Aggregate bowling
+  const bowlAgg={};
+  allBowling.forEach(b=>{
+    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wkts:0,runs:0,balls:0,inn:0,best:0,maidens:0};
+    const p=bowlAgg[b.player_name];p.wkts+=b.wickets;p.runs+=b.runs_conceded;p.balls+=(b.overs_balls||0);p.inn++;p.maidens+=b.maidens;
+    if(b.wickets>p.best)p.best=b.wickets;
+  });
+  const bowlRanked=Object.entries(bowlAgg).sort((a,b)=>b[1].wkts-a[1].wkts);
+
+  let html='';
+
+  // Top Run Scorers
+  html+='<div class="section-title">Top Run Scorers</div>';
+  html+='<table class="leader-table"><thead><tr><th>Player</th><th>Inn</th><th>R</th><th>HS</th><th>SR</th><th>4s</th><th>6s</th></tr></thead><tbody>';
+  batRanked.slice(0,10).forEach(([name,b])=>{
+    const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):'-';
+    html+='<tr><td>'+name+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--accent);">'+b.runs+'</td><td>'+b.hs+(b.notOuts?'*':'')+'</td><td>'+sr+'</td><td style="color:var(--green);">'+b.fours+'</td><td style="color:var(--accent);">'+b.sixes+'</td></tr>';
+  });
+  html+='</tbody></table>';
+
+  // Top Wicket Takers
+  html+='<div class="section-title">Top Wicket Takers</div>';
+  html+='<table class="leader-table"><thead><tr><th>Player</th><th>Inn</th><th>W</th><th>R</th><th>Best</th><th>Econ</th></tr></thead><tbody>';
+  bowlRanked.slice(0,10).forEach(([name,b])=>{
+    const econ=b.balls>0?((b.runs/(b.balls/6))).toFixed(2):'-';
+    html+='<tr><td>'+name+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--red);">'+b.wkts+'</td><td>'+b.runs+'</td><td>'+b.best+'</td><td>'+econ+'</td></tr>';
+  });
+  html+='</tbody></table>';
+
+  // Most Sixes
+  const sixRanked=Object.entries(batAgg).sort((a,b)=>b[1].sixes-a[1].sixes).slice(0,5);
+  if(sixRanked.length&&sixRanked[0][1].sixes>0){
+    html+='<div class="section-title">Most Sixes</div>';
+    html+='<table class="leader-table"><thead><tr><th>Player</th><th>6s</th><th>Runs</th></tr></thead><tbody>';
+    sixRanked.forEach(([name,b])=>{
+      html+='<tr><td>'+name+'</td><td style="font-weight:700;color:var(--accent);">'+b.sixes+'</td><td>'+b.runs+'</td></tr>';
+    });
+    html+='</tbody></table>';
+  }
+
+  el.innerHTML=html;
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelector('.tab[onclick="switchTab(\''+name+'\')"]').classList.add('active');
+}
+
+function shareTournament(){
+  const url='https://captainxi.com/standings.html?t='+tournament.share_code;
+  const msg='*'+tournament.name+'*\n\n'+(tournament.venue?'Venue: '+tournament.venue+'\n':'')+'Follow live standings, scores & stats:\n'+url+'\n\n_Powered by captainXI.com_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+</script>
+</body>
+</html>

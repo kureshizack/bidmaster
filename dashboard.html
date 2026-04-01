@@ -109,6 +109,16 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 </nav>
 
 <div class="container">
+  <!-- TOURNAMENT CARD -->
+  <div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.05));border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);">🏆 Tournament Mode</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px;">Create full tournament — teams, schedule, scoring, standings</div>
+    </div>
+    <a href="tournament.html" style="background:var(--accent);color:#000;padding:8px 18px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;">Create Tournament →</a>
+  </div>
+
+  <!-- MATCH SCORING CARD -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
     <div>
       <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;">🏟️ Match Scoring</div>
@@ -513,15 +523,13 @@ async function createAuction() {
 
   // Plan limit check
   const planLimits = {
-    'gully':{auctions:1,teams:6,players:50},
-    'free':{auctions:1,teams:6,players:50},
-    'matchday':{auctions:1,teams:8,players:80},
-    'match_day':{auctions:1,teams:8,players:80},
-    'club':{auctions:5,teams:10,players:120},
-    'paid':{auctions:5,teams:10,players:120},
-    'pro':{auctions:999,teams:16,players:200},
-    'district':{auctions:12,teams:14,players:160},
-    'national':{auctions:999,teams:16,players:200}
+    'gully':{auctions:1,teams:3,players:20},
+    'free':{auctions:1,teams:3,players:20},
+    'club':{auctions:5,teams:6,players:66},
+    'paid':{auctions:5,teams:6,players:66},
+    'pro':{auctions:12,teams:10,players:150},
+    'district':{auctions:12,teams:10,players:150},
+    'national':{auctions:12,teams:10,players:150}
   };
   const userPlan = userProfile?.plan || 'gully';
   const isSuperAdmin = userProfile?.is_superadmin === true || userProfile?.is_admin === true;

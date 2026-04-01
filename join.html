@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y7FEWB710"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join Tournament — captainXI.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;--accent:#f59e0b;--accent2:#fbbf24;--text:#e6edf3;--muted:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+.header{background:var(--surface);border-bottom:2px solid var(--accent);padding:14px 20px;text-align:center;}
+.header-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--accent);}
+.header-logo span{color:var(--text);}
+
+.page{max-width:480px;margin:0 auto;padding:24px 16px 60px;width:100%;}
+
+/* TOURNAMENT INFO BANNER */
+.tourney-banner{background:linear-gradient(135deg,var(--surface),var(--surface2));border:1px solid var(--accent);border-radius:14px;padding:20px;text-align:center;margin-bottom:20px;}
+.tourney-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--accent);line-height:1.1;}
+.tourney-team{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-top:6px;}
+.tourney-meta{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;}
+.tourney-fee{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;margin-top:8px;padding:6px 16px;border-radius:8px;display:inline-block;}
+.tourney-fee.free{color:var(--green);background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);}
+.tourney-fee.paid{color:var(--accent);background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);}
+
+/* FORM */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.form-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:14px;}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-size:15px;outline:none;font-family:'Noto Sans',sans-serif;}
+.form-input:focus{border-color:var(--accent);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.submit-btn{width:100%;padding:16px;border-radius:12px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;background:var(--accent);color:#000;transition:all .15s;letter-spacing:0.5px;}
+.submit-btn:hover{background:var(--accent2);}
+.submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* SUCCESS */
+.success-card{background:var(--surface);border:1px solid var(--green);border-radius:14px;padding:28px;text-align:center;display:none;}
+.success-icon{font-size:56px;margin-bottom:12px;}
+.success-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;color:var(--green);margin-bottom:8px;}
+.success-msg{font-size:14px;color:var(--muted);line-height:1.6;}
+
+/* ERROR/LOADING */
+.error-card{background:var(--surface);border:1px solid var(--red);border-radius:14px;padding:28px;text-align:center;display:none;}
+.loading{text-align:center;padding:60px 20px;color:var(--muted);}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{text-align:center;padding:16px;font-size:11px;color:var(--muted);margin-top:auto;}
+footer a{color:var(--accent);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">CAPTAIN<span>XI</span>.COM</div>
+</div>
+
+<div class="page">
+  <div id="loadingScreen" class="loading"><div class="spinner"></div>Loading tournament...</div>
+
+  <!-- ERROR STATE -->
+  <div class="error-card" id="errorCard">
+    <div style="font-size:48px;margin-bottom:12px;">😕</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--red);margin-bottom:8px;">Invalid Link</div>
+    <div style="font-size:13px;color:var(--muted);" id="errorMsg">This registration link is not valid or has expired.</div>
+  </div>
+
+  <!-- REGISTRATION FORM -->
+  <div id="regForm" style="display:none;">
+    <div class="tourney-banner">
+      <div class="tourney-name" id="tName"></div>
+      <div class="tourney-team">Team: <span id="tTeam"></span></div>
+      <div class="tourney-meta">
+        <span id="tVenue"></span><span id="tDates"></span><br>
+        <span id="tOvers"></span> · <span id="tFormat"></span>
+      </div>
+      <div class="tourney-fee" id="tFee"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-title">Player Registration</div>
+      <div class="form-group">
+        <label class="form-label">Full Name *</label>
+        <input class="form-input" id="pName" placeholder="Your full name" maxlength="40">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mobile Number *</label>
+        <input class="form-input" id="pMobile" type="tel" placeholder="10-digit mobile number" maxlength="10" pattern="[0-9]{10}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Playing Role</label>
+        <select class="form-input" id="pRole">
+          <option value="batsman">Batsman</option>
+          <option value="bowler">Bowler</option>
+          <option value="all_rounder">All Rounder</option>
+          <option value="wicket_keeper">Wicket Keeper</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">T-Shirt Size</label>
+          <select class="form-input" id="pTshirt">
+            <option value="">-- Optional --</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo (Optional)</label>
+          <input class="form-input" id="pPhoto" type="file" accept="image/*" style="padding:8px;">
+        </div>
+      </div>
+      <div id="regErr" style="color:var(--red);font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+      <button class="submit-btn" id="submitBtn" onclick="register()">Register Now</button>
+    </div>
+
+    <!-- Already registered players -->
+    <div class="form-card" id="teamPlayersCard" style="display:none;">
+      <div class="form-title">Team Players (<span id="teamPlayerCount">0</span>)</div>
+      <div id="teamPlayersList"></div>
+    </div>
+  </div>
+
+  <!-- SUCCESS STATE -->
+  <div class="success-card" id="successCard">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">Registration Successful!</div>
+    <div class="success-msg" id="successMsg">You have been registered. The organizer will contact you with match details.</div>
+    <div style="margin-top:16px;">
+      <a href="/" style="color:var(--accent);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;text-decoration:none;">Visit captainXI.com →</a>
+    </div>
+  </div>
+</div>
+
+<footer>Powered by <a href="https://captainxi.com">captainXI.com</a></footer>
+
+<script>
+const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let tournament=null;
+let team=null;
+
+(async()=>{
+  const params=new URLSearchParams(window.location.search);
+  const teamCode=params.get('team');
+  const tournCode=params.get('t');
+
+  if(!teamCode||!tournCode){showError('Missing team or tournament code in link.');return;}
+
+  // Load tournament
+  const{data:tourn}=await sb.from('tournaments').select('*').eq('share_code',tournCode).maybeSingle();
+  if(!tourn){showError('Tournament not found. The link may be invalid or expired.');return;}
+  tournament=tourn;
+
+  // Load team
+  const{data:tm}=await sb.from('tournament_teams').select('*').eq('team_code',teamCode).maybeSingle();
+  if(!tm){showError('Team not found. Contact your organizer for the correct link.');return;}
+  if(tm.tournament_id!==tourn.id){showError('This team does not belong to this tournament.');return;}
+  team=tm;
+
+  // Display tournament info
+  document.getElementById('tName').textContent=tourn.name;
+  document.getElementById('tTeam').textContent=tm.team_name;
+  document.getElementById('tVenue').textContent=tourn.venue?tourn.venue+' · ':'';
+  document.getElementById('tDates').textContent=tourn.start_date?new Date(tourn.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+(tourn.end_date?' - '+new Date(tourn.end_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''):'';
+  document.getElementById('tOvers').textContent=tourn.overs_per_match+' overs';
+  document.getElementById('tFormat').textContent=tourn.format.replace(/_/g,' ');
+
+  const feeEl=document.getElementById('tFee');
+  if(tourn.free_registration){
+    feeEl.textContent='FREE ENTRY';feeEl.className='tourney-fee free';
+  } else {
+    feeEl.textContent='Entry: ₹'+tourn.registration_fee;feeEl.className='tourney-fee paid';
+  }
+
+  // Load existing team players
+  await loadTeamPlayers();
+
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('regForm').style.display='block';
+})();
+
+function showError(msg){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('errorMsg').textContent=msg;
+  document.getElementById('errorCard').style.display='block';
+}
+
+async function loadTeamPlayers(){
+  const{data}=await sb.from('tournament_players').select('player_name,role').eq('team_id',team.id).order('registered_at');
+  if(data&&data.length){
+    document.getElementById('teamPlayersCard').style.display='block';
+    document.getElementById('teamPlayerCount').textContent=data.length;
+    document.getElementById('teamPlayersList').innerHTML=data.map(p=>
+      '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(48,54,61,0.5);font-size:13px;"><span style="font-weight:600;">'+p.player_name+'</span><span style="font-size:11px;color:var(--blue);background:rgba(88,166,255,0.1);padding:2px 8px;border-radius:4px;">'+p.role.replace('_',' ')+'</span></div>'
+    ).join('');
+  }
+}
+
+async function register(){
+  const btn=document.getElementById('submitBtn');
+  const err=document.getElementById('regErr');
+  const name=document.getElementById('pName').value.trim();
+  const mobile=document.getElementById('pMobile').value.trim();
+  const role=document.getElementById('pRole').value;
+
+  if(!name){err.textContent='Please enter your name';return;}
+  if(!mobile||mobile.length!==10||!/^\d{10}$/.test(mobile)){err.textContent='Enter valid 10-digit mobile number';return;}
+
+  // Check if already registered
+  const{data:existing}=await sb.from('tournament_players').select('id').eq('team_id',team.id).eq('mobile',mobile).maybeSingle();
+  if(existing){err.textContent='This mobile number is already registered for this team';return;}
+
+  // Check team capacity
+  const{count}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('team_id',team.id);
+  if(count>=(tournament.players_per_team||15)){err.textContent='Team is full ('+tournament.players_per_team+' players max)';return;}
+
+  err.textContent='';
+  btn.disabled=true;
+  btn.textContent='Registering...';
+
+  // If paid registration, process payment first
+  if(!tournament.free_registration&&tournament.registration_fee>0){
+    const paymentSuccess=await processPayment(name,mobile);
+    if(!paymentSuccess){
+      btn.disabled=false;btn.textContent='Register Now';return;
+    }
+  }
+
+  // Upload photo if provided
+  let photoUrl=null;
+  const photoFile=document.getElementById('pPhoto').files[0];
+  if(photoFile){
+    const ext=photoFile.name.split('.').pop();
+    const fileName='tournament/'+Date.now()+'_'+Math.random().toString(36).substring(2,6)+'.'+ext;
+    const{error:upErr}=await sb.storage.from('player-photos').upload(fileName,photoFile,{cacheControl:'3600'});
+    if(!upErr){const{data:u}=sb.storage.from('player-photos').getPublicUrl(fileName);photoUrl=u?.publicUrl;}
+  }
+
+  // Insert player
+  const{error}=await sb.from('tournament_players').insert({
+    tournament_id:tournament.id,
+    team_id:team.id,
+    player_name:name,
+    mobile:mobile,
+    role:role,
+    tshirt_size:document.getElementById('pTshirt').value||null,
+    photo_url:photoUrl,
+    payment_status:tournament.free_registration?'free':'paid'
+  });
+
+  if(error){
+    err.textContent='Error: '+error.message;
+    btn.disabled=false;btn.textContent='Register Now';return;
+  }
+
+  // Show success
+  document.getElementById('regForm').style.display='none';
+  document.getElementById('successMsg').textContent='Welcome to '+team.team_name+'! You are registered for '+tournament.name+'. The organizer will share match schedule soon.';
+  document.getElementById('successCard').style.display='block';
+}
+
+function processPayment(name,mobile){
+  return new Promise(resolve=>{
+    const options={
+      key:'rzp_live_SV1EehZnBUYxh7',
+      amount:tournament.registration_fee*100,
+      currency:'INR',
+      name:tournament.name,
+      description:'Tournament Registration - '+team.team_name,
+      image:'/favicon.svg',
+      prefill:{contact:mobile},
+      theme:{color:'#f59e0b'},
+      handler:function(response){
+        window._lastPaymentId=response.razorpay_payment_id;
+        resolve(true);
+      },
+      modal:{ondismiss:function(){resolve(false);}}
+    };
+    const rzp=new Razorpay(options);
+    rzp.on('payment.failed',function(){resolve(false);});
+    rzp.open();
+  });
+}
+</script>
+</body>
+</html>
