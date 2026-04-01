@@ -78,6 +78,7 @@ footer a{color:var(--accent);text-decoration:none;}
   <!-- REGISTRATION FORM -->
   <div id="regForm" style="display:none;">
     <div class="tourney-banner">
+      <div id="teamLogoArea" style="margin-bottom:8px;"></div>
       <div class="tourney-name" id="tName"></div>
       <div class="tourney-team">Team: <span id="tTeam"></span></div>
       <div class="tourney-meta">
@@ -155,6 +156,10 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let tournament=null;
 let team=null;
 
+// Logo renderer (matches tournament.html)
+const LC=[{g1:'#ef4444',g2:'#991b1b',lt:'#fca5a5',dk:'#7f1d1d'},{g1:'#3b82f6',g2:'#1d4ed8',lt:'#93c5fd',dk:'#1e3a8a'},{g1:'#10b981',g2:'#047857',lt:'#6ee7b7',dk:'#064e3b'},{g1:'#f59e0b',g2:'#b45309',lt:'#fcd34d',dk:'#78350f'},{g1:'#8b5cf6',g2:'#6d28d9',lt:'#c4b5fd',dk:'#4c1d95'},{g1:'#f97316',g2:'#c2410c',lt:'#fdba74',dk:'#7c2d12'}];
+function renderLogo(u,sz){if(!u)return '';if(u.startsWith('logo:')){const id=parseInt(u.split(':')[1]);const s=Math.floor(id/6);const ci=id%6;const c=LC[ci];const g='jlg'+id;const shapes=[`<path d="M50 5 L90 20 L90 65 Q90 95 50 115 Q10 95 10 65 L10 20Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<circle cx="50" cy="50" r="46" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L95 55 L50 115 L5 55Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L93 30 L93 80 L50 105 L7 80 L7 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M15 10 Q50 0 85 10 L88 15 Q90 70 50 115 Q10 70 12 15Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 2 L62 30 L95 30 L68 52 L78 85 L50 65 L22 85 L32 52 L5 30 L38 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="1.5"/>`];const vb=s===1?'0 0 100 100':s===3?'0 0 100 110':'0 0 100 120';return `<svg viewBox="${vb}" width="${sz||50}" height="${sz||50}"><defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.g1}"/><stop offset="100%" stop-color="${c.g2}"/></linearGradient></defs>${shapes[s]}</svg>`;}return '<img src="'+u+'" style="width:'+(sz||50)+'px;height:'+(sz||50)+'px;border-radius:50%;object-fit:cover;">';}
+
 (async()=>{
   const params=new URLSearchParams(window.location.search);
   const teamCode=params.get('team');
@@ -186,6 +191,9 @@ let team=null;
   document.getElementById('tDates').textContent=tourn.start_date?new Date(tourn.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+(tourn.end_date?' - '+new Date(tourn.end_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''):'';
   document.getElementById('tOvers').textContent=tourn.overs_per_match+' overs';
   document.getElementById('tFormat').textContent=tourn.format.replace(/_/g,' ');
+
+  // Show team logo
+  if(tm.logo_url){document.getElementById('teamLogoArea').innerHTML=renderLogo(tm.logo_url,64);}
 
   const feeEl=document.getElementById('tFee');
   if(tourn.free_registration){

@@ -352,7 +352,19 @@ async function renderPlayers(){
   const rp=document.getElementById('regPlayers');
   if(!pl||!pl.length){rp.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">No players yet</div>';return;}
   const byT={};pl.forEach(p=>{const tn=p.tournament_teams?.team_name||'?';if(!byT[tn])byT[tn]=[];byT[tn].push(p);});
-  rp.innerHTML='<div style="margin-bottom:10px;"><input class="form-input" id="playerSearch" placeholder="Search by name or mobile..." oninput="filterPlayers(this.value)" style="padding:8px 12px;font-size:13px;"></div>'+
+
+  // Registration summary card
+  const ppt=T.players_per_team||11;
+  const totalCap=teams.length*ppt;
+  let summaryHtml='<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);">Registration Summary</span><span style="font-size:12px;color:var(--muted);">'+pl.length+' / '+totalCap+' players</span></div>';
+  summaryHtml+='<div style="height:6px;background:var(--surface);border-radius:3px;overflow:hidden;margin-bottom:10px;"><div style="height:100%;background:var(--accent);border-radius:3px;width:'+Math.min(100,Math.round(pl.length/totalCap*100))+'%;"></div></div>';
+  summaryHtml+='<div style="display:flex;flex-wrap:wrap;gap:6px;">'+teams.map(t=>{
+    const count=byT[t.team_name]?byT[t.team_name].length:0;
+    const full=count>=ppt;
+    const color=full?'var(--green)':count>0?'var(--accent)':'var(--muted)';
+    return '<div style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid '+color+';color:'+color+';font-family:Rajdhani,sans-serif;font-weight:700;">'+t.team_name+' '+count+'/'+ppt+(full?' ✓':'')+'</div>';
+  }).join('')+'</div></div>';
+  rp.innerHTML=summaryHtml+'<div style="margin-bottom:10px;"><input class="form-input" id="playerSearch" placeholder="Search by name or mobile..." oninput="filterPlayers(this.value)" style="padding:8px 12px;font-size:13px;"></div>'+
     Object.keys(byT).map(tn=>{
       const team=teams.find(x=>x.team_name===tn);
       const logo=team?renderLogo(team.logo_url,24):'';
