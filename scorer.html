@@ -360,7 +360,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">Fielder (optional)</label>
-      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma" list="currentBowlingTeamPlayers">
+      <input class="setup-input" id="wicketFielder" placeholder="e.g. Sharma" list="fieldingTeamAllPlayers">
+      <datalist id="fieldingTeamAllPlayers"></datalist>
     </div>
     <div style="margin-top:10px;">
       <label class="setup-label">New Batsman</label>
@@ -1001,8 +1002,11 @@ function recordWicket(){
   }
   // Populate new batsman dropdown with only available players
   populateNewBatsmanDropdown();
-  // Update fielder suggestions with bowling team players
+  // Update bowler suggestions
   updateBowlerDatalist();
+  // Populate fielder datalist with ALL bowling/fielding team players
+  const fDl=document.getElementById('fieldingTeamAllPlayers');
+  if(fDl){const fp=getCurrentBowlingTeamPlayers();fDl.innerHTML=fp.map(n=>'<option value="'+n+'">').join('');}
   document.getElementById('wicketModal').classList.add('open');
   document.getElementById('wicketRunOutExtra').style.display='none';
   document.getElementById('newBatsman').value='';
