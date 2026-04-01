@@ -167,6 +167,12 @@ let team=null;
   if(!tourn){showError('Tournament not found. The link may be invalid or expired.');return;}
   tournament=tourn;
 
+  // Check if registration is closed
+  if(tourn.status==='live'||tourn.status==='completed'){
+    showError('Registration for '+tourn.name+' is closed. Contact your organizer for details.');
+    return;
+  }
+
   // Load team
   const{data:tm}=await sb.from('tournament_teams').select('*').eq('team_code',teamCode).maybeSingle();
   if(!tm){showError('Team not found. Contact your organizer for the correct link.');return;}
