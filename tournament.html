@@ -118,7 +118,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <!-- STEP 4 -->
   <div class="step-content" id="step4"><div class="card">
     <div class="card-title">Schedule</div>
-    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="genSched()">Auto-Generate</button><button class="btn btn-ghost btn-sm" onclick="saveOrder()">Save Order</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="genSched()">Auto-Generate</button></div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Drag to reorder matches</div>
     <div id="schedCon"></div>
     <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin-top:16px;" onclick="goStep(5)">Next →</button>
@@ -401,14 +401,13 @@ async function loadSched(){
   const{data:m}=await sb.from('matches').select('*').eq('tournament_id',T.id).order('match_number');
   const el=document.getElementById('schedCon');
   if(!m||!m.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);">Click Auto-Generate</div>';return;}
-  // Separate league/group matches from knockouts
   const league=m.filter(x=>x.stage==='league'||x.stage==='group');
   const ko=m.filter(x=>x.stage!=='league'&&x.stage!=='group');
+  const total=m.length;
 
-  function matchCard(x){
-    const dt=x.match_date?new Date(x.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+  function matchCard(x,idx){
     const isKO=x.stage&&(x.stage.includes('SF')||x.stage.includes('Semi')||x.stage.includes('Final')||x.stage.includes('Quarter')||x.stage.includes('Qualifier'));
-    const borderColor=isKO?(x.stage.includes('Final')?'var(--gold)':'var(--green)'):(x.group_name==='A'?'var(--accent)':x.group_name==='B'?'var(--blue)':x.group_name==='C'?'var(--green)':x.group_name==='D'?'var(--purple)':'var(--border)');
+    const borderColor=isKO?(x.stage.includes('Final')?'var(--accent)':'var(--green)'):(x.group_name==='A'?'var(--accent)':x.group_name==='B'?'var(--blue)':x.group_name==='C'?'var(--green)':x.group_name==='D'?'var(--purple)':'var(--border)');
     const isTBD=x.team_a.includes('Winner')||x.team_a.includes('1st ')||x.team_a.includes('2nd ')||x.team_a.includes('W ');
     let scoreBtn='';
     if(x.status==='scheduled'&&!isTBD){
@@ -419,12 +418,44 @@ async function loadSched(){
       scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:10px;background:var(--green);color:#000;padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;animation:pulse 2s infinite;">LIVE</a>';
     }
     const resultLine=x.result?'<div style="font-size:10px;color:var(--green);margin-top:2px;">'+x.result+'</div>':'';
-    return '<div class="match-row" data-id="'+x.id+'" draggable="true" style="border-left:3px solid '+borderColor+';"><div style="display:flex;align-items:center;gap:8px;flex:1;"><span style="cursor:grab;font-size:16px;color:var(--muted);user-select:none;">⠿</span><div style="flex:1;"><div class="match-num">M'+x.match_number+(x.stage?' · '+x.stage:'')+(x.group_name?' · Grp '+x.group_name:'')+'</div><div class="match-teams-label"'+(isTBD?' style="color:var(--muted);"':'')+'>'+x.team_a+' vs '+x.team_b+'</div>'+resultLine+(dt?'<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+dt+'</div>':'')+'</div></div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">'+scoreBtn+'<input type="datetime-local" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:9px;padding:2px 3px;width:125px;" value="'+(x.match_date?x.match_date.substring(0,16):'')+'" onchange="setMatchTime(\''+x.id+'\',this.value)"></div></div>';
+    // Order dropdown
+    let orderOpts='';for(let i=1;i<=total;i++){orderOpts+='<option value="'+i+'"'+(i===x.match_number?' selected':'')+'>'+i+'</option>';}
+    // Date picker
+    const curDate=x.match_date?x.match_date.substring(0,10):'';
+    // Time picker
+    const curTime=x.match_date&&x.match_date.length>10?x.match_date.substring(11,16):'';
+    const timeOpts=['','06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
+    const timeOptHtml=timeOpts.map(t=>{
+      if(!t)return '<option value="">Time</option>';
+      const h=parseInt(t);const ampm=h>=12?'PM':'AM';const h12=h>12?h-12:(h===0?12:h);const mm=t.split(':')[1];
+      return '<option value="'+t+'"'+(t===curTime?' selected':'')+'>'+h12+':'+mm+' '+ampm+'</option>';
+    }).join('');
+    const dtDisplay=curDate?new Date(curDate+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+    const tmDisplay=curTime?timeOpts.find(t=>t===curTime)||'':'';
+
+    return '<div class="match-row" data-id="'+x.id+'" style="border-left:3px solid '+borderColor+';">'+
+      '<div style="display:flex;align-items:center;gap:6px;flex:1;">'+
+        '<select onchange="setMatchOrder(\''+x.id+'\',this.value)" style="width:38px;background:var(--surface);border:1px solid var(--border);color:var(--accent);border-radius:4px;font-size:12px;padding:2px;font-family:Rajdhani,sans-serif;font-weight:700;text-align:center;">'+orderOpts+'</select>'+
+        '<div style="flex:1;">'+
+          '<div class="match-num">'+(x.stage?' '+x.stage:'M'+x.match_number)+(x.group_name?' · Grp '+x.group_name:'')+'</div>'+
+          '<div class="match-teams-label"'+(isTBD?' style="color:var(--muted);"':'')+'>'+x.team_a+' vs '+x.team_b+'</div>'+
+          resultLine+
+          (dtDisplay?'<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+dtDisplay+(tmDisplay?' · '+tmDisplay:'')+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">'+
+        scoreBtn+
+        '<div style="display:flex;gap:3px;align-items:center;">'+
+          '<input type="date" value="'+curDate+'" onchange="setMatchDT(\''+x.id+'\',this.value,this.parentElement.querySelector(\'select\').value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px 4px;width:105px;">'+
+          '<select onchange="setMatchDT(\''+x.id+'\',this.parentElement.querySelector(\'input\').value,this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px;width:72px;">'+timeOptHtml+'</select>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }
 
   let html='';
   if(league.length){
-    html+='<div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">League / Group Matches ('+league.length+')</div>';
+    html+='<div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">League / Group ('+league.length+')</div>';
     html+=league.map(matchCard).join('');
   }
   if(ko.length){
@@ -432,11 +463,28 @@ async function loadSched(){
     html+=ko.map(matchCard).join('');
   }
   el.innerHTML=html;
-
-  // Drag handlers
-  el.querySelectorAll('.match-row').forEach(item=>{item.addEventListener('dragstart',function(){this.classList.add('dragging');});item.addEventListener('dragend',function(){this.classList.remove('dragging');});item.addEventListener('dragover',function(e){e.preventDefault();const d=el.querySelector('.dragging');if(d&&d!==this){const r=this.getBoundingClientRect();if(e.clientY<r.top+r.height/2)this.before(d);else this.after(d);}});let tEl=null;item.addEventListener('touchstart',function(){tEl=this;this.style.opacity='0.5';},{passive:true});item.addEventListener('touchmove',function(e){e.preventDefault();if(!tEl)return;const touch=e.touches[0];const target=document.elementFromPoint(touch.clientX,touch.clientY);if(target){const row=target.closest('.match-row');if(row&&row!==tEl){const r=row.getBoundingClientRect();if(touch.clientY<r.top+r.height/2)row.before(tEl);else row.after(tEl);}}},{passive:false});item.addEventListener('touchend',function(){if(tEl)tEl.style.opacity='1';tEl=null;});});
 }
-async function setMatchTime(id,val){if(!val)return;await sb.from('matches').update({match_date:val}).eq('id',id);showToast('Time set!');}
+
+async function setMatchDT(id,date,time){
+  if(!date)return;
+  const val=date+(time?'T'+time:'');
+  await sb.from('matches').update({match_date:val}).eq('id',id);
+  showToast('Date set!');
+  loadSched();
+}
+async function setMatchOrder(id,newNum){
+  newNum=parseInt(newNum);
+  // Swap with whichever match currently has that number
+  const{data:all}=await sb.from('matches').select('id,match_number').eq('tournament_id',T.id);
+  const current=all.find(m=>m.id===id);
+  const target=all.find(m=>m.match_number===newNum&&m.id!==id);
+  if(target&&current){
+    await sb.from('matches').update({match_number:current.match_number}).eq('id',target.id);
+  }
+  await sb.from('matches').update({match_number:newNum}).eq('id',id);
+  showToast('Order updated!');
+  loadSched();
+}
 
 // ═══════════════════════════════════════════════════
 // SMART SCHEDULE GENERATOR
@@ -545,7 +593,6 @@ async function genSched(){
   showToast(fix.length+' matches generated!');
   loadSched();
 }
-async function saveOrder(){const items=document.querySelectorAll('#schedCon .match-row[data-id]');const ups=[];items.forEach((el,i)=>{ups.push(sb.from('matches').update({match_number:i+1}).eq('id',el.dataset.id));});await Promise.all(ups);showToast('Order saved!');loadSched();}
 
 async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;if(T.sponsor_name){document.getElementById('goSponsor').style.display='block';document.getElementById('goSName').textContent=T.sponsor_name;if(T.sponsor_logo){const l=document.getElementById('goSLogo');l.src=T.sponsor_logo;l.style.display='block';}if(T.branding_text)document.getElementById('goSSub').textContent=T.branding_text;}}
 async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.open('https://captainxi.com/standings.html?t='+T.share_code,'_blank');}
