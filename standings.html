@@ -144,6 +144,20 @@ let matches=[];
 let allBatting=[];
 let allBowling=[];
 
+// Logo renderer (same as tournament.html)
+const LC=[{g1:'#ef4444',g2:'#991b1b',lt:'#fca5a5',dk:'#7f1d1d',ac:'#f87171'},{g1:'#3b82f6',g2:'#1d4ed8',lt:'#93c5fd',dk:'#1e3a8a',ac:'#60a5fa'},{g1:'#10b981',g2:'#047857',lt:'#6ee7b7',dk:'#064e3b',ac:'#34d399'},{g1:'#f59e0b',g2:'#b45309',lt:'#fcd34d',dk:'#78350f',ac:'#fbbf24'},{g1:'#8b5cf6',g2:'#6d28d9',lt:'#c4b5fd',dk:'#4c1d95',ac:'#a78bfa'},{g1:'#f97316',g2:'#c2410c',lt:'#fdba74',dk:'#7c2d12',ac:'#fb923c'}];
+function renderLogo(u,sz){
+  if(!u)return '';
+  if(u.startsWith('logo:')){
+    const id=parseInt(u.split(':')[1]);const s=Math.floor(id/6);const ci=id%6;const c=LC[ci];const g='slg'+id;
+    const shapes=[`<path d="M50 5 L90 20 L90 65 Q90 95 50 115 Q10 95 10 65 L10 20Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<circle cx="50" cy="50" r="46" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L95 55 L50 115 L5 55Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L93 30 L93 80 L50 105 L7 80 L7 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M15 10 Q50 0 85 10 L88 15 Q90 70 50 115 Q10 70 12 15Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 2 L62 30 L95 30 L68 52 L78 85 L50 65 L22 85 L32 52 L5 30 L38 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="1.5"/>`];
+    const vb=s===1?'0 0 100 100':s===3?'0 0 100 110':'0 0 100 120';
+    return '<svg viewBox="'+vb+'" width="'+(sz||24)+'" height="'+(sz||24)+'" style="vertical-align:middle;margin-right:4px;"><defs><linearGradient id="'+g+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+c.g1+'"/><stop offset="100%" stop-color="'+c.g2+'"/></linearGradient></defs>'+shapes[s]+'</svg>';
+  }
+  return '<img src="'+u+'" style="width:'+(sz||24)+'px;height:'+(sz||24)+'px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;">';
+}
+function teamLogo(name){const t=teams.find(x=>x.team_name===name);return t?renderLogo(t.logo_url,22):'';}
+
 (async()=>{
   const code=new URLSearchParams(window.location.search).get('t');
   if(!code){document.getElementById('loadingScreen').style.display='none';document.getElementById('errorScreen').style.display='block';return;}
@@ -227,7 +241,7 @@ function buildPT(list,qualifyTop){
   let h='<table class="points-table"><thead><tr><th>Team</th><th>MP</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th></tr></thead><tbody>';
   list.forEach((t,i)=>{
     const nrr=parseFloat(t.nrr||0);
-    h+='<tr><td><span class="pt-pos '+(i<qualifyTop?'top':'mid')+'">'+(i+1)+'</span>'+t.team_name+'</td>';
+    h+='<tr><td><span class="pt-pos '+(i<qualifyTop?'top':'mid')+'">'+(i+1)+'</span>'+renderLogo(t.logo_url,20)+t.team_name+'</td>';
     h+='<td>'+(t.matches_played||0)+'</td><td>'+(t.wins||0)+'</td><td>'+(t.losses||0)+'</td><td>'+(t.ties||0)+'</td>';
     h+='<td style="font-weight:700;color:var(--accent);">'+(t.points||0)+'</td>';
     h+='<td class="pt-nrr'+(nrr<0?' neg':'')+'">'+nrr.toFixed(3)+'</td></tr>';
@@ -248,7 +262,7 @@ function renderFixtures(){
     html+='<div class="section-title">Upcoming</div>';
     html+=upcoming.map(m=>`<div class="fixture">
       <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span>${m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':''}</div>
-      <div class="fixture-teams"><div class="fixture-team">${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team">${m.team_b}</div></div>
+      <div class="fixture-teams"><div class="fixture-team">${teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team">${teamLogo(m.team_b)}${m.team_b}</div></div>
       ${m.venue?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+m.venue+'</div>':''}
       ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link">View Live Score →</a>':''}
     </div>`).join('');
@@ -257,7 +271,7 @@ function renderFixtures(){
     html+='<div class="section-title">Results</div>';
     html+=completed.reverse().map(m=>`<div class="fixture">
       <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}</span></div>
-      <div class="fixture-teams"><div class="fixture-team" style="${m.winner===m.team_a?'color:var(--green);':''}">${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${m.winner===m.team_b?'color:var(--green);':''}">${m.team_b}</div></div>
+      <div class="fixture-teams"><div class="fixture-team" style="${m.winner===m.team_a?'color:var(--green);':''}">${teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${m.winner===m.team_b?'color:var(--green);':''}">${teamLogo(m.team_b)}${m.team_b}</div></div>
       ${m.result?'<div class="fixture-result">'+m.result+'</div>':''}
       ${m.mom_name?'<div style="font-size:11px;color:var(--purple);margin-top:2px;">PoM: '+m.mom_name+'</div>':''}
       <a href="scorecard.html?code=${m.share_code}" class="fixture-link" style="display:inline-block;margin-top:4px;">View Scorecard →</a>

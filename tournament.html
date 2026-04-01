@@ -137,6 +137,26 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
     <button class="btn btn-ghost" style="width:100%;padding:12px;font-size:14px;margin-top:8px;" onclick="shareTournWA()">Share on WhatsApp</button>
   </div></div>
 </div>
+<!-- LOGO PICKER MODAL -->
+<div id="logoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;overflow-y:auto;padding:20px;">
+  <div style="max-width:500px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:sticky;top:0;background:rgba(13,17,23,0.95);padding:12px 0;z-index:2;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">Choose Team Logo</div>
+      <button onclick="document.getElementById('logoModal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;">✕</button>
+    </div>
+    <!-- Color filter -->
+    <div id="logoFilters" style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;"></div>
+    <!-- Logo grid -->
+    <div id="logoGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;"></div>
+    <!-- Custom upload option -->
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);text-align:center;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Or upload your own logo</div>
+      <input type="file" id="customLogoFile" accept="image/*" style="display:none;" onchange="uploadCustomLogo(this)">
+      <button onclick="document.getElementById('customLogoFile').click()" class="btn btn-ghost btn-sm">Upload Custom Logo</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 const SB_URL='https://ofondrfejzcznxsvpuec.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
@@ -147,6 +167,138 @@ function cxiConfirm(m){return new Promise(r=>{const o=document.createElement('di
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
 function pvFile(inp,pid,phid){const f=inp.files[0];if(!f)return;const p=document.getElementById(pid),ph=document.getElementById(phid),r=new FileReader();r.onload=e=>{p.src=e.target.result;p.style.display='block';ph.style.display='none';};r.readAsDataURL(f);}
 async function upFile(file,dir){if(!file)return null;const fn=dir+'/'+Date.now()+'_'+Math.random().toString(36).substring(2,6)+'.'+file.name.split('.').pop();const{error}=await sb.storage.from('player-photos').upload(fn,file,{cacheControl:'3600'});if(error){const r=new FileReader();return new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}const{data:u}=sb.storage.from('player-photos').getPublicUrl(fn);return u?.publicUrl||null;}
+
+// ═══════════════════════════════════════════════════
+// 36 TEAM LOGOS — SVG Generator
+// ═══════════════════════════════════════════════════
+const LOGO_COLORS=[
+  {n:'Crimson',g1:'#ef4444',g2:'#991b1b',lt:'#fca5a5',dk:'#7f1d1d',ac:'#f87171'},
+  {n:'Royal Blue',g1:'#3b82f6',g2:'#1d4ed8',lt:'#93c5fd',dk:'#1e3a8a',ac:'#60a5fa'},
+  {n:'Emerald',g1:'#10b981',g2:'#047857',lt:'#6ee7b7',dk:'#064e3b',ac:'#34d399'},
+  {n:'Gold',g1:'#f59e0b',g2:'#b45309',lt:'#fcd34d',dk:'#78350f',ac:'#fbbf24'},
+  {n:'Purple',g1:'#8b5cf6',g2:'#6d28d9',lt:'#c4b5fd',dk:'#4c1d95',ac:'#a78bfa'},
+  {n:'Orange',g1:'#f97316',g2:'#c2410c',lt:'#fdba74',dk:'#7c2d12',ac:'#fb923c'}
+];
+const LOGO_SHAPES=['Shield','Circle','Diamond','Hexagon','Rounded','Star'];
+
+function logoSVG(id,size){
+  const s=Math.floor(id/6);const ci=id%6;const c=LOGO_COLORS[ci];
+  const sz=size||60;const gid='lg'+id;
+  // Shape paths
+  const shapes=[
+    `<path d="M50 5 L90 20 L90 65 Q90 95 50 115 Q10 95 10 65 L10 20Z" fill="url(#${gid})" stroke="${c.lt}" stroke-width="2"/><path d="M50 14 L82 26 L82 62 Q82 87 50 106 Q18 87 18 62 L18 26Z" fill="${c.dk}" opacity="0.25"/>`,
+    `<circle cx="50" cy="50" r="46" fill="url(#${gid})" stroke="${c.lt}" stroke-width="2"/><circle cx="50" cy="50" r="38" fill="none" stroke="${c.lt}" stroke-width="1" opacity="0.4"/>`,
+    `<path d="M50 5 L95 55 L50 115 L5 55Z" fill="url(#${gid})" stroke="${c.lt}" stroke-width="2"/><path d="M50 20 L80 55 L50 98 L20 55Z" fill="${c.dk}" opacity="0.2"/>`,
+    `<path d="M50 5 L93 30 L93 80 L50 105 L7 80 L7 30Z" fill="url(#${gid})" stroke="${c.lt}" stroke-width="2"/><path d="M50 16 L82 36 L82 74 L50 94 L18 74 L18 36Z" fill="${c.dk}" opacity="0.2"/>`,
+    `<path d="M15 10 Q50 0 85 10 L88 15 Q90 70 50 115 Q10 70 12 15Z" fill="url(#${gid})" stroke="${c.lt}" stroke-width="2"/><path d="M22 18 Q50 10 78 18 L80 22 Q82 65 50 105 Q18 65 20 22Z" fill="${c.dk}" opacity="0.2"/>`,
+    `<path d="M50 2 L62 30 L95 30 L68 52 L78 85 L50 65 L22 85 L32 52 L5 30 L38 30Z" fill="url(#${gid})" stroke="${c.lt}" stroke-width="1.5"/><circle cx="50" cy="48" r="18" fill="${c.dk}" opacity="0.25"/>`
+  ];
+  // Inner motifs (simplified but distinctive)
+  const motifs=[
+    // Shield (0-5): bat, ball, stumps, crown, bolt, flame
+    [`<path d="M44 38 L56 38 L54 78 L46 78Z" fill="${c.lt}" opacity="0.9"/><rect x="47" y="78" width="6" height="10" rx="2" fill="${c.ac}"/>`,
+     `<circle cx="50" cy="58" r="16" fill="${c.lt}" opacity="0.8"/><path d="M37 52 Q50 44 63 52" fill="none" stroke="${c.dk}" stroke-width="2"/><path d="M37 64 Q50 72 63 64" fill="none" stroke="${c.dk}" stroke-width="2"/>`,
+     `<rect x="39" y="36" width="5" height="46" rx="2" fill="${c.lt}" opacity="0.85"/><rect x="48" y="36" width="5" height="46" rx="2" fill="${c.lt}" opacity="0.85"/><rect x="57" y="36" width="5" height="46" rx="2" fill="${c.lt}" opacity="0.85"/><rect x="41" y="34" width="20" height="4" rx="1" fill="${c.ac}"/>`,
+     `<path d="M28 68 L33 40 L42 52 L50 30 L58 52 L67 40 L72 68Z" fill="${c.lt}" opacity="0.9"/><rect x="28" y="68" width="44" height="7" rx="2" fill="${c.ac}"/>`,
+     `<path d="M55 28 L40 56 L50 56 L38 90 L65 50 L52 50Z" fill="${c.lt}" opacity="0.9"/>`,
+     `<path d="M50 28 Q64 46 58 64 Q54 76 50 84 Q46 76 42 64 Q36 46 50 28" fill="${c.lt}" opacity="0.8"/><path d="M50 42 Q58 52 55 64 Q52 72 50 76 Q48 72 45 64 Q42 52 50 42" fill="${c.ac}" opacity="0.6"/>`],
+    // Circle (6-11): star, wings, trophy, lion, sword, horns
+    [`<path d="M50 20 L56 36 L73 36 L59 46 L64 62 L50 52 L36 62 L41 46 L27 36 L44 36Z" fill="${c.lt}" opacity="0.85"/>`,
+     `<path d="M50 30 Q32 36 24 54 Q30 48 36 50 Q30 58 28 68 Q36 60 42 62 Q40 70 42 76 Q46 68 50 64 Q54 68 58 76 Q60 70 58 62 Q64 60 72 68 Q70 58 64 50 Q70 48 76 54 Q68 36 50 30" fill="${c.lt}" opacity="0.8"/>`,
+     `<path d="M40 30 L60 30 L58 52 Q56 62 50 66 Q44 62 42 52Z" fill="${c.lt}" opacity="0.85"/><path d="M37 30 Q28 34 30 46 Q32 50 40 48" fill="none" stroke="${c.lt}" stroke-width="3" opacity="0.6"/><path d="M63 30 Q72 34 70 46 Q68 50 60 48" fill="none" stroke="${c.lt}" stroke-width="3" opacity="0.6"/><rect x="44" y="66" width="12" height="5" rx="1" fill="${c.ac}"/>`,
+     `<circle cx="50" cy="50" r="13" fill="${c.lt}" opacity="0.7"/><path d="M32 42 Q40 30 50 28 Q60 30 68 42 Q63 38 58 40 Q55 36 50 35 Q45 36 42 40 Q37 38 32 42" fill="${c.ac}" opacity="0.8"/><circle cx="44" cy="48" r="2" fill="${c.dk}"/><circle cx="56" cy="48" r="2" fill="${c.dk}"/><path d="M46 55 Q50 59 54 55" fill="none" stroke="${c.dk}" stroke-width="1.5"/>`,
+     `<rect x="48" y="24" width="4" height="36" rx="1" fill="${c.lt}" opacity="0.9"/><path d="M48 24 L50 17 L52 24" fill="${c.ac}"/><rect x="41" y="60" width="18" height="5" rx="2" fill="${c.lt}" opacity="0.7"/><rect x="46" y="65" width="8" height="9" rx="2" fill="${c.ac}"/>`,
+     `<path d="M27 36 Q32 26 40 40 L42 48" fill="none" stroke="${c.lt}" stroke-width="4" stroke-linecap="round" opacity="0.9"/><path d="M73 36 Q68 26 60 40 L58 48" fill="none" stroke="${c.lt}" stroke-width="4" stroke-linecap="round" opacity="0.9"/><circle cx="50" cy="56" r="10" fill="${c.lt}" opacity="0.7"/><circle cx="46" cy="54" r="2" fill="${c.dk}"/><circle cx="54" cy="54" r="2" fill="${c.dk}"/>`],
+    // Diamond (12-17): X-bats, anchor, leaf, gem, moon, sun
+    [`<line x1="32" y1="38" x2="68" y2="72" stroke="${c.lt}" stroke-width="5" stroke-linecap="round" opacity="0.85"/><line x1="68" y1="38" x2="32" y2="72" stroke="${c.lt}" stroke-width="5" stroke-linecap="round" opacity="0.85"/><circle cx="50" cy="55" r="6" fill="${c.ac}"/>`,
+     `<circle cx="50" cy="36" r="6" fill="none" stroke="${c.lt}" stroke-width="2.5" opacity="0.8"/><line x1="50" y1="42" x2="50" y2="76" stroke="${c.lt}" stroke-width="3" opacity="0.85"/><path d="M38 66 Q44 76 50 76 Q56 76 62 66" fill="none" stroke="${c.lt}" stroke-width="2.5" opacity="0.8"/>`,
+     `<path d="M50 32 Q68 42 64 60 Q58 78 50 82 Q42 78 36 60 Q32 42 50 32" fill="${c.lt}" opacity="0.75"/><line x1="50" y1="36" x2="50" y2="78" stroke="${c.dk}" stroke-width="1.5" opacity="0.4"/>`,
+     `<path d="M40 48 L50 38 L60 48 L50 70Z" fill="${c.lt}" opacity="0.85"/><path d="M40 48 L50 52 L60 48" fill="${c.ac}" opacity="0.5"/><line x1="50" y1="52" x2="50" y2="70" stroke="${c.dk}" stroke-width="1" opacity="0.3"/>`,
+     `<circle cx="50" cy="55" r="16" fill="${c.lt}" opacity="0.8"/><circle cx="58" cy="48" r="13" fill="${c.g2}"/><circle cx="43" cy="46" r="2" fill="${c.ac}"/>`,
+     `<circle cx="50" cy="55" r="11" fill="${c.lt}" opacity="0.9"/><line x1="50" y1="38" x2="50" y2="32" stroke="${c.lt}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/><line x1="50" y1="72" x2="50" y2="78" stroke="${c.lt}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/><line x1="33" y1="55" x2="27" y2="55" stroke="${c.lt}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/><line x1="67" y1="55" x2="73" y2="55" stroke="${c.lt}" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/><line x1="38" y1="43" x2="34" y2="39" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.5"/><line x1="62" y1="43" x2="66" y2="39" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.5"/><line x1="38" y1="67" x2="34" y2="71" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.5"/><line x1="62" y1="67" x2="66" y2="71" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.5"/>`],
+    // Hexagon (18-23): tiger, wave, mountain, hawk, galaxy, phoenix
+    [`<circle cx="50" cy="50" r="18" fill="${c.lt}" opacity="0.25"/><path d="M36 40 L43 47 M38 50 L46 55 M37 60 L44 64 M57 47 L64 40 M54 55 L62 50 M56 64 L63 60" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.8"/>`,
+     `<path d="M18 48 Q30 36 42 48 Q50 58 58 48 Q70 36 82 48" fill="none" stroke="${c.lt}" stroke-width="3" opacity="0.8"/><path d="M18 58 Q30 46 42 58 Q50 68 58 58 Q70 46 82 58" fill="none" stroke="${c.lt}" stroke-width="2" opacity="0.4"/>`,
+     `<path d="M16 76 L40 36 L50 48 L65 28 L84 76Z" fill="${c.lt}" opacity="0.8"/><path d="M65 28 L72 40 L58 40Z" fill="${c.ac}" opacity="0.6"/>`,
+     `<path d="M50 30 L36 54 L22 50 L38 58 L32 78 L50 64 L68 78 L62 58 L78 50 L64 54Z" fill="${c.lt}" opacity="0.8"/>`,
+     `<path d="M50 35 Q64 35 64 50 Q64 64 50 64 Q42 64 42 56 Q42 48 48 48 Q52 48 52 52" fill="none" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.8"/><circle cx="50" cy="50" r="3" fill="${c.ac}"/>`,
+     `<path d="M50 30 Q42 40 40 54 Q38 64 30 72 Q38 66 42 58 Q44 68 42 78 Q48 70 50 60 Q52 70 58 78 Q56 68 58 58 Q62 66 70 72 Q62 64 60 54 Q58 40 50 30" fill="${c.lt}" opacity="0.8"/>`],
+    // Rounded (24-29): fist, V, cobra, castle, crystal, scorpion
+    [`<rect x="38" y="50" width="24" height="20" rx="6" fill="${c.lt}" opacity="0.8"/><path d="M40 50 Q40 40 44 36 Q48 33 48 40 L48 50 M52 40 Q52 34 56 36 Q58 40 56 44 L54 50 M56 40 Q60 36 62 40 Q63 44 60 48" fill="none" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`,
+     `<path d="M30 36 L50 68 L70 36" fill="none" stroke="${c.lt}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`,
+     `<path d="M50 32 Q60 32 64 40 Q68 50 60 54 Q54 56 50 54 Q46 56 40 54 Q32 50 36 40 Q40 32 50 32" fill="${c.lt}" opacity="0.8"/><circle cx="44" cy="42" r="2" fill="${c.dk}"/><circle cx="56" cy="42" r="2" fill="${c.dk}"/><path d="M50 54 Q50 78 50 88" fill="none" stroke="${c.lt}" stroke-width="4" stroke-linecap="round" opacity="0.5"/>`,
+     `<rect x="36" y="50" width="28" height="32" rx="2" fill="${c.lt}" opacity="0.8"/><rect x="34" y="42" width="6" height="12" rx="1" fill="${c.ac}"/><rect x="43" y="42" width="6" height="12" rx="1" fill="${c.ac}"/><rect x="52" y="42" width="6" height="12" rx="1" fill="${c.ac}"/><rect x="60" y="42" width="6" height="12" rx="1" fill="${c.ac}"/>`,
+     `<path d="M50 26 L62 44 L58 78 L42 78 L38 44Z" fill="${c.lt}" opacity="0.7"/><line x1="50" y1="26" x2="50" y2="78" stroke="${c.ac}" stroke-width="1" opacity="0.5"/><line x1="38" y1="44" x2="62" y2="44" stroke="${c.ac}" stroke-width="1" opacity="0.5"/>`,
+     `<circle cx="50" cy="60" r="10" fill="${c.lt}" opacity="0.8"/><path d="M50 50 Q54 38 57 33 Q59 29 55 26" fill="none" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.85"/><circle cx="55" cy="26" r="2" fill="${c.ac}"/>`],
+    // Star (30-35): XI, trident, helmet, X-swords, eye, bat+ball
+    [`<text x="50" y="58" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="22" fill="${c.lt}" opacity="0.9">XI</text>`,
+     `<line x1="50" y1="26" x2="50" y2="68" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.85"/><path d="M50 26 L46 36 M50 26 L54 36" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.85"/><path d="M40 32 L40 24 Q40 20 44 22 L46 28" fill="none" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.7"/><path d="M60 32 L60 24 Q60 20 56 22 L54 28" fill="none" stroke="${c.lt}" stroke-width="2" stroke-linecap="round" opacity="0.7"/>`,
+     `<path d="M34 50 Q34 32 50 30 Q66 32 66 50 L66 56 L34 56Z" fill="${c.lt}" opacity="0.8"/><rect x="34" y="54" width="32" height="4" rx="1" fill="${c.ac}"/><line x1="40" y1="58" x2="40" y2="66" stroke="${c.lt}" stroke-width="2" opacity="0.5"/><line x1="46" y1="58" x2="46" y2="68" stroke="${c.lt}" stroke-width="2" opacity="0.5"/><line x1="52" y1="58" x2="52" y2="68" stroke="${c.lt}" stroke-width="2" opacity="0.5"/><line x1="58" y1="58" x2="58" y2="66" stroke="${c.lt}" stroke-width="2" opacity="0.5"/>`,
+     `<line x1="32" y1="32" x2="68" y2="68" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.85"/><line x1="68" y1="32" x2="32" y2="68" stroke="${c.lt}" stroke-width="3" stroke-linecap="round" opacity="0.85"/><path d="M30 30 L36 30 L32 35Z" fill="${c.ac}"/><path d="M70 30 L64 30 L68 35Z" fill="${c.ac}"/>`,
+     `<path d="M28 50 Q50 32 72 50 Q50 68 28 50" fill="${c.lt}" opacity="0.7" stroke="${c.lt}" stroke-width="1.5"/><circle cx="50" cy="50" r="7" fill="${c.ac}" opacity="0.9"/><circle cx="50" cy="50" r="3.5" fill="${c.dk}"/>`,
+     `<rect x="34" y="36" width="8" height="28" rx="3" fill="${c.lt}" opacity="0.85" transform="rotate(-20,38,50)"/><rect x="36" y="60" width="4" height="8" rx="1.5" fill="${c.ac}" transform="rotate(-20,38,64)"/><circle cx="62" cy="44" r="8" fill="${c.lt}" opacity="0.85"/><path d="M57 40 Q62 36 67 40" fill="none" stroke="${c.dk}" stroke-width="1.5" opacity="0.4"/>`]
+  ];
+  const vb=s===1?'0 0 100 100':s===3?'0 0 100 110':'0 0 100 120';
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.g1}"/><stop offset="100%" stop-color="${c.g2}"/></linearGradient></defs>${shapes[s]}${motifs[s][ci]}</svg>`;
+}
+
+// Render logo inline from logo_url
+function renderLogo(logoUrl,size){
+  if(!logoUrl)return '';
+  if(logoUrl.startsWith('logo:')){return logoSVG(parseInt(logoUrl.split(':')[1]),size||36);}
+  return '<img src="'+logoUrl+'" style="width:'+(size||36)+'px;height:'+(size||36)+'px;border-radius:50%;object-fit:cover;">';
+}
+
+// Logo picker state
+let _logoPickerTeamId=null;
+
+function openLogoPicker(teamId){
+  _logoPickerTeamId=teamId;
+  const modal=document.getElementById('logoModal');
+  // Build filter buttons
+  const fEl=document.getElementById('logoFilters');
+  fEl.innerHTML='<button onclick="filterLogos(\'all\')" style="padding:4px 10px;border-radius:12px;border:1px solid var(--accent);background:rgba(245,158,11,0.1);color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;">All</button>'+
+    LOGO_COLORS.map((c,i)=>'<button onclick="filterLogos('+i+')" style="padding:4px 10px;border-radius:12px;border:1px solid '+c.g1+';background:transparent;color:'+c.g1+';font-size:10px;font-weight:700;cursor:pointer;">'+c.n+'</button>').join('');
+  filterLogos('all');
+  modal.style.display='block';
+}
+
+function filterLogos(f){
+  const grid=document.getElementById('logoGrid');
+  let ids=[];
+  if(f==='all')for(let i=0;i<36;i++)ids.push(i);
+  else for(let s=0;s<6;s++)ids.push(s*6+f);
+  grid.innerHTML=ids.map(id=>{
+    const ci=id%6;const si=Math.floor(id/6);
+    return '<div onclick="selectLogo('+id+')" style="cursor:pointer;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);text-align:center;transition:all .15s;" onmouseenter="this.style.borderColor=\'var(--accent)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">'+
+      logoSVG(id,50)+
+      '<div style="font-size:8px;color:var(--muted);margin-top:3px;">'+LOGO_COLORS[ci].n+'</div></div>';
+  }).join('');
+}
+
+async function selectLogo(id){
+  if(!_logoPickerTeamId)return;
+  const logoUrl='logo:'+id;
+  await sb.from('tournament_teams').update({logo_url:logoUrl}).eq('id',_logoPickerTeamId);
+  const t=teams.find(x=>x.id===_logoPickerTeamId);
+  if(t)t.logo_url=logoUrl;
+  document.getElementById('logoModal').style.display='none';
+  renderTeams();
+  showToast('Logo selected!');
+}
+
+async function uploadCustomLogo(input){
+  const file=input.files[0];if(!file||!_logoPickerTeamId)return;
+  const url=await upFile(file,'team-logos');
+  if(url){
+    await sb.from('tournament_teams').update({logo_url:url}).eq('id',_logoPickerTeamId);
+    const t=teams.find(x=>x.id===_logoPickerTeamId);
+    if(t)t.logo_url=url;
+    document.getElementById('logoModal').style.display='none';
+    renderTeams();
+    showToast('Custom logo uploaded!');
+  }
+}
 
 let user=null,T=null,teams=[];
 
@@ -162,7 +314,7 @@ function toggleGrp(){const v=document.getElementById('tFormat').value;document.g
 
 async function saveS1(){const name=document.getElementById('tName').value.trim();const err=document.getElementById('s1Err');if(!name){err.textContent='Name required';return;}err.textContent='';let sLogo=T?.sponsor_logo||null;const sf=document.getElementById('tSFile').files[0];if(sf)sLogo=await upFile(sf,'sponsors');const ft=document.getElementById('tFeeType').value;const p={name,format:document.getElementById('tFormat').value,overs_per_match:+document.getElementById('tOvers').value,teams_count:+document.getElementById('tTeams').value,players_per_team:+document.getElementById('tPPT').value,start_date:document.getElementById('tStart').value||null,end_date:document.getElementById('tEnd').value||null,venue:document.getElementById('tVenue').value.trim()||null,team_formation:document.getElementById('tFormation').value,free_registration:ft==='free',registration_fee:ft==='paid'?(+document.getElementById('tFee').value||0):0,sponsor_name:document.getElementById('tSponsor').value.trim()||null,sponsor_logo:sLogo,branding_text:document.getElementById('tBrand').value.trim()||null,status:T?.status||'setup'};if(T){await sb.from('tournaments').update(p).eq('id',T.id);T={...T,...p};}else{p.owner_id=user.id;p.share_code=Math.random().toString(36).substring(2,8).toUpperCase();const{data}=await sb.from('tournaments').insert(p).select().single();T=data;history.replaceState(null,'','tournament.html?id='+T.id);}showToast('Saved!');goStep(2);}
 
-function renderTeams(manual){const el=document.getElementById('teamsCon');document.getElementById('tNeed').textContent=T?.teams_count||8;document.getElementById('tAdded').textContent=teams.length;const fmt=T?.format||'round_robin';const hasG=fmt==='round_robin_groups'||fmt==='group_knockout';document.getElementById('grpSection').style.display=hasG&&teams.length>=2?'block':'none';if(!teams.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);">Type team name and press Add</div>';return;}const gc=+(document.getElementById('tGrpCount')?.value||2);const gN='ABCDEFGH'.split('').slice(0,gc);el.innerHTML=teams.map(t=>{let gh='';if(hasG&&manual)gh='<select class="form-input" style="width:50px;padding:4px;font-size:12px;" onchange="chGrp(\''+t.id+'\',this.value)">'+gN.map(g=>'<option'+(t.group_name===g?' selected':'')+'>'+g+'</option>').join('')+'</select>';const badge=hasG&&t.group_name?'<span class="grp-badge grp-'+t.group_name+'">'+t.group_name+'</span>':'';return '<div class="team-card"><div><div class="team-name">'+t.team_name+badge+'</div><div style="font-size:11px;color:var(--muted);">'+t.team_code+'</div></div><div class="team-actions">'+gh+'<button class="btn btn-ghost btn-sm" onclick="rmTeam(\''+t.id+'\')" style="color:var(--red);">✕</button></div></div>';}).join('');if(hasG)renderGD();}
+function renderTeams(manual){const el=document.getElementById('teamsCon');document.getElementById('tNeed').textContent=T?.teams_count||8;document.getElementById('tAdded').textContent=teams.length;const fmt=T?.format||'round_robin';const hasG=fmt==='round_robin_groups'||fmt==='group_knockout';document.getElementById('grpSection').style.display=hasG&&teams.length>=2?'block':'none';if(!teams.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);">Type team name and press Add</div>';return;}const gc=+(document.getElementById('tGrpCount')?.value||2);const gN='ABCDEFGH'.split('').slice(0,gc);el.innerHTML=teams.map(t=>{let gh='';if(hasG&&manual)gh='<select class="form-input" style="width:50px;padding:4px;font-size:12px;" onchange="chGrp(\''+t.id+'\',this.value)">'+gN.map(g=>'<option'+(t.group_name===g?' selected':'')+'>'+g+'</option>').join('')+'</select>';const badge=hasG&&t.group_name?'<span class="grp-badge grp-'+t.group_name+'">'+t.group_name+'</span>':'';const logo=t.logo_url?renderLogo(t.logo_url,36):'<div style="width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);cursor:pointer;" onclick="openLogoPicker(\''+t.id+'\')">+</div>';return '<div class="team-card"><div style="display:flex;align-items:center;gap:10px;"><div onclick="openLogoPicker(\''+t.id+'\')" style="cursor:pointer;flex-shrink:0;">'+logo+'</div><div><div class="team-name">'+t.team_name+badge+'</div><div style="font-size:11px;color:var(--muted);">'+t.team_code+'</div></div></div><div class="team-actions">'+gh+'<button class="btn btn-ghost btn-sm" onclick="rmTeam(\''+t.id+'\')" style="color:var(--red);">✕</button></div></div>';}).join('');if(hasG)renderGD();}
 async function addTeam(){const inp=document.getElementById('newTN');const n=inp.value.trim();if(!n)return;if(teams.length>=(T?.teams_count||16)){cxiAlert('Max teams reached');return;}const{data,error}=await sb.from('tournament_teams').insert({tournament_id:T.id,team_name:n}).select().single();if(error){cxiAlert(error.message);return;}teams.push(data);inp.value='';inp.focus();renderTeams();showToast(n+' added!');}
 async function rmTeam(id){if(!await cxiConfirm('Remove team?'))return;await sb.from('tournament_teams').delete().eq('id',id);teams=teams.filter(t=>t.id!==id);renderTeams();}
 async function chGrp(id,g){const t=teams.find(x=>x.id===id);if(t){t.group_name=g;await sb.from('tournament_teams').update({group_name:g}).eq('id',id);}renderGD();}
