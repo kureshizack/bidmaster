@@ -146,15 +146,18 @@ let allBowling=[];
 
 // Logo renderer (same as tournament.html)
 const LC=[{g1:'#ef4444',g2:'#991b1b',lt:'#fca5a5',dk:'#7f1d1d',ac:'#f87171'},{g1:'#3b82f6',g2:'#1d4ed8',lt:'#93c5fd',dk:'#1e3a8a',ac:'#60a5fa'},{g1:'#10b981',g2:'#047857',lt:'#6ee7b7',dk:'#064e3b',ac:'#34d399'},{g1:'#f59e0b',g2:'#b45309',lt:'#fcd34d',dk:'#78350f',ac:'#fbbf24'},{g1:'#8b5cf6',g2:'#6d28d9',lt:'#c4b5fd',dk:'#4c1d95',ac:'#a78bfa'},{g1:'#f97316',g2:'#c2410c',lt:'#fdba74',dk:'#7c2d12',ac:'#fb923c'}];
+const LM=[[`<path d="M44 38 L56 38 L54 78 L46 78Z" fill="LT" opacity="0.9"/>`,`<circle cx="50" cy="58" r="16" fill="LT" opacity="0.8"/>`,`<rect x="39" y="36" width="5" height="46" rx="2" fill="LT" opacity="0.85"/><rect x="48" y="36" width="5" height="46" rx="2" fill="LT" opacity="0.85"/><rect x="57" y="36" width="5" height="46" rx="2" fill="LT" opacity="0.85"/>`,`<path d="M28 68 L33 40 L42 52 L50 30 L58 52 L67 40 L72 68Z" fill="LT" opacity="0.9"/>`,`<path d="M55 28 L40 56 L50 56 L38 90 L65 50 L52 50Z" fill="LT" opacity="0.9"/>`,`<path d="M50 28 Q64 46 58 64 Q54 76 50 84 Q46 76 42 64 Q36 46 50 28" fill="LT" opacity="0.8"/>`],[`<path d="M50 20 L56 36 L73 36 L59 46 L64 62 L50 52 L36 62 L41 46 L27 36 L44 36Z" fill="LT" opacity="0.85"/>`,`<path d="M50 30 Q32 36 24 54 Q36 60 42 62 Q46 68 50 64 Q54 68 58 62 Q64 60 76 54 Q68 36 50 30" fill="LT" opacity="0.8"/>`,`<path d="M40 30 L60 30 L58 52 Q56 62 50 66 Q44 62 42 52Z" fill="LT" opacity="0.85"/>`,`<circle cx="50" cy="50" r="13" fill="LT" opacity="0.7"/><path d="M32 42 Q40 30 50 28 Q60 30 68 42" fill="AC" opacity="0.8"/>`,`<rect x="48" y="24" width="4" height="36" rx="1" fill="LT" opacity="0.9"/><path d="M48 24 L50 17 L52 24" fill="AC"/>`,`<path d="M27 36 Q32 26 40 40 L42 48" fill="none" stroke="LT" stroke-width="4" stroke-linecap="round" opacity="0.9"/><path d="M73 36 Q68 26 60 40 L58 48" fill="none" stroke="LT" stroke-width="4" stroke-linecap="round" opacity="0.9"/><circle cx="50" cy="56" r="10" fill="LT" opacity="0.7"/>`],[`<line x1="32" y1="38" x2="68" y2="72" stroke="LT" stroke-width="5" stroke-linecap="round" opacity="0.85"/><line x1="68" y1="38" x2="32" y2="72" stroke="LT" stroke-width="5" stroke-linecap="round" opacity="0.85"/><circle cx="50" cy="55" r="6" fill="AC"/>`,`<circle cx="50" cy="36" r="6" fill="none" stroke="LT" stroke-width="2.5" opacity="0.8"/><line x1="50" y1="42" x2="50" y2="76" stroke="LT" stroke-width="3" opacity="0.85"/>`,`<path d="M50 32 Q68 42 64 60 Q58 78 50 82 Q42 78 36 60 Q32 42 50 32" fill="LT" opacity="0.75"/>`,`<path d="M40 48 L50 38 L60 48 L50 70Z" fill="LT" opacity="0.85"/>`,`<circle cx="50" cy="55" r="16" fill="LT" opacity="0.8"/><circle cx="58" cy="48" r="13" fill="G2"/>`,`<circle cx="50" cy="55" r="11" fill="LT" opacity="0.9"/>`],[`<path d="M36 40 L43 47 M38 50 L46 55 M57 47 L64 40 M54 55 L62 50" stroke="LT" stroke-width="3" stroke-linecap="round" opacity="0.8"/>`,`<path d="M18 48 Q30 36 42 48 Q50 58 58 48 Q70 36 82 48" fill="none" stroke="LT" stroke-width="3" opacity="0.8"/>`,`<path d="M16 76 L40 36 L50 48 L65 28 L84 76Z" fill="LT" opacity="0.8"/>`,`<path d="M50 30 L36 54 L22 50 L38 58 L32 78 L50 64 L68 78 L62 58 L78 50 L64 54Z" fill="LT" opacity="0.8"/>`,`<path d="M50 35 Q64 35 64 50 Q64 64 50 64 Q42 64 42 56 Q42 48 48 48" fill="none" stroke="LT" stroke-width="3" stroke-linecap="round" opacity="0.8"/><circle cx="50" cy="50" r="3" fill="AC"/>`,`<path d="M50 30 Q42 40 40 54 Q38 64 30 72 Q42 58 44 68 Q48 70 50 60 Q52 70 56 68 Q58 58 70 72 Q62 64 60 54 Q58 40 50 30" fill="LT" opacity="0.8"/>`],[`<rect x="38" y="50" width="24" height="20" rx="6" fill="LT" opacity="0.8"/>`,`<path d="M30 36 L50 68 L70 36" fill="none" stroke="LT" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`,`<path d="M50 32 Q60 32 64 40 Q68 50 60 54 Q50 54 40 54 Q32 50 36 40 Q40 32 50 32" fill="LT" opacity="0.8"/>`,`<rect x="36" y="50" width="28" height="32" rx="2" fill="LT" opacity="0.8"/><rect x="34" y="42" width="6" height="12" rx="1" fill="AC"/><rect x="52" y="42" width="6" height="12" rx="1" fill="AC"/>`,`<path d="M50 26 L62 44 L58 78 L42 78 L38 44Z" fill="LT" opacity="0.7"/>`,`<circle cx="50" cy="60" r="10" fill="LT" opacity="0.8"/>`],[`<text x="50" y="58" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="22" fill="LT" opacity="0.9">XI</text>`,`<line x1="50" y1="26" x2="50" y2="68" stroke="LT" stroke-width="3" stroke-linecap="round" opacity="0.85"/>`,`<path d="M34 50 Q34 32 50 30 Q66 32 66 50 L66 56 L34 56Z" fill="LT" opacity="0.8"/><rect x="34" y="54" width="32" height="4" rx="1" fill="AC"/>`,`<line x1="32" y1="32" x2="68" y2="68" stroke="LT" stroke-width="3" stroke-linecap="round" opacity="0.85"/><line x1="68" y1="32" x2="32" y2="68" stroke="LT" stroke-width="3" stroke-linecap="round" opacity="0.85"/>`,`<path d="M28 50 Q50 32 72 50 Q50 68 28 50" fill="LT" opacity="0.7"/><circle cx="50" cy="50" r="7" fill="AC"/><circle cx="50" cy="50" r="3.5" fill="DK"/>`,`<rect x="34" y="36" width="8" height="28" rx="3" fill="LT" opacity="0.85" transform="rotate(-20,38,50)"/><circle cx="62" cy="44" r="8" fill="LT" opacity="0.85"/>`]];
+const LSH=[`<path d="M50 5 L90 20 L90 65 Q90 95 50 115 Q10 95 10 65 L10 20Z" fill="URL" stroke="LT" stroke-width="2"/>`,`<circle cx="50" cy="50" r="46" fill="URL" stroke="LT" stroke-width="2"/>`,`<path d="M50 5 L95 55 L50 115 L5 55Z" fill="URL" stroke="LT" stroke-width="2"/>`,`<path d="M50 5 L93 30 L93 80 L50 105 L7 80 L7 30Z" fill="URL" stroke="LT" stroke-width="2"/>`,`<path d="M15 10 Q50 0 85 10 L88 15 Q90 70 50 115 Q10 70 12 15Z" fill="URL" stroke="LT" stroke-width="2"/>`,`<path d="M50 2 L62 30 L95 30 L68 52 L78 85 L50 65 L22 85 L32 52 L5 30 L38 30Z" fill="URL" stroke="LT" stroke-width="1.5"/>`];
 function renderLogo(u,sz){
   if(!u)return '';
   if(u.startsWith('logo:')){
     const id=parseInt(u.split(':')[1]);const s=Math.floor(id/6);const ci=id%6;const c=LC[ci];const g='slg'+id;
-    const shapes=[`<path d="M50 5 L90 20 L90 65 Q90 95 50 115 Q10 95 10 65 L10 20Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<circle cx="50" cy="50" r="46" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L95 55 L50 115 L5 55Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 5 L93 30 L93 80 L50 105 L7 80 L7 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M15 10 Q50 0 85 10 L88 15 Q90 70 50 115 Q10 70 12 15Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="2"/>`,`<path d="M50 2 L62 30 L95 30 L68 52 L78 85 L50 65 L22 85 L32 52 L5 30 L38 30Z" fill="url(#${g})" stroke="${c.lt}" stroke-width="1.5"/>`];
     const vb=s===1?'0 0 100 100':s===3?'0 0 100 110':'0 0 100 120';
-    return '<svg viewBox="'+vb+'" width="'+(sz||24)+'" height="'+(sz||24)+'" style="vertical-align:middle;margin-right:4px;"><defs><linearGradient id="'+g+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+c.g1+'"/><stop offset="100%" stop-color="'+c.g2+'"/></linearGradient></defs>'+shapes[s]+'</svg>';
+    let shape=LSH[s].replace(/URL/g,'url(#'+g+')').replace(/LT/g,c.lt);
+    let motif=(LM[s][ci]||'').replace(/LT/g,c.lt).replace(/AC/g,c.ac).replace(/DK/g,c.dk).replace(/G2/g,c.g2);
+    return '<svg viewBox="'+vb+'" width="'+(sz||24)+'" height="'+(sz||24)+'" style="vertical-align:middle;margin-right:4px;flex-shrink:0;"><defs><linearGradient id="'+g+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+c.g1+'"/><stop offset="100%" stop-color="'+c.g2+'"/></linearGradient></defs>'+shape+motif+'</svg>';
   }
-  return '<img src="'+u+'" style="width:'+(sz||24)+'px;height:'+(sz||24)+'px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;">';
+  return '<img src="'+u+'" style="width:'+(sz||24)+'px;height:'+(sz||24)+'px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;flex-shrink:0;">';
 }
 function teamLogo(name){const t=teams.find(x=>x.team_name===name);return t?renderLogo(t.logo_url,22):'';}
 
@@ -253,27 +256,60 @@ function renderFixtures(){
   const el=document.getElementById('fixturesContent');
   if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">No matches scheduled yet</div>';return;}
 
-  // Separate upcoming and completed
-  const upcoming=matches.filter(m=>m.status==='scheduled'||m.status==='live');
-  const completed=matches.filter(m=>m.status==='completed');
+  function matchDate(m){
+    if(!m.match_date)return '';
+    const d=new Date(m.match_date);
+    return '<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+
+      (d.getHours()?', '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'')+'</div>';
+  }
+  function isKO(m){return m.stage&&(m.stage.includes('Semi')||m.stage.includes('SF')||m.stage.includes('Final')||m.stage.includes('Quarter')||m.stage.includes('Qualifier'));}
+
+  const league=matches.filter(m=>!isKO(m));
+  const knockout=matches.filter(m=>isKO(m));
+  const completed=league.filter(m=>m.status==='completed');
+  const upcoming=league.filter(m=>m.status==='scheduled'||m.status==='live');
 
   let html='';
+
+  // UPCOMING LEAGUE/GROUP
   if(upcoming.length){
     html+='<div class="section-title">Upcoming</div>';
     html+=upcoming.map(m=>`<div class="fixture">
       <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span>${m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':''}</div>
       <div class="fixture-teams"><div class="fixture-team">${teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team">${teamLogo(m.team_b)}${m.team_b}</div></div>
-      ${m.venue?'<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+m.venue+'</div>':''}
-      ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link">View Live Score →</a>':''}
+      ${matchDate(m)}
+      ${m.venue?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+m.venue+'</div>':''}
+      ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Live Score →</a>':''}
     </div>`).join('');
   }
+
+  // KNOCKOUT STAGE (always shown)
+  if(knockout.length){
+    html+='<div class="section-title" style="color:var(--green);">Knockout Stage</div>';
+    html+=knockout.map(m=>{
+      const isTBD=m.team_a.includes('1st ')||m.team_a.includes('2nd ')||m.team_a.includes('Winner')||m.team_a.includes('Top ')||m.team_a.includes('Best ');
+      const done=m.status==='completed';
+      const borderColor=m.stage.includes('Final')?'var(--accent)':'var(--green)';
+      return `<div class="fixture" style="border-left:3px solid ${borderColor};${isTBD?'opacity:0.7;':''}">
+        <div class="fixture-header"><span>${m.stage}</span>${done?'<span style="color:var(--green);font-weight:700;">COMPLETED</span>':(m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':'<span style="color:var(--muted);font-size:10px;">${isTBD?"TBD":"SCHEDULED"}</span>')}</div>
+        <div class="fixture-teams"><div class="fixture-team" style="${done&&m.winner===m.team_a?'color:var(--green);':''}">${isTBD?'':teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${done&&m.winner===m.team_b?'color:var(--green);':''}">${isTBD?'':teamLogo(m.team_b)}${m.team_b}</div></div>
+        ${done&&m.result?'<div class="fixture-result">'+m.result+'</div>':''}
+        ${matchDate(m)}
+        ${done?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Scorecard →</a>':''}
+        ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Live →</a>':''}
+      </div>`;
+    }).join('');
+  }
+
+  // COMPLETED RESULTS
   if(completed.length){
-    html+='<div class="section-title">Results</div>';
+    html+='<div class="section-title">Completed Results</div>';
     html+=completed.reverse().map(m=>`<div class="fixture">
-      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}</span></div>
+      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span></div>
       <div class="fixture-teams"><div class="fixture-team" style="${m.winner===m.team_a?'color:var(--green);':''}">${teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${m.winner===m.team_b?'color:var(--green);':''}">${teamLogo(m.team_b)}${m.team_b}</div></div>
       ${m.result?'<div class="fixture-result">'+m.result+'</div>':''}
       ${m.mom_name?'<div style="font-size:11px;color:var(--purple);margin-top:2px;">PoM: '+m.mom_name+'</div>':''}
+      ${matchDate(m)}
       <a href="scorecard.html?code=${m.share_code}" class="fixture-link" style="display:inline-block;margin-top:4px;">View Scorecard →</a>
     </div>`).join('');
   }
