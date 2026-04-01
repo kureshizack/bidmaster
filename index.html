@@ -1044,6 +1044,317 @@ footer {
   </div>
 </section>
 
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- FEATURE SHOWCASE — PHONE MOCKUPS                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<style>
+.showcase{padding:80px 20px;background:linear-gradient(180deg,var(--dark) 0%,var(--dark2) 50%,var(--dark) 100%);position:relative;overflow:hidden;}
+.showcase::before{content:'';position:absolute;top:50%;left:50%;width:600px;height:600px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(245,158,11,0.04) 0%,transparent 70%);pointer-events:none;}
+.showcase-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;}
+.showcase-tabs{display:flex;flex-direction:column;gap:0;}
+.stab{padding:18px 22px;border-left:3px solid transparent;cursor:pointer;transition:all .3s;border-radius:0 12px 12px 0;position:relative;}
+.stab:hover{background:rgba(245,158,11,0.03);}
+.stab.active{border-left-color:var(--gold);background:rgba(245,158,11,0.06);}
+.stab-title{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--muted);transition:color .3s;}
+.stab.active .stab-title{color:var(--gold);}
+.stab-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px;max-height:0;overflow:hidden;transition:max-height .4s,opacity .3s;opacity:0;}
+.stab.active .stab-desc{max-height:80px;opacity:1;}
+.showcase-phone-area{display:flex;justify-content:center;position:relative;min-height:480px;}
+.sphone{width:260px;background:#0f1520;border-radius:32px;border:2px solid var(--border);box-shadow:0 30px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(245,158,11,0.08),inset 0 0 40px rgba(0,0,0,0.3);position:absolute;opacity:0;transform:scale(0.9) translateY(20px);transition:all .5s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+.sphone.active{opacity:1;transform:scale(1) translateY(0);pointer-events:auto;}
+.sphone-notch{height:22px;background:#080c14;display:flex;justify-content:center;align-items:center;border-radius:30px 30px 0 0;}
+.sphone-notch::after{content:'';width:50px;height:6px;background:#1a1f2e;border-radius:3px;}
+.sphone-screen{padding:10px;min-height:400px;}
+.sphone-glow{position:absolute;width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,0.12) 0%,transparent 70%);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);z-index:0;animation:glowPulse 4s ease-in-out infinite;}
+@keyframes glowPulse{0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1);}}
+
+/* Mini screen components */
+.ms-header{background:var(--surface);border-radius:8px;padding:8px 10px;margin-bottom:6px;border-bottom:2px solid var(--gold);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;color:var(--gold);}
+.ms-row{display:flex;justify-content:space-between;padding:5px 8px;font-size:10px;border-bottom:1px solid rgba(42,58,85,0.3);}
+.ms-row:last-child{border:none;}
+.ms-name{font-weight:600;color:var(--text);}
+.ms-val{color:var(--gold);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:12px;}
+.ms-val-g{color:var(--green);}
+.ms-val-r{color:var(--red);}
+.ms-val-b{color:var(--blue);}
+.ms-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.ms-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;}
+.ms-badge{display:inline-block;font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;font-family:'Rajdhani',sans-serif;}
+.ms-big{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold);letter-spacing:2px;line-height:1;}
+.ms-score-wrap{text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 10px;margin-bottom:8px;}
+.ms-team-row{display:flex;justify-content:space-between;align-items:center;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;margin-bottom:4px;}
+.ms-chart-bar{height:6px;border-radius:3px;margin-bottom:4px;transition:width 1s;}
+.ms-flip-front,.ms-flip-back{border-radius:10px;padding:14px;text-align:center;}
+.ms-flip-front{background:var(--surface);border:1px solid var(--border);}
+.ms-flip-back{background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.2);}
+.ms-pom{background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:12px;text-align:center;}
+.ms-graph-area{position:relative;height:120px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px;}
+.ms-worm-line{position:absolute;bottom:0;left:0;height:100%;width:100%;}
+.ms-worm-svg{width:100%;height:100%;}
+.ms-pill{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:10px;padding:3px 8px;font-size:9px;color:var(--muted);margin:2px;}
+.ms-pill-dot{width:6px;height:6px;border-radius:50%;}
+
+@media(max-width:900px){
+  .showcase-inner{grid-template-columns:1fr;gap:30px;}
+  .showcase-tabs{flex-direction:row;overflow-x:auto;gap:0;}
+  .stab{border-left:none;border-bottom:3px solid transparent;padding:12px 14px;min-width:110px;text-align:center;}
+  .stab.active{border-bottom-color:var(--gold);border-left:none;}
+  .stab-desc{display:none;}
+  .showcase-phone-area{min-height:440px;}
+}
+@keyframes miniMarquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+@keyframes sponsorFlipAnim{0%,40%{opacity:1;transform:rotateX(0)}45%{opacity:0.5;transform:rotateX(90deg)}50%,90%{opacity:1;transform:rotateX(0)}95%{opacity:0.5;transform:rotateX(90deg)}100%{opacity:1;transform:rotateX(0)}}
+</style>
+
+<section class="showcase" id="showcase">
+<div class="showcase-inner">
+  <div class="showcase-tabs">
+    <div class="section-tag reveal" style="margin-bottom:16px;">See It In Action</div>
+    <h2 class="section-title reveal" style="margin-bottom:28px;font-size:36px;">Every Screen.<br>Your Phone.</h2>
+    <div class="stab active" onclick="showPhone(0)">
+      <div class="stab-title">Live Scorecard</div>
+      <div class="stab-desc">Ball-by-ball scoring with batting card, bowling figures, and over-by-over summary. Share on WhatsApp instantly.</div>
+    </div>
+    <div class="stab" onclick="showPhone(1)">
+      <div class="stab-title">Match Analytics</div>
+      <div class="stab-desc">Worm chart, Manhattan bars, CRR vs RRR — broadcast-quality graphs that update live as you score.</div>
+    </div>
+    <div class="stab" onclick="showPhone(2)">
+      <div class="stab-title">Tournament Standings</div>
+      <div class="stab-desc">Points table with NRR, Orange Cap, Purple Cap — one shareable link for your entire tournament.</div>
+    </div>
+    <div class="stab" onclick="showPhone(3)">
+      <div class="stab-title">Player of the Match</div>
+      <div class="stab-desc">AI-powered impact algorithm suggests the best performer. You can accept or override.</div>
+    </div>
+    <div class="stab" onclick="showPhone(4)">
+      <div class="stab-title">Match Schedule</div>
+      <div class="stab-desc">Auto-generated fixtures. Drag-and-drop reorder. Set date and time per match.</div>
+    </div>
+    <div class="stab" onclick="showPhone(5)">
+      <div class="stab-title">Sponsor Branding</div>
+      <div class="stab-desc">Sponsor logo flips on over breaks. Marquee ticker. Organizer earns, viewers enjoy.</div>
+    </div>
+  </div>
+
+  <div class="showcase-phone-area">
+    <div class="sphone-glow"></div>
+
+    <!-- PHONE 0: LIVE SCORECARD -->
+    <div class="sphone active" id="sp0">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div class="ms-header">captainXI.com <span style="float:right;color:var(--green);font-size:9px;">LIVE</span></div>
+        <div class="ms-score-wrap">
+          <div class="ms-team-row"><span style="color:var(--text);">Warriors</span><span style="font-size:10px;color:var(--muted);">VS</span><span style="color:var(--muted);">Giants</span></div>
+          <div class="ms-big">142<span style="font-size:18px;color:var(--muted);">/4</span></div>
+          <div style="font-size:11px;color:var(--gold);margin-top:2px;">18.3 overs · CRR 7.68</div>
+        </div>
+        <div class="ms-label">Batting</div>
+        <div class="ms-row"><span class="ms-name">Kohli *</span><span><span class="ms-val">58</span><span style="font-size:9px;color:var(--muted);"> (41b)</span></span></div>
+        <div class="ms-row"><span class="ms-name">Jadeja</span><span><span class="ms-val">24</span><span style="font-size:9px;color:var(--muted);"> (18b)</span></span></div>
+        <div class="ms-label" style="margin-top:6px;">Bowling</div>
+        <div class="ms-row"><span class="ms-name" style="color:var(--blue);">Bumrah</span><span><span class="ms-val-r">2/28</span><span style="font-size:9px;color:var(--muted);"> (4.0)</span></span></div>
+        <div style="margin-top:8px;">
+          <div class="ms-label">This Over</div>
+          <div style="display:flex;gap:4px;">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text);">1</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:rgba(34,197,94,0.15);border:1px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--green);">4</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);">0</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:rgba(245,158,11,0.15);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--gold);">6</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text);">2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 1: MATCH ANALYTICS -->
+    <div class="sphone" id="sp1">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div class="ms-header">Match Analytics <span style="float:right;font-size:9px;color:var(--muted);">Club</span></div>
+        <div class="ms-label">Worm Chart</div>
+        <div class="ms-graph-area">
+          <svg class="ms-worm-svg" viewBox="0 0 240 120" preserveAspectRatio="none">
+            <polyline points="0,110 30,95 60,80 90,60 120,55 150,40 180,25 210,18 240,10" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+            <polyline points="0,110 30,100 60,92 90,75 120,68 150,50 180,42 210,30 240,22" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round"/>
+          </svg>
+          <div style="position:absolute;bottom:4px;right:6px;display:flex;gap:6px;">
+            <span class="ms-pill"><span class="ms-pill-dot" style="background:var(--gold);"></span>Inn 1</span>
+            <span class="ms-pill"><span class="ms-pill-dot" style="background:var(--blue);"></span>Inn 2</span>
+          </div>
+        </div>
+        <div class="ms-label">Manhattan</div>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:50px;padding:4px 0;">
+          <div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;">
+            <div style="flex:1;background:var(--gold);border-radius:2px 2px 0 0;height:40%;"></div>
+            <div style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:30%;opacity:0.7;"></div>
+          </div>
+          <div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;">
+            <div style="flex:1;background:var(--gold);border-radius:2px 2px 0 0;height:70%;"></div>
+            <div style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:55%;opacity:0.7;"></div>
+          </div>
+          <div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;">
+            <div style="flex:1;background:var(--gold);border-radius:2px 2px 0 0;height:50%;"></div>
+            <div style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:80%;opacity:0.7;"></div>
+          </div>
+          <div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;">
+            <div style="flex:1;background:var(--gold);border-radius:2px 2px 0 0;height:90%;"></div>
+            <div style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:60%;opacity:0.7;"></div>
+          </div>
+          <div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%;">
+            <div style="flex:1;background:var(--gold);border-radius:2px 2px 0 0;height:60%;"></div>
+            <div style="flex:1;background:var(--blue);border-radius:2px 2px 0 0;height:100%;opacity:0.7;"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--muted);padding:0 2px;">
+          <span>Ov1</span><span>Ov2</span><span>Ov3</span><span>Ov4</span><span>Ov5</span>
+        </div>
+        <div class="ms-label" style="margin-top:8px;">CRR vs RRR</div>
+        <div class="ms-graph-area" style="height:60px;">
+          <svg viewBox="0 0 240 60" preserveAspectRatio="none" style="width:100%;height:100%;">
+            <polyline points="0,50 60,35 120,25 180,15 240,10" fill="none" stroke="#22c55e" stroke-width="2"/>
+            <polyline points="0,30 60,32 120,35 180,40 240,55" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3,2"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 2: TOURNAMENT STANDINGS -->
+    <div class="sphone" id="sp2">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div style="text-align:center;margin-bottom:8px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);letter-spacing:2px;">RAMADAN CUP 2026</div>
+          <div style="font-size:9px;color:var(--muted);">8 teams · 20 overs · RR with Groups</div>
+        </div>
+        <!-- Orange Cap -->
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <div style="flex:1;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:8px;padding:6px 8px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">🧢</span>
+            <div><div style="font-size:10px;font-weight:700;color:var(--text);">Kohli</div><div style="font-size:8px;color:#f97316;">187 runs</div></div>
+          </div>
+          <div style="flex:1;background:rgba(188,140,255,0.1);border:1px solid rgba(188,140,255,0.3);border-radius:8px;padding:6px 8px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">🧢</span>
+            <div><div style="font-size:10px;font-weight:700;color:var(--text);">Bumrah</div><div style="font-size:8px;color:#bc8cff;">9 wkts</div></div>
+          </div>
+        </div>
+        <div class="ms-label">Points Table</div>
+        <div style="font-size:8px;display:flex;justify-content:space-between;padding:4px 6px;color:var(--muted);border-bottom:1px solid var(--border);">
+          <span style="flex:2;">Team</span><span style="flex:1;text-align:center;">P</span><span style="flex:1;text-align:center;">W</span><span style="flex:1;text-align:center;">Pts</span><span style="flex:1;text-align:right;">NRR</span>
+        </div>
+        <div style="font-size:9px;display:flex;justify-content:space-between;padding:5px 6px;border-bottom:1px solid rgba(42,58,85,0.3);">
+          <span style="flex:2;font-weight:700;color:var(--green);">Warriors</span><span style="flex:1;text-align:center;color:var(--muted);">4</span><span style="flex:1;text-align:center;color:var(--muted);">3</span><span style="flex:1;text-align:center;color:var(--gold);font-weight:700;">6</span><span style="flex:1;text-align:right;color:var(--green);font-size:8px;">+1.25</span>
+        </div>
+        <div style="font-size:9px;display:flex;justify-content:space-between;padding:5px 6px;border-bottom:1px solid rgba(42,58,85,0.3);">
+          <span style="flex:2;font-weight:700;color:var(--green);">Lions</span><span style="flex:1;text-align:center;color:var(--muted);">4</span><span style="flex:1;text-align:center;color:var(--muted);">3</span><span style="flex:1;text-align:center;color:var(--gold);font-weight:700;">6</span><span style="flex:1;text-align:right;color:var(--green);font-size:8px;">+0.87</span>
+        </div>
+        <div style="font-size:9px;display:flex;justify-content:space-between;padding:5px 6px;border-bottom:1px solid rgba(42,58,85,0.3);">
+          <span style="flex:2;font-weight:600;color:var(--text);">Eagles</span><span style="flex:1;text-align:center;color:var(--muted);">4</span><span style="flex:1;text-align:center;color:var(--muted);">2</span><span style="flex:1;text-align:center;color:var(--gold);font-weight:700;">4</span><span style="flex:1;text-align:right;color:var(--red);font-size:8px;">-0.34</span>
+        </div>
+        <div style="font-size:9px;display:flex;justify-content:space-between;padding:5px 6px;">
+          <span style="flex:2;font-weight:600;color:var(--muted);">Kings</span><span style="flex:1;text-align:center;color:var(--muted);">4</span><span style="flex:1;text-align:center;color:var(--muted);">1</span><span style="flex:1;text-align:center;color:var(--gold);font-weight:700;">2</span><span style="flex:1;text-align:right;color:var(--red);font-size:8px;">-1.78</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 3: PLAYER OF THE MATCH -->
+    <div class="sphone" id="sp3">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div class="ms-header">Player of the Match</div>
+        <div class="ms-pom" style="margin-bottom:10px;">
+          <div style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">CaptainXI Suggests</div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text);">Virat Kohli</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">58(41) | 2 ct</div>
+          <div style="font-size:10px;color:var(--green);margin-top:4px;">Impact Score: 87</div>
+        </div>
+        <div class="ms-label">Impact Breakdown</div>
+        <div class="ms-card">
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:6px;"><span style="color:var(--muted);">Batting</span><span class="ms-val">+52</span></div>
+          <div class="ms-chart-bar" style="background:var(--gold);width:85%;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:6px;margin-top:8px;"><span style="color:var(--muted);">Fielding</span><span class="ms-val-g">+16</span></div>
+          <div class="ms-chart-bar" style="background:var(--green);width:35%;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:6px;margin-top:8px;"><span style="color:var(--muted);">Winner Bonus</span><span class="ms-val-b">×1.3</span></div>
+          <div class="ms-chart-bar" style="background:var(--blue);width:50%;"></div>
+        </div>
+        <div style="text-align:center;margin-top:8px;">
+          <div style="background:var(--green);color:#000;border-radius:8px;padding:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;">Confirm Kohli as PoM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE 4: SCHEDULE -->
+    <div class="sphone" id="sp4">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div class="ms-header">Match Schedule <span style="float:right;font-size:9px;color:var(--green);">12 matches</span></div>
+        <div class="ms-card" style="border-left:3px solid var(--gold);">
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:9px;color:var(--gold);font-weight:700;">Match 1 · Group A</span><span style="font-size:8px;color:var(--muted);">5 Apr · 4:00 PM</span></div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;margin-top:2px;">Warriors vs Lions</div>
+        </div>
+        <div class="ms-card" style="border-left:3px solid var(--blue);">
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:9px;color:var(--blue);font-weight:700;">Match 2 · Group B</span><span style="font-size:8px;color:var(--muted);">5 Apr · 6:00 PM</span></div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;margin-top:2px;">Eagles vs Kings</div>
+        </div>
+        <div class="ms-card" style="border-left:3px solid var(--gold);">
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:9px;color:var(--gold);font-weight:700;">Match 3 · Group A</span><span style="font-size:8px;color:var(--muted);">6 Apr · 4:00 PM</span></div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;margin-top:2px;">Giants vs Tigers</div>
+        </div>
+        <div class="ms-card" style="border-left:3px solid var(--green);opacity:0.6;">
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:9px;color:var(--green);font-weight:700;">Semi Final 1</span><span class="ms-badge" style="background:rgba(34,197,94,0.15);color:var(--green);">TBD</span></div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;margin-top:2px;color:var(--muted);">1st A vs 2nd B</div>
+        </div>
+        <div class="ms-card" style="border-left:3px solid var(--red);opacity:0.5;">
+          <div style="display:flex;justify-content:space-between;"><span style="font-size:9px;color:var(--red);font-weight:700;">Final</span><span class="ms-badge" style="background:rgba(239,68,68,0.15);color:var(--red);">TBD</span></div>
+          <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;margin-top:2px;color:var(--muted);">Winner SF1 vs SF2</div>
+        </div>
+        <div style="text-align:center;font-size:8px;color:var(--muted);margin-top:4px;">Drag to reorder · Set date per match</div>
+      </div>
+    </div>
+
+    <!-- PHONE 5: SPONSOR BRANDING -->
+    <div class="sphone" id="sp5">
+      <div class="sphone-notch"></div>
+      <div class="sphone-screen">
+        <div class="ms-header">Scorecard Viewer</div>
+        <div class="ms-score-wrap" id="sponsorFlipDemo">
+          <div class="ms-team-row"><span>Warriors</span><span style="font-size:9px;color:var(--muted);">VS</span><span style="color:var(--muted);">Giants</span></div>
+          <div class="ms-big">86<span style="font-size:18px;color:var(--muted);">/2</span></div>
+          <div style="font-size:10px;color:var(--gold);">12.0 overs</div>
+        </div>
+        <!-- Sponsor flip simulation -->
+        <div class="ms-flip-back" style="margin-bottom:8px;animation:sponsorFlipAnim 6s ease-in-out infinite;">
+          <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Over Break</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);letter-spacing:2px;margin:4px 0;">CHIEF OFFICER</div>
+          <div style="font-size:9px;color:var(--muted);">Sponsor</div>
+        </div>
+        <!-- Marquee -->
+        <div style="background:rgba(26,37,56,0.8);border-radius:6px;padding:6px 8px;overflow:hidden;margin-bottom:8px;">
+          <div style="font-size:9px;color:var(--gold);font-family:'Rajdhani',sans-serif;font-weight:700;white-space:nowrap;animation:miniMarquee 8s linear infinite;">Sponsored by CHIEF OFFICER ★ Presented by Vijapur Cricket Club ★ captainXI.com</div>
+        </div>
+        <!-- Ad-free button -->
+        <div style="text-align:center;">
+          <div style="display:inline-block;background:var(--surface);border:1px solid var(--gold);border-radius:16px;padding:4px 12px;font-size:9px;color:var(--gold);font-family:'Rajdhani',sans-serif;font-weight:700;">Remove Ads — ₹29</div>
+          <div style="margin-top:6px;display:inline-block;background:rgba(245,158,11,0.1);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:9px;color:var(--muted);">Unlock Stats — ₹9</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<script>
+// Phone showcase auto-cycle
+let currentPhone=0;const totalPhones=6;
+function showPhone(n){
+  currentPhone=n;
+  document.querySelectorAll('.sphone').forEach((p,i)=>{p.classList.toggle('active',i===n);});
+  document.querySelectorAll('.stab').forEach((t,i)=>{t.classList.toggle('active',i===n);});
+}
+setInterval(()=>{showPhone((currentPhone+1)%totalPhones);},5000);
+</script>
+
 <!-- SOCIAL PROOF -->
 <div class="proof-bar">
   <div class="proof-item">
