@@ -284,6 +284,7 @@ async function selectLogo(id){
   if(t)t.logo_url=logoUrl;
   document.getElementById('logoModal').style.display='none';
   renderTeams();
+  renderPlayers();
   showToast('Logo selected!');
 }
 
@@ -296,6 +297,7 @@ async function uploadCustomLogo(input){
     if(t)t.logo_url=url;
     document.getElementById('logoModal').style.display='none';
     renderTeams();
+    renderPlayers();
     showToast('Custom logo uploaded!');
   }
 }
