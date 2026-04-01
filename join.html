@@ -240,9 +240,10 @@ async function register(){
   const{data:existing}=await sb.from('tournament_players').select('id').eq('team_id',team.id).eq('mobile',mobile).maybeSingle();
   if(existing){err.textContent='This mobile number is already registered for this team';return;}
 
-  // Check team capacity
+  // Check team capacity (allow 4 extra substitutes)
+  const maxReg=(tournament.players_per_team||11)+4;
   const{count}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('team_id',team.id);
-  if(count>=(tournament.players_per_team||15)){err.textContent='Team is full ('+tournament.players_per_team+' players max)';return;}
+  if(count>=maxReg){err.textContent='Team is full ('+maxReg+' players max including substitutes)';return;}
 
   err.textContent='';
   btn.disabled=true;
