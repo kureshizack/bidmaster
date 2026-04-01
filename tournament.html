@@ -43,9 +43,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .team-actions{display:flex;gap:6px;align-items:center;}
 .player-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(48,54,61,0.5);font-size:13px;}.player-row:last-child{border-bottom:none;}
 .player-name{font-weight:600;}.player-role{font-size:11px;color:var(--blue);background:rgba(88,166,255,0.1);padding:2px 8px;border-radius:4px;}
-.match-row{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:grab;transition:all .15s;}
-.match-row.dragging{opacity:0.4;border-color:var(--accent);}
-.match-teams-label{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;}
+.match-row{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;display:block;transition:all .15s;}
+.match-teams-label{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;}
 .match-num{font-size:11px;color:var(--accent);font-weight:700;font-family:'Rajdhani',sans-serif;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;z-index:999;display:none;animation:slideUp .3s ease;}
 @keyframes slideUp{from{transform:translate(-50%,20px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
@@ -119,7 +118,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <div class="step-content" id="step4"><div class="card">
     <div class="card-title">Schedule</div>
     <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="genSched()">Auto-Generate</button></div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Drag to reorder matches</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Use # dropdown to reorder · Pick date & time per match</div>
     <div id="schedCon"></div>
     <button class="btn btn-green" style="width:100%;padding:14px;font-size:16px;margin-top:16px;" onclick="goStep(5)">Next →</button>
   </div></div>
@@ -411,18 +410,16 @@ async function loadSched(){
     const isTBD=x.team_a.includes('Winner')||x.team_a.includes('1st ')||x.team_a.includes('2nd ')||x.team_a.includes('W ');
     let scoreBtn='';
     if(x.status==='scheduled'&&!isTBD){
-      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:10px;background:var(--green);color:#000;padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>';
+      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:9px;background:var(--green);color:#000;padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>';
     } else if(x.status==='completed'){
-      scoreBtn='<a href="scorecard.html?match='+x.id+'" style="font-size:10px;background:var(--surface2);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;border:1px solid var(--border);">Card</a>';
+      scoreBtn='<a href="scorecard.html?match='+x.id+'" style="font-size:9px;background:var(--surface2);color:var(--accent);padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;border:1px solid var(--border);">Card</a>';
     } else if(x.status==='live'){
-      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:10px;background:var(--green);color:#000;padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;animation:pulse 2s infinite;">LIVE</a>';
+      scoreBtn='<a href="scorer.html?match='+x.id+'" style="font-size:9px;background:var(--green);color:#000;padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">LIVE</a>';
     }
-    const resultLine=x.result?'<div style="font-size:10px;color:var(--green);margin-top:2px;">'+x.result+'</div>':'';
     // Order dropdown
     let orderOpts='';for(let i=1;i<=total;i++){orderOpts+='<option value="'+i+'"'+(i===x.match_number?' selected':'')+'>'+i+'</option>';}
-    // Date picker
+    // Date & time
     const curDate=x.match_date?x.match_date.substring(0,10):'';
-    // Time picker
     const curTime=x.match_date&&x.match_date.length>10?x.match_date.substring(11,16):'';
     const timeOpts=['','06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
     const timeOptHtml=timeOpts.map(t=>{
@@ -430,25 +427,22 @@ async function loadSched(){
       const h=parseInt(t);const ampm=h>=12?'PM':'AM';const h12=h>12?h-12:(h===0?12:h);const mm=t.split(':')[1];
       return '<option value="'+t+'"'+(t===curTime?' selected':'')+'>'+h12+':'+mm+' '+ampm+'</option>';
     }).join('');
-    const dtDisplay=curDate?new Date(curDate+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-    const tmDisplay=curTime?timeOpts.find(t=>t===curTime)||'':'';
 
-    return '<div class="match-row" data-id="'+x.id+'" style="border-left:3px solid '+borderColor+';">'+
-      '<div style="display:flex;align-items:center;gap:6px;flex:1;">'+
-        '<select onchange="setMatchOrder(\''+x.id+'\',this.value)" style="width:38px;background:var(--surface);border:1px solid var(--border);color:var(--accent);border-radius:4px;font-size:12px;padding:2px;font-family:Rajdhani,sans-serif;font-weight:700;text-align:center;">'+orderOpts+'</select>'+
-        '<div style="flex:1;">'+
-          '<div class="match-num">'+(x.stage?' '+x.stage:'M'+x.match_number)+(x.group_name?' · Grp '+x.group_name:'')+'</div>'+
-          '<div class="match-teams-label"'+(isTBD?' style="color:var(--muted);"':'')+'>'+x.team_a+' vs '+x.team_b+'</div>'+
-          resultLine+
-          (dtDisplay?'<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+dtDisplay+(tmDisplay?' · '+tmDisplay:'')+'</div>':'')+
+    return '<div class="match-row" data-id="'+x.id+'" style="border-left:3px solid '+borderColor+';padding:8px 10px;">'+
+      // Row 1: Order# + stage tag + teams + score btn
+      '<div style="display:flex;align-items:center;gap:6px;">'+
+        '<select onchange="setMatchOrder(\''+x.id+'\',this.value)" style="width:32px;background:var(--surface);border:1px solid var(--border);color:var(--accent);border-radius:4px;font-size:11px;padding:1px;font-family:Rajdhani,sans-serif;font-weight:700;text-align:center;flex-shrink:0;">'+orderOpts+'</select>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:9px;color:'+(isKO?'var(--green)':'var(--muted)')+';font-weight:700;font-family:Rajdhani,sans-serif;text-transform:uppercase;">'+(x.stage||'M'+x.match_number)+(x.group_name?' · '+x.group_name:'')+'</div>'+
+          '<div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'+(isTBD?'color:var(--muted);':'')+'">'+x.team_a+' <span style="color:var(--muted);font-size:11px;font-weight:400;">vs</span> '+x.team_b+'</div>'+
+          (x.result?'<div style="font-size:9px;color:var(--green);">'+x.result+'</div>':'')+
         '</div>'+
-      '</div>'+
-      '<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">'+
         scoreBtn+
-        '<div style="display:flex;gap:3px;align-items:center;">'+
-          '<input type="date" value="'+curDate+'" onchange="setMatchDT(\''+x.id+'\',this.value,this.parentElement.querySelector(\'select\').value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px 4px;width:105px;">'+
-          '<select onchange="setMatchDT(\''+x.id+'\',this.parentElement.querySelector(\'input\').value,this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px;width:72px;">'+timeOptHtml+'</select>'+
-        '</div>'+
+      '</div>'+
+      // Row 2: Date + Time pickers
+      '<div style="display:flex;gap:4px;margin-top:5px;margin-left:38px;">'+
+        '<input type="date" value="'+curDate+'" onchange="setMatchDT(\''+x.id+'\',this.value,this.nextElementSibling.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px 4px;flex:1;min-width:0;">'+
+        '<select onchange="setMatchDT(\''+x.id+'\',this.previousElementSibling.value,this.value)" style="background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:4px;font-size:10px;padding:2px;width:68px;flex-shrink:0;">'+timeOptHtml+'</select>'+
       '</div>'+
     '</div>';
   }
