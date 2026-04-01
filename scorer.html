@@ -2017,6 +2017,25 @@ async function resumeMatch(id){
     });
   }
 
+  // Load tournament_players if this is a tournament match
+  if(m.tournament_id){
+    const{data:tt}=await sb.from('tournament_teams').select('id,team_name').eq('tournament_id',m.tournament_id);
+    if(tt&&tt.length){
+      for(const team of tt){
+        const{data:tp}=await sb.from('tournament_players').select('player_name,role').eq('team_id',team.id);
+        if(tp&&tp.length){
+          if(!allPlayersByTeam[team.team_name])allPlayersByTeam[team.team_name]=[];
+          tp.forEach(p=>{
+            if(!allPlayersByTeam[team.team_name].includes(p.player_name)){
+              allPlayersByTeam[team.team_name].push(p.player_name);
+            }
+            if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
+          });
+        }
+      }
+    }
+  }
+
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
   if(!inn){
     // No active innings — pre-fill setup form from match data
