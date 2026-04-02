@@ -6,6 +6,9 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Upgrade Plan — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
@@ -158,6 +161,7 @@ footer a{color:var(--accent);text-decoration:none;margin:0 10px;}
 .cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
 
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
 </head>
 <body>
 
@@ -420,7 +424,7 @@ const PLAN_TIERS=['gully','matchday','club','pro'];
 
   await loadUsage();
   renderCurrentPlan();
-  renderPlans();
+  setBilling('per_auction'); // force initial render with cards visible
 
   // If plan was passed in URL and it's a paid plan, auto-scroll to it
   if(urlPlan&&urlPlan!=='gully'){
@@ -479,11 +483,14 @@ function renderCurrentPlan(){
 
 function renderPlans(){
   const grid=document.getElementById('plansGrid');
+  if(!grid)return;
   const currentTier=getCurrentPlanTier();
   const currentIdx=PLAN_TIERS.indexOf(currentTier);
 
-  grid.innerHTML=PLAN_TIERS.map((key,idx)=>{
+  let html='';
+  PLAN_TIERS.forEach((key,idx)=>{
     const p=PLANS[key];
+    if(!p)return;
     const isCurrent=key===currentTier;
     const isDowngrade=idx<currentIdx;
     const isUpgrade=idx>currentIdx;
@@ -492,45 +499,51 @@ function renderPlans(){
     if(p.isFree){
       priceText='FREE';subText='Forever · No card needed';
     } else if(p.noAnnual){
-      // Match Day is always per-event regardless of toggle
       priceText='₹'+p.price_per.toLocaleString('en-IN');
-      subText=p.per_unit;
+      subText=p.per_unit||'per event';
     } else if(billingMode==='annual'){
       priceText='₹'+p.price_annual.toLocaleString('en-IN');
-      subText=p.annual_unit;
+      subText=p.annual_unit||'per year';
     } else {
       priceText='₹'+p.price_per.toLocaleString('en-IN');
-      subText=p.per_unit;
+      subText=p.per_unit||'per event';
     }
 
     let btnHtml;
     if(isCurrent){
-      btnHtml=`<div class="plan-btn plan-btn-current">✓ Current Plan</div>`;
+      btnHtml='<div class="plan-btn plan-btn-current">✓ Current Plan</div>';
     } else if(isDowngrade){
-      btnHtml=`<div class="plan-btn plan-btn-outline" style="opacity:0.5;cursor:not-allowed;">Downgrade</div>`;
+      btnHtml='<div class="plan-btn plan-btn-outline" style="opacity:0.5;cursor:not-allowed;">Downgrade</div>';
     } else if(p.isFree){
-      btnHtml=`<a href="login.html" class="plan-btn plan-btn-outline">Start Free →</a>`;
+      btnHtml='<a href="login.html" class="plan-btn plan-btn-outline">Start Free →</a>';
     } else {
-      btnHtml=`<button class="plan-btn plan-btn-gold" onclick="startPayment('${key}')">Upgrade to ${p.name} →</button>`;
+      btnHtml='<button class="plan-btn plan-btn-gold" onclick="startPayment(\''+key+'\')">Upgrade to '+p.name+' →</button>';
     }
 
-    return `
-      <div class="plan-card ${p.popular?'featured':''} ${isCurrent?'current-plan':''}" id="card-${key}">
-        ${p.popular?'<div class="popular-badge">MOST POPULAR</div>':''}
-        <div class="plan-icon">${p.icon}</div>
-        <div class="plan-name">${p.name}</div>
-        <div class="plan-tagline">${p.tagline}</div>
-        <div class="plan-price ${p.isFree?'free-price':''}">${priceText}</div>
-        <div class="plan-price-sub">${subText}${(!p.isFree&&billingMode==='annual')?'<br><span style="color:var(--green);font-weight:700;font-size:11px;">'+p.annual_save+'</span>':''}</div>
-        <hr class="plan-divider">
-        <ul class="plan-features">
-          ${(p.features||[]).map(f=>'<li><span class="icon">✅</span> '+f+'</li>').join('')}
-          ${(p.locked||[]).map(f=>'<li class="disabled"><span class="icon">🔒</span> '+f+'</li>').join('')}
-        </ul>
-        ${btnHtml}
-        ${p.badge?'<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">'+p.badge+'</div>':''}
-      </div>`;
-  }).join('');
+    let saveHtml='';
+    if(!p.isFree&&billingMode==='annual'&&p.annual_save){
+      saveHtml='<br><span style="color:var(--green);font-weight:700;font-size:11px;">'+p.annual_save+'</span>';
+    }
+
+    html+='<div class="plan-card '+(p.popular?'featured':'')+' '+(isCurrent?'current-plan':'')+'" id="card-'+key+'">';
+    if(p.popular)html+='<div class="popular-badge">MOST POPULAR</div>';
+    if(isCurrent){}// CSS handles CURRENT badge
+    html+='<div class="plan-icon">'+p.icon+'</div>';
+    html+='<div class="plan-name">'+p.name+'</div>';
+    html+='<div class="plan-tagline">'+p.tagline+'</div>';
+    html+='<div class="plan-price '+(p.isFree?'free-price':'')+'">'+priceText+'</div>';
+    html+='<div class="plan-price-sub">'+subText+saveHtml+'</div>';
+    html+='<hr class="plan-divider">';
+    html+='<ul class="plan-features">';
+    (p.features||[]).forEach(f=>{html+='<li><span class="icon">✅</span> '+f+'</li>';});
+    (p.locked||[]).forEach(f=>{html+='<li class="disabled"><span class="icon">🔒</span> '+f+'</li>';});
+    html+='</ul>';
+    html+=btnHtml;
+    if(p.badge)html+='<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">'+p.badge+'</div>';
+    html+='</div>';
+  });
+
+  grid.innerHTML=html;
 }
 
 // ── BILLING TOGGLE ───────────────────────────────────────
@@ -556,35 +569,45 @@ function setBilling(mode){
 }
 
 // ── RAZORPAY PAYMENT ─────────────────────────────────────
-function startPayment(planKey){
+async function startPayment(planKey){
   const plan=PLANS[planKey];
   if(!plan||plan.isFree)return;
 
-  // Match Day is always per-event regardless of billing toggle
   const effectiveBilling=plan.noAnnual?'per_auction':billingMode;
   const amount=effectiveBilling==='annual'?plan.price_annual:plan.price_per;
   const desc=plan.name+' Plan'+(effectiveBilling==='annual'?' (Annual)':' (Per Event)');
 
+  // Create Razorpay Order for UPI support
+  let orderId=null;
+  try{
+    const r=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},
+      body:JSON.stringify({amount:Math.round(amount*100),currency:'INR',notes:{plan:planKey,billing:effectiveBilling,user_id:currentUser.id}})
+    });
+    const d=await r.json();
+    if(d.order_id)orderId=d.order_id;
+  }catch(e){console.log('Order creation failed:',e);}
+
   const options={
     key:RAZORPAY_KEY,
-    amount:amount*100, // Razorpay expects paise
+    amount:Math.round(amount*100),
     currency:'INR',
     name:'CaptainXI',
     description:desc,
     image:'/favicon.svg',
+    retry:{enabled:false},
     prefill:{
       email:currentUser.email||'',
       contact:userProfile?.mobile||''
     },
     theme:{color:'#f59e0b'},
     handler:function(response){
-      // Payment successful
       onPaymentSuccess(planKey,amount,effectiveBilling,response.razorpay_payment_id);
     },
     modal:{
-      ondismiss:function(){
-        // User closed Razorpay modal — do nothing
-      }
+      confirm_close:true,
+      ondismiss:function(){}
     },
     notes:{
       plan:planKey,
@@ -592,6 +615,7 @@ function startPayment(planKey){
       user_id:currentUser.id
     }
   };
+  if(orderId)options.order_id=orderId;
 
   const rzp=new Razorpay(options);
   rzp.on('payment.failed',function(resp){
@@ -655,5 +679,6 @@ async function onPaymentSuccess(planKey,amount,billing,paymentId){
 
 function toggleFaq(el){ el.classList.toggle('open'); }
 </script>
+<script src="/cxi-modern.js"></script>
 </body>
 </html>
