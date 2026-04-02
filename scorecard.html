@@ -622,7 +622,7 @@ function showAdFreeOffer(){
   document.body.appendChild(modal);
 }
 
-function unlockStats(){
+async function unlockStats(){
   // For now: Razorpay micro-payment for ₹9
   if(typeof Razorpay==='undefined'){
     // Razorpay not loaded — unlock directly for testing
@@ -632,12 +632,13 @@ function unlockStats(){
     return;
   }
   const options={
-    key:'rzp_live_SV1EehZnBUYxh7',
-    amount:900, // ₹9 in paise
+    key:'rzp_live_SYbRTBbAmBDn42',
+    amount:900,
     currency:'INR',
     name:'CaptainXI',
     description:'Match Stats Unlock',
     image:'/favicon.svg',
+    retry:{enabled:false},
     theme:{color:'#f59e0b'},
     handler:function(response){
       localStorage.setItem('cxi_stats_'+matchId,'unlocked');
@@ -645,11 +646,16 @@ function unlockStats(){
       renderCharts();
     }
   };
+  // Try creating order for UPI support
+  try{
+    const r=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},body:JSON.stringify({amount:900,currency:'INR'})});
+    const d=await r.json();if(d.order_id)options.order_id=d.order_id;
+  }catch(e){}
   const rzp=new Razorpay(options);
   rzp.open();
 }
 
-function unlockAdFree(){
+async function unlockAdFree(){
   const modal=document.getElementById('adFreeModal');
   if(modal)modal.remove();
 
@@ -659,17 +665,22 @@ function unlockAdFree(){
     return;
   }
   const options={
-    key:'rzp_live_SV1EehZnBUYxh7',
-    amount:2900, // ₹29 in paise
+    key:'rzp_live_SYbRTBbAmBDn42',
+    amount:2900,
     currency:'INR',
     name:'CaptainXI',
     description:'Ad-Free Scorecard',
     image:'/favicon.svg',
+    retry:{enabled:false},
     theme:{color:'#f59e0b'},
     handler:function(response){
       activateAdFree();
     }
   };
+  try{
+    const r=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},body:JSON.stringify({amount:2900,currency:'INR'})});
+    const d=await r.json();if(d.order_id)options.order_id=d.order_id;
+  }catch(e){}
   const rzp=new Razorpay(options);
   rzp.open();
 }

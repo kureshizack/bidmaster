@@ -361,7 +361,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 // ── RAZORPAY CONFIG ───────────────────────────────────────
-const RAZORPAY_KEY = 'rzp_live_SV1EehZnBUYxh7';
+const RAZORPAY_KEY = 'rzp_live_SYbRTBbAmBDn42';
 // ─────────────────────────────────────────────────────────
 
 // ── PLATFORM CONVENIENCE FEE ─────────────────────────────
@@ -717,22 +717,48 @@ async function submitRegistration(){
 
   // ── RAZORPAY PAYMENT ────────────────────────────────────
   if(totalPayable<=0){
-    // Fee is 0 but not marked as free — treat as free
     await saveRegistration(null);
     return;
   }
 
+  // Create Razorpay Order (required for UPI in live mode)
+  btn.textContent='Creating payment...';
+  let orderId=null;
+  try{
+    const orderRes=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},
+      body:JSON.stringify({
+        amount:Math.round(totalPayable*100),
+        currency:'INR',
+        notes:{auction_id:auctionId,player_name:name,mobile:mobile,type:isCaptain?'captain':'player'}
+      })
+    });
+    const orderData=await orderRes.json();
+    if(orderData.error){
+      showFormMsg('Payment setup failed: '+orderData.error,'error');
+      btn.textContent='💳 Pay & Register';btn.disabled=false;
+      return;
+    }
+    orderId=orderData.order_id;
+  }catch(e){
+    // If edge function fails, try without order (fallback for card payments)
+    console.log('Order creation failed, trying without order_id:',e);
+  }
+
+  btn.textContent='Opening payment...';
+
   await new Promise((resolve, reject) => {
-    let paymentHandled=false; // prevent double-fire
+    let paymentHandled=false;
     const options = {
       key: RAZORPAY_KEY,
-      amount: Math.round(totalPayable * 100), // paisa, must be integer
+      amount: Math.round(totalPayable * 100),
       currency: 'INR',
       name: auction.name || 'captainXI.com',
       description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
       image: '/favicon.svg',
-      retry: { enabled: false }, // prevent retry loop on UPI
-      timeout: 300, // 5 min timeout
+      retry: { enabled: false },
+      timeout: 300,
       prefill: {
         name: name,
         contact: '+91' + mobile,
@@ -745,7 +771,7 @@ async function submitRegistration(){
       },
       theme: { color: '#f59e0b' },
       modal: {
-        confirm_close: true, // ask before closing
+        confirm_close: true,
         ondismiss: () => {
           if(!paymentHandled){
             showFormMsg('Payment cancelled. Try again when ready.', 'error');
@@ -755,11 +781,14 @@ async function submitRegistration(){
         }
       },
       handler: function(response) {
-        if(paymentHandled)return; // prevent double-fire
+        if(paymentHandled)return;
         paymentHandled=true;
         resolve(response);
       }
     };
+    // Add order_id if available
+    if(orderId)options.order_id=orderId;
+
     const rzp = new Razorpay(options);
     rzp.on('payment.failed', function(response) {
       if(paymentHandled)return;

@@ -315,23 +315,41 @@ async function register(){
   document.getElementById('successCard').style.display='block';
 }
 
-function processPayment(name,mobile){
+async function processPayment(name,mobile){
+  const amount=Math.round(tournament.registration_fee*100);
+  if(amount<=0)return true;
+
+  // Create Razorpay Order
+  let orderId=null;
+  try{
+    const res=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},
+      body:JSON.stringify({amount,currency:'INR',notes:{tournament:tournament.name,team:team.team_name,player:name,mobile}})
+    });
+    const data=await res.json();
+    if(data.order_id)orderId=data.order_id;
+  }catch(e){console.log('Order creation failed:',e);}
+
   return new Promise(resolve=>{
     const options={
-      key:'rzp_live_SV1EehZnBUYxh7',
-      amount:tournament.registration_fee*100,
+      key:'rzp_live_SYbRTBbAmBDn42',
+      amount:amount,
       currency:'INR',
       name:tournament.name,
       description:'Tournament Registration - '+team.team_name,
       image:'/favicon.svg',
-      prefill:{contact:mobile},
+      retry:{enabled:false},
+      timeout:300,
+      prefill:{name:name,contact:'+91'+mobile},
       theme:{color:'#f59e0b'},
+      modal:{confirm_close:true,ondismiss:function(){resolve(false);}},
       handler:function(response){
         window._lastPaymentId=response.razorpay_payment_id;
         resolve(true);
-      },
-      modal:{ondismiss:function(){resolve(false);}}
+      }
     };
+    if(orderId)options.order_id=orderId;
     const rzp=new Razorpay(options);
     rzp.on('payment.failed',function(){resolve(false);});
     rzp.open();
