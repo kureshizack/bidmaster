@@ -343,7 +343,76 @@ async function rmTeam(id){if(!await cxiConfirm('Remove team?'))return;await sb.f
 async function chGrp(id,g){const t=teams.find(x=>x.id===id);if(t){t.group_name=g;await sb.from('tournament_teams').update({group_name:g}).eq('id',id);}renderGD();}
 async function shuffleGrps(){const gc=+(document.getElementById('tGrpCount')?.value||2);const gN='ABCDEFGH'.split('').slice(0,gc);const sh=[...teams].sort(()=>Math.random()-0.5);for(let i=0;i<sh.length;i++){sh[i].group_name=gN[i%gc];await sb.from('tournament_teams').update({group_name:sh[i].group_name}).eq('id',sh[i].id);}teams=sh;renderTeams();showToast('Shuffled!');}
 function renderGD(){const el=document.getElementById('grpDisp');const g={};teams.forEach(t=>{const k=t.group_name||'?';if(!g[k])g[k]=[];g[k].push(t.team_name);});el.innerHTML=Object.keys(g).sort().map(k=>'<div style="margin-bottom:6px;"><span class="grp-badge grp-'+k+'">Group '+k+'</span> <span style="font-size:12px;color:var(--muted);">'+g[k].join(', ')+'</span></div>').join('');}
-async function saveS2(){if(teams.length<2){document.getElementById('s2Err').textContent='Add at least 2 teams';return;}document.getElementById('s2Err').textContent='';if(T.team_formation==='auction'){cxiAlert('Go to Dashboard → Create Auction');return;}if(T.status==='setup')await sb.from('tournaments').update({status:'registration'}).eq('id',T.id);T.status='registration';goStep(3);}
+async function saveS2(){
+  if(teams.length<2){document.getElementById('s2Err').textContent='Add at least 2 teams';return;}
+  document.getElementById('s2Err').textContent='';
+  
+  if(T.team_formation==='auction'){
+    // Check if auction already exists for this tournament
+    const{data:existingAuction}=await sb.from('auctions').select('id,status,room_code').eq('tournament_id',T.id).maybeSingle();
+    if(existingAuction){
+      // Auction exists — redirect to it
+      if(existingAuction.status==='ended'){
+        // Auction completed — import sold players into tournament_players
+        await importAuctionPlayers(existingAuction.id);
+        showToast('Players imported from auction!');
+        goStep(3);
+      } else {
+        window.location.href='setup.html?auction='+existingAuction.id;
+      }
+      return;
+    }
+    // Create auction linked to this tournament
+    const roomCode=Math.random().toString(36).substring(2,8).toUpperCase();
+    const{data:newAuction,error}=await sb.from('auctions').insert({
+      name:T.name,
+      league_name:T.name,
+      room_code:roomCode,
+      owner_id:user.id,
+      status:'setup',
+      tournament_id:T.id,
+      max_teams:T.teams_count,
+      team_budget:100000
+    }).select().single();
+    if(error){cxiAlert('Error creating auction: '+error.message);return;}
+    // Create auction teams matching tournament teams
+    for(const t of teams){
+      await sb.from('teams').insert({auction_id:newAuction.id,name:t.team_name,budget:100000,owner_name:''});
+    }
+    showToast('Auction created! Redirecting to setup...');
+    setTimeout(()=>{window.location.href='setup.html?auction='+newAuction.id;},800);
+    return;
+  }
+  
+  if(T.status==='setup')await sb.from('tournaments').update({status:'registration'}).eq('id',T.id);
+  T.status='registration';
+  goStep(3);
+}
+
+// Import players from completed auction into tournament_players
+async function importAuctionPlayers(auctionId){
+  const{data:sales}=await sb.from('sales').select('*,players(name,role,mobile),teams(name)').eq('auction_id',auctionId);
+  if(!sales||!sales.length)return;
+  for(const s of sales){
+    const teamName=s.teams?.name;
+    const playerName=s.players?.name;
+    if(!teamName||!playerName)continue;
+    // Find matching tournament team
+    const tt=teams.find(t=>t.team_name===teamName);
+    if(!tt)continue;
+    // Check if already imported
+    const{data:existing}=await sb.from('tournament_players').select('id').eq('tournament_id',T.id).eq('player_name',playerName).maybeSingle();
+    if(existing)continue;
+    await sb.from('tournament_players').insert({
+      tournament_id:T.id,
+      team_id:tt.id,
+      player_name:playerName,
+      mobile:s.players?.mobile||null,
+      role:s.players?.role||'all_rounder',
+      payment_status:'auction'
+    });
+  }
+}
 
 async function renderPlayers(){
   // Registration status toggle

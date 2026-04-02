@@ -2042,6 +2042,20 @@ async function resumeMatch(id){
         }
       }
     }
+    // Also load from linked auction (if tournament uses auction formation)
+    const{data:linkedAuction}=await sb.from('auctions').select('id').eq('tournament_id',m.tournament_id).maybeSingle();
+    if(linkedAuction){
+      const{data:sales}=await sb.from('sales').select('*,players(name),teams(name)').eq('auction_id',linkedAuction.id);
+      if(sales){
+        sales.forEach(s=>{
+          const tn=s.teams?.name;const pn=s.players?.name;
+          if(!tn||!pn)return;
+          if(!allPlayersByTeam[tn])allPlayersByTeam[tn]=[];
+          if(!allPlayersByTeam[tn].includes(pn))allPlayersByTeam[tn].push(pn);
+          if(!allPlayerNames.includes(pn))allPlayerNames.push(pn);
+        });
+      }
+    }
   }
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
