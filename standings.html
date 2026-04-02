@@ -10,6 +10,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tournament Standings — captainXI.com</title>
+<!-- WhatsApp / Social Link Preview -->
+<meta name="description" content="Live tournament standings, points table, fixtures & stats — captainXI.com">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cricket Tournament Standings — CaptainXI" id="ogTitle">
+<meta property="og:description" content="Points table, fixtures, Orange Cap, Purple Cap & match results" id="ogDesc">
+<meta property="og:image" content="https://captainxi.com/favicon.svg" id="ogImage">
+<meta property="og:url" content="https://captainxi.com/standings.html" id="ogUrl">
+<meta property="og:site_name" content="CaptainXI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Cricket Tournament Standings — CaptainXI" id="twTitle">
+<meta name="twitter:description" content="Live standings & fixtures — captainXI.com" id="twDesc">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -142,7 +153,16 @@ footer a{color:var(--accent);text-decoration:none;}
   </div>
 </div>
 
-<footer>Powered by <a href="https://captainxi.com">captainXI.com</a></footer>
+<!-- CREATE TOURNAMENT CTA -->
+<div style="margin:24px 12px;background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.02));border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:24px 18px;text-align:center;">
+  <div style="font-size:28px;margin-bottom:6px;">🏆</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--accent);margin-bottom:4px;">CREATE YOUR TOURNAMENT</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Schedule matches, score ball-by-ball, live standings,<br>Orange & Purple Cap — all free for 6 teams</div>
+  <a href="https://captainxi.com/login.html#signup" style="display:inline-block;background:var(--accent);color:#000;padding:12px 32px;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;text-decoration:none;letter-spacing:1px;">Start Free → captainxi.com</a>
+  <div style="font-size:10px;color:var(--muted);margin-top:8px;">No credit card · No app download · Works on any phone</div>
+</div>
+
+<footer>Powered by <a href="https://captainxi.com">captainXI.com</a> · India's #1 Cricket Tournament Platform</footer>
 
 <script>
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
@@ -179,6 +199,15 @@ function teamLogo(name){const t=teams.find(x=>x.team_name===name);return t?rende
   const{data:t}=await sb.from('tournaments').select('*').eq('share_code',code).maybeSingle();
   if(!t){document.getElementById('loadingScreen').style.display='none';document.getElementById('errorScreen').style.display='block';return;}
   tournament=t;
+
+  // Dynamic WhatsApp/social preview
+  const liveTitle=t.name+' — '+(t.status==='live'?'LIVE Standings':'Standings')+' | CaptainXI';
+  document.title=liveTitle;
+  const ogT=document.getElementById('ogTitle');if(ogT)ogT.content=liveTitle;
+  const twT=document.getElementById('twTitle');if(twT)twT.content=liveTitle;
+  const ogD=document.getElementById('ogDesc');if(ogD)ogD.content=t.teams_count+' teams · '+t.overs_per_match+' overs · '+(t.format||'').replace(/_/g,' ')+(t.venue?' · '+t.venue:'');
+  const twD=document.getElementById('twDesc');if(twD)twD.content=t.name+' — '+t.teams_count+' teams — captainXI.com';
+  const ogU=document.getElementById('ogUrl');if(ogU)ogU.content='https://captainxi.com/standings.html?t='+t.share_code;
 
   // Load teams
   const{data:tm}=await sb.from('tournament_teams').select('*').eq('tournament_id',t.id).order('points',{ascending:false});

@@ -7,6 +7,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Scorecard — captainXI.com</title>
+<!-- WhatsApp / Social Link Preview -->
+<meta name="description" content="Live ball-by-ball cricket scorecard with charts, partnerships & Player of the Match — captainXI.com">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Live Cricket Scorecard — CaptainXI" id="ogTitle">
+<meta property="og:description" content="Ball-by-ball live scoring with Worm Chart, Manhattan, Partnerships & Player of the Match" id="ogDesc">
+<meta property="og:image" content="https://captainxi.com/favicon.svg" id="ogImage">
+<meta property="og:url" content="https://captainxi.com/scorecard.html" id="ogUrl">
+<meta property="og:site_name" content="CaptainXI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Live Cricket Scorecard — CaptainXI" id="twTitle">
+<meta name="twitter:description" content="Ball-by-ball live scoring — captainXI.com" id="twDesc">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f59e0b">
@@ -495,6 +506,15 @@ async function loadAll(){
   const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
   if(!m)return;
   matchData=m;
+
+  // Dynamic WhatsApp/social preview
+  const liveTitle=m.team_a+' vs '+m.team_b+(m.status==='live'?' — LIVE':m.result?' — Result':'')+ ' | CaptainXI';
+  document.title=liveTitle;
+  const ogT=document.getElementById('ogTitle');if(ogT)ogT.content=liveTitle;
+  const twT=document.getElementById('twTitle');if(twT)twT.content=liveTitle;
+  const ogD=document.getElementById('ogDesc');if(ogD)ogD.content=m.result||('Live cricket scorecard — '+m.team_a+' vs '+m.team_b);
+  const twD=document.getElementById('twDesc');if(twD)twD.content=m.result||('Live scoring on CaptainXI');
+  const ogU=document.getElementById('ogUrl');if(ogU)ogU.content='https://captainxi.com/scorecard.html?code='+m.share_code;
 
   // Load organizer plan for feature gating
   if(m.created_by&&organizerPlan==='free'){
