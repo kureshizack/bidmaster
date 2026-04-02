@@ -1932,45 +1932,49 @@ function toggleBilling() {
     const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
     const _sb=supabase.createClient(SB_URL,SB_KEY);
 
-    // Load live matches
-    const{data:liveM}=await _sb.from('matches').select('id,team_a,team_b,venue,share_code,status,stage').eq('status','live').order('created_at',{ascending:false}).limit(6);
-    // Load live tournaments
-    const{data:liveT}=await _sb.from('tournaments').select('name,teams_count,overs_per_match,format,share_code,status,venue').eq('status','live').order('created_at',{ascending:false}).limit(4);
-    // Load live auctions
-    const{data:liveA}=await _sb.from('auctions').select('name,league_name,room_code,status').eq('status','live').order('created_at',{ascending:false}).limit(4);
+    // Only matches actively being scored — status='live' AND updated in last 4 hours
+    const fourHoursAgo=new Date(Date.now()-4*60*60*1000).toISOString();
+    const{data:liveM}=await _sb.from('matches').select('id,team_a,team_b,venue,share_code,status,stage,tournament_id,updated_at').eq('status','live').gte('updated_at',fourHoursAgo).order('updated_at',{ascending:false}).limit(6);
 
-    // Load upcoming
-    const{data:upM}=await _sb.from('matches').select('id,team_a,team_b,match_date,venue,share_code,stage').eq('status','scheduled').order('match_date',{ascending:true}).limit(6);
+    // Upcoming matches with dates set
+    const{data:upM}=await _sb.from('matches').select('id,team_a,team_b,match_date,venue,share_code,stage').eq('status','scheduled').not('match_date','is',null).order('match_date',{ascending:true}).limit(6);
+    // Upcoming tournaments (registration open)
     const{data:upT}=await _sb.from('tournaments').select('name,teams_count,overs_per_match,format,share_code,start_date,venue').eq('status','registration').order('created_at',{ascending:false}).limit(4);
 
-    // Load completed (recent)
-    const{data:doneM}=await _sb.from('matches').select('id,team_a,team_b,winner,result,share_code,mom_name').eq('status','completed').order('updated_at',{ascending:false}).limit(6);
+    // Recently completed matches (last 7 days)
+    const sevenDaysAgo=new Date(Date.now()-7*24*60*60*1000).toISOString();
+    const{data:doneM}=await _sb.from('matches').select('id,team_a,team_b,winner,result,share_code,mom_name,updated_at').eq('status','completed').gte('updated_at',sevenDaysAgo).order('updated_at',{ascending:false}).limit(6);
+    // Recently completed tournaments
     const{data:doneT}=await _sb.from('tournaments').select('name,teams_count,format,share_code').eq('status','completed').order('created_at',{ascending:false}).limit(4);
 
-    // Build live cards
+    // Get tournament names for live matches
+    const liveTournIds=[...new Set((liveM||[]).filter(m=>m.tournament_id).map(m=>m.tournament_id))];
+    let tournNames={};
+    if(liveTournIds.length){
+      const{data:tns}=await _sb.from('tournaments').select('id,name,share_code').in('id',liveTournIds);
+      (tns||[]).forEach(t=>{tournNames[t.id]={name:t.name,code:t.share_code};});
+    }
+
+    // Build LIVE cards — only actively scored matches + their parent tournaments
     const liveCards=[];
+    const shownTournIds=new Set();
     (liveM||[]).forEach(m=>{
+      const tn=m.tournament_id&&tournNames[m.tournament_id]?tournNames[m.tournament_id]:'';
+      // Show parent tournament card once
+      if(tn&&!shownTournIds.has(m.tournament_id)){
+        shownTournIds.add(m.tournament_id);
+        liveCards.unshift(`<a href="standings.html?t=${tn.code}" class="live-card" style="border-color:var(--accent);text-decoration:none;">
+          <div class="live-card-type" style="color:var(--accent);display:flex;align-items:center;gap:4px;"><span class="live-pulse" style="background:var(--accent);"></span> Live Tournament</div>
+          <div class="live-card-title">🏆 ${tn.name}</div>
+          <div class="live-card-sub">Match in progress</div>
+          <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(245,158,11,0.15);color:var(--accent);">View Standings →</span></div>
+        </a>`);
+      }
       liveCards.push(`<a href="scorecard.html?code=${m.share_code}" class="live-card" style="border-color:var(--green);text-decoration:none;">
-        <div class="live-card-type" style="color:var(--green);display:flex;align-items:center;gap:4px;"><span class="live-pulse"></span> Live Match</div>
+        <div class="live-card-type" style="color:var(--green);display:flex;align-items:center;gap:4px;"><span class="live-pulse"></span> Live Scoring</div>
         <div class="live-card-title">${m.team_a} vs ${m.team_b}</div>
-        <div class="live-card-sub">${m.stage||''}${m.venue?' · '+m.venue:''}</div>
+        <div class="live-card-sub">${tn?'🏆 '+tn.name+' · ':''}${m.stage||''}${m.venue?' · '+m.venue:''}</div>
         <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(34,197,94,0.15);color:var(--green);">View Live Score →</span></div>
-      </a>`);
-    });
-    (liveT||[]).forEach(t=>{
-      liveCards.push(`<a href="standings.html?t=${t.share_code}" class="live-card" style="border-color:var(--gold);text-decoration:none;">
-        <div class="live-card-type" style="color:var(--gold);display:flex;align-items:center;gap:4px;"><span class="live-pulse" style="background:var(--gold);"></span> Live Tournament</div>
-        <div class="live-card-title">🏆 ${t.name}</div>
-        <div class="live-card-sub">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}${t.venue?' · '+t.venue:''}</div>
-        <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(245,158,11,0.15);color:var(--gold);">View Standings →</span></div>
-      </a>`);
-    });
-    (liveA||[]).forEach(a=>{
-      liveCards.push(`<a href="viewer.html?room=${a.room_code}" class="live-card" style="border-color:var(--blue);text-decoration:none;">
-        <div class="live-card-type" style="color:var(--blue);display:flex;align-items:center;gap:4px;"><span class="live-pulse" style="background:var(--blue);"></span> Live Auction</div>
-        <div class="live-card-title">🏏 ${a.name}</div>
-        <div class="live-card-sub">${a.league_name||''} · Room: ${a.room_code}</div>
-        <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(96,165,250,0.15);color:var(--blue);">Watch Live →</span></div>
       </a>`);
     });
 
@@ -1988,10 +1992,10 @@ function toggleBilling() {
     (upT||[]).forEach(t=>{
       const dt=t.start_date?new Date(t.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
       upCards.push(`<a href="standings.html?t=${t.share_code}" class="live-card" style="text-decoration:none;">
-        <div class="live-card-type" style="color:var(--accent);">Upcoming Tournament</div>
+        <div class="live-card-type" style="color:var(--accent);">Registration Open</div>
         <div class="live-card-title">🏆 ${t.name}</div>
-        <div class="live-card-sub">${t.teams_count} teams · ${t.overs_per_match} ov${dt?' · '+dt:''}${t.venue?' · '+t.venue:''}</div>
-        <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(245,158,11,0.1);color:var(--accent);">Register →</span></div>
+        <div class="live-card-sub">${t.teams_count} teams · ${t.overs_per_match} ov${dt?' · Starts '+dt:''}${t.venue?' · '+t.venue:''}</div>
+        <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(245,158,11,0.1);color:var(--accent);">View →</span></div>
       </a>`);
     });
 
@@ -1999,7 +2003,7 @@ function toggleBilling() {
     const doneCards=[];
     (doneM||[]).forEach(m=>{
       doneCards.push(`<a href="scorecard.html?code=${m.share_code}" class="live-card" style="text-decoration:none;">
-        <div class="live-card-type" style="color:var(--muted);">Completed Match</div>
+        <div class="live-card-type" style="color:var(--muted);">Result</div>
         <div class="live-card-title">${m.team_a} vs ${m.team_b}</div>
         <div class="live-card-sub">${m.result||''}${m.mom_name?' · PoM: '+m.mom_name:''}</div>
         <div style="margin-top:6px;"><span class="live-card-badge" style="background:rgba(139,148,158,0.1);color:var(--muted);">Scorecard →</span></div>
@@ -2018,9 +2022,9 @@ function toggleBilling() {
     document.getElementById('upcomingCount').textContent=upCards.length;
     document.getElementById('completedCount').textContent=doneCards.length;
 
-    document.getElementById('liveContent').innerHTML=liveCards.length?liveCards.join(''):'<div class="live-empty">No live activity right now. Check back during match time!</div>';
+    document.getElementById('liveContent').innerHTML=liveCards.length?liveCards.join(''):'<div class="live-empty">No live scoring right now. Check back during match time!</div>';
     document.getElementById('upcomingContent').innerHTML=upCards.length?upCards.join(''):'<div class="live-empty">No upcoming events scheduled.</div>';
-    document.getElementById('completedContent').innerHTML=doneCards.length?doneCards.join(''):'<div class="live-empty">No completed events yet.</div>';
+    document.getElementById('completedContent').innerHTML=doneCards.length?doneCards.join(''):'<div class="live-empty">No recent results.</div>';
 
     // Hide section if nothing at all
     if(!liveCards.length&&!upCards.length&&!doneCards.length){

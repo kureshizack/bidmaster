@@ -561,45 +561,33 @@ async function loadTournaments(){
 async function loadLiveFeed(){
   const feed=document.getElementById('liveFeed');
   try{
-    // Live matches (all platform)
-    const{data:liveM}=await sb.from('matches').select('id,team_a,team_b,venue,share_code,status,stage').eq('status','live').order('created_at',{ascending:false}).limit(5);
-    // Live tournaments
-    const{data:liveT}=await sb.from('tournaments').select('name,teams_count,overs_per_match,format,share_code,venue').eq('status','live').order('created_at',{ascending:false}).limit(3);
-    // Live auctions
-    const{data:liveA}=await sb.from('auctions').select('name,league_name,room_code').eq('status','live').order('created_at',{ascending:false}).limit(3);
+    // Only matches actively being scored — updated within last 4 hours
+    const fourHoursAgo=new Date(Date.now()-4*60*60*1000).toISOString();
+    const{data:liveM}=await sb.from('matches').select('id,team_a,team_b,venue,share_code,stage,tournament_id').eq('status','live').gte('updated_at',fourHoursAgo).order('updated_at',{ascending:false}).limit(5);
 
-    const items=[];
-    (liveM||[]).forEach(m=>{
-      items.push(`<a href="scorecard.html?code=${m.share_code}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;text-decoration:none;margin-bottom:4px;">
+    if(!liveM||!liveM.length)return;
+
+    const tIds=[...new Set(liveM.filter(m=>m.tournament_id).map(m=>m.tournament_id))];
+    let tNames={};
+    if(tIds.length){
+      const{data:tns}=await sb.from('tournaments').select('id,name').in('id',tIds);
+      (tns||[]).forEach(t=>{tNames[t.id]=t.name;});
+    }
+
+    const items=liveM.map(m=>{
+      const tn=m.tournament_id&&tNames[m.tournament_id]?tNames[m.tournament_id]:'';
+      return `<a href="scorecard.html?code=${m.share_code}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;text-decoration:none;margin-bottom:4px;">
         <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:lPulse 1.5s ease-in-out infinite;"></span>
         <div style="flex:1;min-width:0;"><div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.team_a} vs ${m.team_b}</div>
-        <div style="font-size:9px;color:var(--green);">Live Match${m.venue?' · '+m.venue:''}</div></div>
+        <div style="font-size:9px;color:var(--green);">Live Scoring${tn?' · 🏆 '+tn:''}${m.venue?' · '+m.venue:''}</div></div>
         <span style="font-size:9px;background:var(--green);color:#000;padding:2px 8px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">View</span>
-      </a>`);
-    });
-    (liveT||[]).forEach(t=>{
-      items.push(`<a href="standings.html?t=${t.share_code}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;text-decoration:none;margin-bottom:4px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:lPulse 1.5s ease-in-out infinite;"></span>
-        <div style="flex:1;min-width:0;"><div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏆 ${t.name}</div>
-        <div style="font-size:9px;color:var(--accent);">Live Tournament · ${t.teams_count} teams</div></div>
-        <span style="font-size:9px;background:var(--accent);color:#000;padding:2px 8px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Standings</span>
-      </a>`);
-    });
-    (liveA||[]).forEach(a=>{
-      items.push(`<a href="viewer.html?room=${a.room_code}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:8px;text-decoration:none;margin-bottom:4px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;animation:lPulse 1.5s ease-in-out infinite;"></span>
-        <div style="flex:1;min-width:0;"><div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🏏 ${a.name}</div>
-        <div style="font-size:9px;color:var(--blue);">Live Auction · ${a.league_name||''}</div></div>
-        <span style="font-size:9px;background:var(--blue);color:#000;padding:2px 8px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Watch</span>
-      </a>`);
+      </a>`;
     });
 
-    if(items.length){
-      feed.style.display='block';
-      feed.innerHTML=`<div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:lPulse 1.5s ease-in-out infinite;"></span> LIVE ON CAPTAINXI
-      </div>${items.join('')}`;
-    }
+    feed.style.display='block';
+    feed.innerHTML=`<div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:lPulse 1.5s ease-in-out infinite;"></span> LIVE SCORING NOW
+    </div>${items.join('')}`;
   }catch(e){console.log('Live feed:',e);}
 }
 
