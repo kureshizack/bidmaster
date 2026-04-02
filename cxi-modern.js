@@ -32,10 +32,10 @@ function dismissPWA(){
   sessionStorage.setItem('pwa_dismissed','1');
 }
 
-// ── RIPPLE EFFECT ON BUTTONS ──
+// ── RIPPLE EFFECT ON PRIMARY BUTTONS ──
 document.addEventListener('click',function(e){
-  const btn=e.target.closest('button,a.btn,[class*="btn-"],.nav-cta,.plan-btn');
-  if(!btn||btn.closest('input,select,textarea'))return;
+  const btn=e.target.closest('.btn-primary,.btn-ghost,.plan-btn-primary,.submit-btn,.pwa-btn,.nav-cta');
+  if(!btn)return;
   const rect=btn.getBoundingClientRect();
   const ripple=document.createElement('span');
   ripple.className='cxi-ripple';
@@ -43,7 +43,7 @@ document.addEventListener('click',function(e){
   ripple.style.width=ripple.style.height=size+'px';
   ripple.style.left=(e.clientX-rect.left-size/2)+'px';
   ripple.style.top=(e.clientY-rect.top-size/2)+'px';
-  btn.style.position=btn.style.position||'relative';
+  if(!btn.style.position||btn.style.position==='static')btn.style.position='relative';
   btn.style.overflow='hidden';
   btn.appendChild(ripple);
   setTimeout(()=>ripple.remove(),500);
