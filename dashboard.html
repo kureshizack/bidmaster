@@ -129,6 +129,13 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
     <a href="help.html" class="menu-link">❓ Help / FAQ</a>
     <a href="upgrade.html" class="menu-link" style="color:var(--accent);">⚡ Upgrade Plan</a>
   </div>
+  <div style="padding:6px 0;border-top:1px solid var(--border);">
+    <div style="padding:8px 18px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;">Account Settings</div>
+    <a href="#" onclick="editName();return false;" class="menu-link" style="font-size:13px;">✏️ Change Name</a>
+    <a href="#" onclick="changePassword();return false;" class="menu-link" style="font-size:13px;">🔒 Change Password</a>
+    <a href="#" onclick="changeEmail();return false;" class="menu-link" style="font-size:13px;">📧 Update Email</a>
+    <a href="#" onclick="changeMobile();return false;" class="menu-link" style="font-size:13px;">📱 Update Mobile</a>
+  </div>
   <div style="padding:10px 18px;border-top:1px solid var(--border);">
     <button onclick="signOut()" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
   </div>
@@ -940,6 +947,47 @@ document.getElementById('createModal').addEventListener('click', function(e) {
 document.getElementById('successModal').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('open');
 });
+
+// ── ACCOUNT SETTINGS ─────────────────────────────────────
+async function editName(){
+  toggleMenu();
+  const name=await cxiPrompt('Enter your name:',userProfile?.name||'');
+  if(!name)return;
+  await sb.from('profiles').update({name:name.trim()}).eq('id',currentUser.id);
+  userProfile.name=name.trim();
+  document.getElementById('userName').textContent=name.trim();
+  document.getElementById('menuUserName').textContent=name.trim();
+  cxiAlert('Name updated!','✅');
+}
+
+async function changePassword(){
+  toggleMenu();
+  const pass=await cxiPrompt('Enter new password (min 6 chars):','');
+  if(!pass)return;
+  if(pass.length<6){cxiAlert('Password must be at least 6 characters');return;}
+  const{error}=await sb.auth.updateUser({password:pass});
+  if(error){cxiAlert('Error: '+error.message);return;}
+  cxiAlert('Password updated successfully!','✅');
+}
+
+async function changeEmail(){
+  toggleMenu();
+  const email=await cxiPrompt('Enter new email address:',currentUser.email||'');
+  if(!email||!email.includes('@'))return;
+  const{error}=await sb.auth.updateUser({email:email.trim()});
+  if(error){cxiAlert('Error: '+error.message);return;}
+  cxiAlert('Verification email sent to '+email.trim()+'. Check your inbox to confirm.','📧');
+}
+
+async function changeMobile(){
+  toggleMenu();
+  const mobile=await cxiPrompt('Enter 10-digit mobile number:',userProfile?.mobile||'');
+  if(!mobile)return;
+  if(!/^\d{10}$/.test(mobile)){cxiAlert('Enter valid 10-digit number');return;}
+  await sb.from('profiles').update({mobile:mobile}).eq('id',currentUser.id);
+  userProfile.mobile=mobile;
+  cxiAlert('Mobile number updated!','✅');
+}
 
 // ── SIGN OUT ──────────────────────────────────────────────
 async function signOut() {
