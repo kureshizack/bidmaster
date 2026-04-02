@@ -99,27 +99,29 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <body>
 
 <nav>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <button onclick="toggleMenu()" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 6px;line-height:1;">☰</button>
-    <a href="index.html" class="logo" style="text-decoration:none;">captainXI.com</a>
-  </div>
+  <a href="index.html" class="logo" style="text-decoration:none;">captainXI.com</a>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
     <a href="upgrade.html" class="upgrade-link" id="upgradeLink" style="font-size:12px;">⚡ Upgrade</a>
+    <button onclick="toggleMenu()" style="background:none;border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:var(--accent);font-size:18px;cursor:pointer;padding:3px 7px;line-height:1;">☰</button>
   </div>
 </nav>
 
 <!-- SIDE MENU + OVERLAY -->
 <div id="menuOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:998;display:none;" onclick="toggleMenu()"></div>
-<div id="sideMenu" style="position:fixed;top:0;left:-270px;width:260px;height:100%;background:var(--surface);border-right:1px solid var(--border);z-index:999;transition:left .25s ease;overflow-y:auto;">
+<div id="sideMenu" style="position:fixed;top:0;right:-270px;width:260px;height:100%;background:var(--surface);border-left:1px solid var(--border);z-index:999;transition:right .25s ease;overflow-y:auto;">
   <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
     <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent);">captainXI.com</div>
     <button onclick="toggleMenu()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
   </div>
-  <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
-    <div style="font-size:14px;font-weight:600;color:var(--text);" id="menuUserName"></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="menuPlan"></div>
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+    <div id="menuAvatar" onclick="uploadAvatar()" style="width:40px;height:40px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);cursor:pointer;overflow:hidden;flex-shrink:0;">👤</div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);" id="menuUserName"></div>
+      <div style="font-size:11px;color:var(--muted);" id="menuPlan"></div>
+    </div>
   </div>
+  <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="saveAvatar(this)">
   <div style="padding:6px 0;">
     <a href="index.html" class="menu-link">🏠 Home</a>
     <a href="dashboard.html" class="menu-link" style="color:var(--accent);background:rgba(245,158,11,0.06);font-weight:700;">📋 Dashboard</a>
@@ -132,6 +134,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <div style="padding:6px 0;border-top:1px solid var(--border);">
     <div style="padding:8px 18px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;">Account Settings</div>
     <a href="#" onclick="editName();return false;" class="menu-link" style="font-size:13px;">✏️ Change Name</a>
+    <a href="#" onclick="uploadAvatar();return false;" class="menu-link" style="font-size:13px;">📷 Change Photo</a>
     <a href="#" onclick="changePassword();return false;" class="menu-link" style="font-size:13px;">🔒 Change Password</a>
     <a href="#" onclick="changeEmail();return false;" class="menu-link" style="font-size:13px;">📧 Update Email</a>
     <a href="#" onclick="changeMobile();return false;" class="menu-link" style="font-size:13px;">📱 Update Mobile</a>
@@ -488,6 +491,8 @@ let userProfile = null;
 
   document.getElementById('userName').textContent = userProfile?.name || currentUser.email;
   document.getElementById('menuUserName').textContent = userProfile?.name || currentUser.email;
+  // Load avatar
+  if(userProfile?.photo_url){document.getElementById('menuAvatar').innerHTML='<img src="'+userProfile.photo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';}
   const planBadge = document.getElementById('planBadge');
   const upgradeLink = document.getElementById('upgradeLink');
   const plan = userProfile?.plan || 'gully';
@@ -517,8 +522,8 @@ let userProfile = null;
 function toggleMenu(){
   const m=document.getElementById('sideMenu');
   const o=document.getElementById('menuOverlay');
-  const isOpen=m.style.left==='0px';
-  m.style.left=isOpen?'-270px':'0px';
+  const isOpen=m.style.right==='0px';
+  m.style.right=isOpen?'-270px':'0px';
   o.style.display=isOpen?'none':'block';
 }
 
@@ -564,23 +569,47 @@ async function loadDashboard(){
         const live=matches.filter(m=>m.status==='live');
         const upcoming=matches.filter(m=>m.status==='scheduled');
         const done=matches.filter(m=>m.status==='completed');
-        matchHtml+=`<div style="display:flex;align-items:center;gap:6px;margin:6px 0 4px;"><div style="flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--green);width:${matches.length?Math.round(done.length/matches.length*100):0}%;"></div></div><span style="font-size:9px;color:var(--muted);">${done.length}/${matches.length}</span></div>`;
-        live.forEach(m=>{matchHtml+=`<a href="scorer.html?match=${m.id}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:6px;text-decoration:none;margin-bottom:3px;"><div style="font-size:12px;font-weight:700;color:var(--text);font-family:Rajdhani,sans-serif;">${m.team_a} vs ${m.team_b}</div><span style="font-size:9px;background:var(--green);color:#000;padding:1px 8px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;">LIVE</span></a>`;});
-        upcoming.slice(0,2).forEach(m=>{
+        const uid='tm_'+t.id.substring(0,8);
+        matchHtml+=`<div style="display:flex;align-items:center;gap:6px;margin:8px 0 6px;"><div style="flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--green);width:${matches.length?Math.round(done.length/matches.length*100):0}%;"></div></div><span style="font-size:11px;color:var(--muted);font-weight:700;">${done.length}/${matches.length}</span></div>`;
+
+        function mRow(m,type){
           const isTBD=m.team_a.includes('Winner')||m.team_a.includes('1st ');
-          matchHtml+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:5px;margin-bottom:2px;"><div style="font-size:11px;color:${isTBD?'var(--muted)':'var(--text)'};font-family:Rajdhani,sans-serif;font-weight:700;">${m.team_a} vs ${m.team_b}</div>${isTBD?'':'<a href="scorer.html?match='+m.id+'" style="font-size:9px;background:var(--green);color:#000;padding:1px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>'}</div>`;
-        });
-        if(upcoming.length>2)matchHtml+=`<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:2px;">+${upcoming.length-2} more</div>`;
+          const dt=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+          const tm=m.match_time||'';
+          let tmFmt='';if(tm){const h=parseInt(tm);const ampm=h>=12?'PM':'AM';const h12=h>12?h-12:(h===0?12:h);tmFmt=h12+':'+(tm.split(':')[1]||'00')+ampm;}
+          const dtStr=[dt,tmFmt].filter(Boolean).join(' ');
+          const bg=type==='live'?'rgba(34,197,94,0.08)':type==='done'?'rgba(139,148,158,0.05)':'var(--surface2)';
+          const border=type==='live'?'1px solid rgba(34,197,94,0.2)':'1px solid var(--border)';
+          let btn='';
+          if(type==='live')btn='<a href="scorer.html?match='+m.id+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">LIVE</a>';
+          else if(type==='up'&&!isTBD)btn='<a href="scorer.html?match='+m.id+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Score</a>';
+          else if(type==='done')btn='<a href="scorecard.html?code='+m.share_code+'" style="font-size:10px;border:1px solid var(--border);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Card</a>';
+          else if(isTBD)btn='<span style="font-size:10px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:5px;">TBD</span>';
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:'+bg+';border:'+border+';border-radius:7px;margin-bottom:4px;"><div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:'+(isTBD?'var(--muted)':'var(--text)')+';">'+m.team_a+' vs '+m.team_b+'</div>'+(dtStr||m.stage?'<div style="font-size:10px;color:var(--muted);">M'+m.match_number+(m.stage?' · '+m.stage:'')+(dtStr?' · '+dtStr:'')+'</div>':'')+(m.result?'<div style="font-size:10px;color:var(--green);">'+m.result+'</div>':'')+'</div>'+btn+'</div>';
+        }
+
+        live.forEach(m=>{matchHtml+=mRow(m,'live');});
+        // First 3 upcoming always visible
+        upcoming.slice(0,3).forEach(m=>{matchHtml+=mRow(m,'up');});
+        // Remaining in expandable
+        if(upcoming.length>3){
+          matchHtml+='<div id="'+uid+'" style="display:none;">';
+          upcoming.slice(3).forEach(m=>{matchHtml+=mRow(m,'up');});
+          matchHtml+='</div>';
+          matchHtml+='<div style="text-align:center;margin-top:4px;"><button onclick="const el=document.getElementById(\''+uid+'\');const show=el.style.display===\'none\';el.style.display=show?\'block\':\'none\';this.textContent=show?\'Show Less ▲\':\'+'+(upcoming.length-3)+' more ▼\';" style="background:none;border:1px solid var(--border);color:var(--accent);padding:4px 16px;border-radius:6px;font-size:11px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">+'+(upcoming.length-3)+' more ▼</button></div>';
+        }
+        // Last result
+        if(done.length){matchHtml+='<div style="margin-top:4px;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;">LAST RESULT</div>'+mRow(done[done.length-1],'done');}
       }
     }
     return `<div class="item-card" style="${t.status==='live'?'border-left:3px solid var(--accent);':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${matchHtml?'2':'0'}px;">
-        <div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);">🏆 ${t.name}</div>
-        <div style="font-size:11px;color:var(--muted);">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}</div></div>
-        <div style="display:flex;gap:4px;flex-shrink:0;">
-          <span style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid ${sc[t.status]||'var(--border)'};color:${sc[t.status]||'var(--muted)'};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
-          ${t.status==='live'?'<a href="standings.html?t='+t.share_code+'" style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
-          <a href="tournament.html?id=${t.id}" style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid var(--border);color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:${matchHtml?'2':'0'}px;">
+        <div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:17px;font-weight:700;color:var(--accent);">🏆 ${t.name}</div>
+        <div style="font-size:12px;color:var(--muted);">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}</div></div>
+        <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
+          <span style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid ${sc[t.status]||'var(--border)'};color:${sc[t.status]||'var(--muted)'};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
+          ${t.status==='live'?'<a href="standings.html?t='+t.share_code+'" style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
+          <a href="tournament.html?id=${t.id}" style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
         </div>
       </div>${matchHtml}</div>`;
   }
@@ -947,6 +976,22 @@ document.getElementById('createModal').addEventListener('click', function(e) {
 document.getElementById('successModal').addEventListener('click', function(e) {
   if (e.target === this) this.classList.remove('open');
 });
+
+function uploadAvatar(){toggleMenu();document.getElementById('avatarInput').click();}
+async function saveAvatar(input){
+  const file=input.files[0];if(!file)return;
+  const ext=file.name.split('.').pop();
+  const fn='avatars/'+currentUser.id+'.'+ext;
+  const{error}=await sb.storage.from('player-photos').upload(fn,file,{cacheControl:'3600',upsert:true});
+  if(error){cxiAlert('Upload failed: '+error.message);return;}
+  const{data:u}=sb.storage.from('player-photos').getPublicUrl(fn);
+  const url=u?.publicUrl;
+  if(url){
+    await sb.from('profiles').update({photo_url:url}).eq('id',currentUser.id);
+    document.getElementById('menuAvatar').innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    cxiAlert('Photo updated!','✅');
+  }
+}
 
 // ── ACCOUNT SETTINGS ─────────────────────────────────────
 async function editName(){
