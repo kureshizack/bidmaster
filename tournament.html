@@ -125,7 +125,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
   <!-- STEP 5 -->
   <div class="step-content" id="step5"><div class="card" style="text-align:center;">
-    <div id="goSponsor" style="display:none;background:linear-gradient(135deg,rgba(245,158,11,0.06),rgba(245,158,11,0.01));border:1px solid rgba(245,158,11,0.2);border-radius:14px;padding:20px;margin-bottom:20px;"><img id="goSLogo" src="" style="display:none;max-height:100px;max-width:260px;margin:0 auto 10px;border-radius:10px;"><div id="goSName" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);letter-spacing:3px;"></div><div id="goSSub" style="font-size:12px;color:var(--muted);margin-top:4px;"></div></div>
+    <div id="goSponsor" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:none;"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Sponsor</div><div style="display:flex;align-items:center;gap:10px;"><img id="goSLogo" src="" style="display:none;max-height:40px;max-width:80px;border-radius:6px;"><div><div id="goSName" style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);"></div><div id="goSSub" style="font-size:11px;color:var(--muted);"></div></div></div></div>
     <div style="font-size:56px;margin-bottom:8px;">🏆</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--accent);" id="goName"></div>
     <div style="font-size:14px;color:var(--muted);margin:6px 0 20px;" id="goInfo"></div>
@@ -426,7 +426,7 @@ async function loadSched(){
     }
     let orderOpts='';for(let i=1;i<=total;i++){orderOpts+='<option value="'+i+'"'+(i===x.match_number?' selected':'')+'>'+i+'</option>';}
     const curDate=x.match_date?x.match_date.substring(0,10):'';
-    const curTime=x.match_date&&x.match_date.length>10?x.match_date.substring(11,16):'';
+    const curTime=x.match_time||'';
     const timeOpts=['','06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
     const timeOptHtml=timeOpts.map(t=>{
       if(!t)return '<option value="">Time</option>';
@@ -467,10 +467,12 @@ async function loadSched(){
 }
 
 async function setMatchDT(id,date,time){
-  if(!date)return;
-  const val=date+(time?'T'+time:'');
-  await sb.from('matches').update({match_date:val}).eq('id',id);
-  showToast('Date set!');
+  if(!date&&!time)return;
+  const upd={};
+  if(date)upd.match_date=date;
+  if(time)upd.match_time=time;
+  await sb.from('matches').update(upd).eq('id',id);
+  showToast(time?'Time set!':'Date set!');
   loadSched();
 }
 async function setMatchOrder(id,newNum){
@@ -595,7 +597,7 @@ async function genSched(){
   loadSched();
 }
 
-async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;if(T.sponsor_name){document.getElementById('goSponsor').style.display='block';document.getElementById('goSName').textContent=T.sponsor_name;if(T.sponsor_logo){const l=document.getElementById('goSLogo');l.src=T.sponsor_logo;l.style.display='block';}if(T.branding_text)document.getElementById('goSSub').textContent=T.branding_text;}}
+async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;if(T.sponsor_name){const gs=document.getElementById('goSponsor');gs.style.display='block';document.getElementById('goSName').textContent=T.sponsor_name;if(T.sponsor_logo){const l=document.getElementById('goSLogo');l.src=T.sponsor_logo;l.style.display='block';}if(T.branding_text)document.getElementById('goSSub').textContent=T.branding_text;}}
 async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.open('https://captainxi.com/standings.html?t='+T.share_code,'_blank');}
 
 async function toggleRegistration(){const newStatus=T.status==='registration'?'live':'registration';await sb.from('tournaments').update({status:newStatus}).eq('id',T.id);T.status=newStatus;showToast(newStatus==='live'?'Registration closed!':'Registration re-opened!');renderPlayers();}

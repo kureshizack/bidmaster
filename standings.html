@@ -20,7 +20,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 /* HEADER */
 .tourn-header{background:linear-gradient(135deg,var(--surface),var(--surface2));border-bottom:2px solid var(--accent);padding:20px;text-align:center;position:relative;}
 .tourn-sponsor{font-size:12px;color:var(--accent);margin-bottom:6px;}
-.tourn-sponsor img{max-height:36px;max-width:120px;border-radius:6px;margin-bottom:4px;display:block;margin:0 auto 4px;}
+@keyframes sponsorScroll{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+@keyframes sponsorFade{0%,15%{opacity:1;}20%,100%{opacity:0;}}
+.sponsor-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.8s ease-in-out;}
+.sponsor-slide.active{opacity:1;}
 .tourn-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);line-height:1;}
 .tourn-meta{font-size:12px;color:var(--muted);margin-top:6px;}
 .tourn-status{display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-top:8px;}
@@ -92,16 +95,20 @@ footer a{color:var(--accent);text-decoration:none;}
   <div id="errorScreen" style="display:none;text-align:center;padding:60px 20px;color:var(--red);font-size:16px;">Tournament not found.</div>
 
   <div id="mainContent" style="display:none;">
+    <!-- SPONSOR BANNER (full width) -->
+    <div id="sponsorBanner" style="display:none;"></div>
+
     <!-- HEADER -->
     <div class="tourn-header">
       <button class="share-btn" onclick="shareTournament()">Share</button>
-      <div class="tourn-sponsor" id="sponsorArea" style="display:none;">
-        <img id="sponsorLogo" src="" style="display:none;">
-        <span id="sponsorName"></span>
-      </div>
       <div class="tourn-name" id="tName"></div>
       <div class="tourn-meta" id="tMeta"></div>
       <div class="tourn-status" id="tStatus"></div>
+    </div>
+
+    <!-- SPONSOR MARQUEE -->
+    <div id="sponsorMarquee" style="display:none;overflow:hidden;background:rgba(245,158,11,0.08);border-top:1px solid rgba(245,158,11,0.15);border-bottom:1px solid rgba(245,158,11,0.15);padding:6px 0;">
+      <div id="marqueeInner" style="white-space:nowrap;animation:sponsorScroll 20s linear infinite;font-size:12px;color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;letter-spacing:0.5px;"></div>
     </div>
 
     <!-- CAP HOLDERS -->
@@ -214,10 +221,35 @@ function renderHeader(){
   const s=sMap[tournament.status]||['UNKNOWN',''];
   statusEl.textContent=s[0];statusEl.className='tourn-status '+s[1];
 
-  if(tournament.sponsor_name){
-    const sa=document.getElementById('sponsorArea');sa.style.display='block';
-    document.getElementById('sponsorName').textContent='Presented by '+tournament.sponsor_name;
-    if(tournament.sponsor_logo){const l=document.getElementById('sponsorLogo');l.src=tournament.sponsor_logo;l.style.display='block';}
+  // Full sponsor branding
+  if(tournament.sponsor_name||tournament.sponsor_logo){
+    const banner=document.getElementById('sponsorBanner');
+    banner.style.display='block';
+
+    let bannerHtml='<div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;margin:10px 12px;text-align:center;position:relative;overflow:hidden;">';
+    if(tournament.sponsor_logo){
+      bannerHtml+='<img src="'+tournament.sponsor_logo+'" style="max-width:100%;max-height:180px;border-radius:8px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">';
+    }
+    if(tournament.sponsor_name){
+      bannerHtml+='<div style="font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+tournament.sponsor_name+'</div>';
+    }
+    if(tournament.branding_text){
+      bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+tournament.branding_text+'</div>';
+    }
+    bannerHtml+='</div>';
+    banner.innerHTML=bannerHtml;
+
+    // Marquee strip
+    const marquee=document.getElementById('sponsorMarquee');
+    marquee.style.display='block';
+    let mText='';
+    if(tournament.sponsor_name)mText+='Presented by '+tournament.sponsor_name+' ★ ';
+    if(tournament.branding_text)mText+=tournament.branding_text+' ★ ';
+    mText+=tournament.name+' ★ '+tournament.teams_count+' teams ★ '+tournament.overs_per_match+' overs ★ ';
+    if(tournament.venue)mText+=tournament.venue+' ★ ';
+    mText+='captainXI.com ★ ';
+    // Repeat for continuous scroll
+    document.getElementById('marqueeInner').textContent=mText+mText+mText;
   }
 }
 
@@ -257,10 +289,18 @@ function renderFixtures(){
   if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">No matches scheduled yet</div>';return;}
 
   function matchDate(m){
-    if(!m.match_date)return '';
-    const d=new Date(m.match_date);
-    return '<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+
-      (d.getHours()?', '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'')+'</div>';
+    if(!m.match_date&&!m.match_time)return '';
+    let parts=[];
+    if(m.match_date){
+      const d=new Date(m.match_date);
+      parts.push(d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}));
+    }
+    if(m.match_time){
+      const h=parseInt(m.match_time);const mm=m.match_time.split(':')[1]||'00';
+      const ampm=h>=12?'PM':'AM';const h12=h>12?h-12:(h===0?12:h);
+      parts.push(h12+':'+mm+' '+ampm);
+    }
+    return '<div style="font-size:11px;color:var(--muted);margin-top:4px;">'+parts.join(', ')+'</div>';
   }
   function isKO(m){return m.stage&&(m.stage.includes('Semi')||m.stage.includes('SF')||m.stage.includes('Final')||m.stage.includes('Quarter')||m.stage.includes('Qualifier'));}
 
