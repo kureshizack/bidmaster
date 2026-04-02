@@ -1809,16 +1809,29 @@ if (MAINTENANCE_MODE) { window.location.replace('/maintenance.html'); }
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
-      // Swap nav CTA to dashboard
-      const cta = document.querySelector('.nav-cta');
-      if (cta) {
-        cta.textContent = '🏏 My Dashboard →';
-        cta.href = 'dashboard.html';
-        cta.style.background = 'var(--green)';
+      // Replace nav-links with hamburger + dashboard button
+      const navLinks = document.querySelector('.nav-links');
+      if(navLinks){
+        navLinks.innerHTML='<a href="dashboard.html" class="nav-cta" style="background:var(--green);">🏏 Dashboard</a><button onclick="document.getElementById(\'idxMenu\').style.display=document.getElementById(\'idxMenu\').style.display===\'block\'?\'none\':\'block\'" style="background:none;border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:var(--gold);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1;">☰</button>';
       }
+      // Insert side menu
+      const menu=document.createElement('div');
+      menu.id='idxMenu';
+      menu.style.cssText='display:none;position:fixed;top:0;right:0;width:260px;height:100%;background:#0d1420;border-left:1px solid rgba(245,158,11,0.15);z-index:9999;padding:0;overflow-y:auto;animation:slideIn .2s ease;';
+      menu.innerHTML='<div style="padding:16px 18px;border-bottom:1px solid rgba(42,58,85,0.5);display:flex;justify-content:space-between;align-items:center;"><span style="font-family:Bebas Neue,sans-serif;font-size:18px;color:var(--gold);letter-spacing:2px;">MENU</span><button onclick="document.getElementById(\'idxMenu\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button></div><div style="padding:6px 0;"><a href="dashboard.html" style="display:block;padding:12px 18px;color:var(--gold);text-decoration:none;font-size:14px;font-weight:700;">📋 Dashboard</a><a href="tournament.html" style="display:block;padding:12px 18px;color:#f0f4ff;text-decoration:none;font-size:14px;">🏆 Tournament</a><a href="matches.html" style="display:block;padding:12px 18px;color:#f0f4ff;text-decoration:none;font-size:14px;">🏟️ Matches</a><a href="player.html" style="display:block;padding:12px 18px;color:#f0f4ff;text-decoration:none;font-size:14px;">👤 Player Lookup</a><a href="help.html" style="display:block;padding:12px 18px;color:#f0f4ff;text-decoration:none;font-size:14px;">❓ Help / FAQ</a><a href="upgrade.html" style="display:block;padding:12px 18px;color:var(--gold);text-decoration:none;font-size:14px;">⚡ Upgrade Plan</a></div><div style="padding:10px 18px;border-top:1px solid rgba(42,58,85,0.5);"><button onclick="(async()=>{const sb=supabase.createClient(\''+SUPABASE_URL+'\',\''+SUPABASE_KEY+'\');await sb.auth.signOut();location.href=\'login.html\';})()" style="width:100%;padding:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button></div>';
+      document.body.appendChild(menu);
+      // Overlay
+      const ov=document.createElement('div');
+      ov.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;';
+      ov.onclick=()=>{menu.style.display='none';ov.style.display='none';};
+      document.body.appendChild(ov);
+      // Override menu toggle to also show overlay
+      const origBtn=navLinks.querySelector('button');
+      origBtn.onclick=()=>{const show=menu.style.display!=='block';menu.style.display=show?'block':'none';ov.style.display=show?'block':'none';};
+
       // Swap hero buttons too
       const heroPrimary = document.querySelector('.btn-primary');
-      if (heroPrimary && heroPrimary.href.includes('login')) {
+      if (heroPrimary && heroPrimary.href && heroPrimary.href.includes('login')) {
         heroPrimary.textContent = '🏏 Go to Dashboard';
         heroPrimary.href = 'dashboard.html';
       }
