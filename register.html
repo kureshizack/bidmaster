@@ -716,14 +716,23 @@ async function submitRegistration(){
   }
 
   // ── RAZORPAY PAYMENT ────────────────────────────────────
+  if(totalPayable<=0){
+    // Fee is 0 but not marked as free — treat as free
+    await saveRegistration(null);
+    return;
+  }
+
   await new Promise((resolve, reject) => {
+    let paymentHandled=false; // prevent double-fire
     const options = {
       key: RAZORPAY_KEY,
-      amount: totalPayable * 100,
+      amount: Math.round(totalPayable * 100), // paisa, must be integer
       currency: 'INR',
       name: auction.name || 'captainXI.com',
       description: (isCaptain ? 'Captain' : 'Player') + ' Registration — ' + name,
       image: '/favicon.svg',
+      retry: { enabled: false }, // prevent retry loop on UPI
+      timeout: 300, // 5 min timeout
       prefill: {
         name: name,
         contact: '+91' + mobile,
@@ -736,19 +745,26 @@ async function submitRegistration(){
       },
       theme: { color: '#f59e0b' },
       modal: {
+        confirm_close: true, // ask before closing
         ondismiss: () => {
-          showFormMsg('Payment cancelled. Try again when ready.', 'error');
-          btn.textContent = '💳 Pay & Register'; btn.disabled = false;
-          reject(new Error('cancelled'));
+          if(!paymentHandled){
+            showFormMsg('Payment cancelled. Try again when ready.', 'error');
+            btn.textContent = '💳 Pay & Register'; btn.disabled = false;
+            reject(new Error('cancelled'));
+          }
         }
       },
-      handler: async (response) => {
+      handler: function(response) {
+        if(paymentHandled)return; // prevent double-fire
+        paymentHandled=true;
         resolve(response);
       }
     };
     const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (response) => {
-      showFormMsg('❌ Payment failed: ' + response.error.description, 'error');
+    rzp.on('payment.failed', function(response) {
+      if(paymentHandled)return;
+      paymentHandled=true;
+      showFormMsg('❌ Payment failed: ' + (response.error?.description||'Unknown error'), 'error');
       btn.textContent = '💳 Pay & Register'; btn.disabled = false;
       reject(new Error('failed'));
     });

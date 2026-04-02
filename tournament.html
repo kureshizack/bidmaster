@@ -366,6 +366,7 @@ async function saveS2(){
     }
     // Create auction linked to this tournament
     const roomCode=Math.random().toString(36).substring(2,8).toUpperCase();
+    const regFee=T.registration_fee||0;
     const{data:newAuction,error}=await sb.from('auctions').insert({
       name:T.name,
       league_name:T.name,
@@ -376,7 +377,16 @@ async function saveS2(){
       default_credits:100000,
       base_price:1000,
       bid_step:500,
-      min_squad:T.players_per_team||11
+      min_squad:T.players_per_team||11,
+      max_players:(T.players_per_team||11)*(T.teams_count||8),
+      registration_open:true,
+      free_registration:T.free_registration||false,
+      player_fee:regFee>0?regFee:0,
+      captain_fee:regFee>0?regFee:0,
+      location:T.venue||null,
+      tournament_date:T.start_date||null,
+      organizer_mobile:'',
+      organizer_email:''
     }).select().single();
     if(error){cxiAlert('Error creating auction: '+error.message);return;}
     // Store link: save auction_id in tournament
