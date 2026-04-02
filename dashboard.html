@@ -99,16 +99,46 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 <body>
 
 <nav>
-  <a href="index.html" class="logo" style="text-decoration:none;">🏏 captainXI.com</a>
-  <div class="nav-right">
-    <a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">🏠 Home</a>
-    <a href="matches.html" style="color:var(--muted);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:6px;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">🏟️ Matches</a>
-    <span class="user-name" id="userName"></span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button onclick="document.getElementById('sideMenu').classList.toggle('open')" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 6px;line-height:1;">☰</button>
+    <a href="index.html" class="logo" style="text-decoration:none;">captainXI.com</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
     <div class="plan-badge free" id="planBadge" onclick="window.location.href='upgrade.html'" title="Click to manage plan">FREE</div>
-    <a href="upgrade.html" class="upgrade-link" id="upgradeLink">⚡ Upgrade</a>
-    <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
+    <a href="upgrade.html" class="upgrade-link" id="upgradeLink" style="font-size:12px;">⚡ Upgrade</a>
   </div>
 </nav>
+
+<!-- SIDE MENU -->
+<div id="sideMenu" style="position:fixed;top:0;left:-280px;width:260px;height:100vh;background:var(--surface);border-right:1px solid var(--border);z-index:999;transition:left .25s ease;padding:0;overflow-y:auto;">
+  <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent);">captainXI.com</div>
+    <button onclick="document.getElementById('sideMenu').classList.remove('open')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
+  </div>
+  <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+    <div style="font-size:14px;font-weight:600;color:var(--text);" id="menuUserName"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="menuPlan"></div>
+  </div>
+  <div style="padding:8px 0;">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏠 Home</a>
+    <a href="dashboard.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:700;background:rgba(245,158,11,0.06);">📋 Dashboard</a>
+    <a href="matches.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏟️ Matches</a>
+    <a href="tournament.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏆 Tournament</a>
+    <a href="player.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">👤 Player Lookup</a>
+    <a href="help.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">❓ Help / FAQ</a>
+    <a href="upgrade.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--accent);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">⚡ Upgrade Plan</a>
+  </div>
+  <div style="padding:8px 18px;border-top:1px solid var(--border);">
+    <button onclick="signOut()" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
+  </div>
+</div>
+<div id="sideMenuOverlay" onclick="document.getElementById('sideMenu').classList.remove('open')" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:998;display:none;"></div>
+<style>
+#sideMenu.open{left:0;}
+#sideMenu.open ~ #sideMenuOverlay{display:block;}
+</style>
+
+<span class="user-name" id="userName" style="display:none;"></span>
 
 <div class="container">
   <!-- LIVE ACTIVITY FEED -->
@@ -402,6 +432,7 @@ let userProfile = null;
   }
 
   document.getElementById('userName').textContent = userProfile?.name || currentUser.email;
+  document.getElementById('menuUserName').textContent = userProfile?.name || currentUser.email;
   const planBadge = document.getElementById('planBadge');
   const upgradeLink = document.getElementById('upgradeLink');
   const plan = userProfile?.plan || 'gully';
@@ -411,6 +442,7 @@ let userProfile = null;
     'pro':'🏟️ PRO','district':'🏟️ PRO','national':'🏟️ PRO'
   };
   planBadge.textContent = tierMap[plan] || 'FREE';
+  document.getElementById('menuPlan').textContent = (tierMap[plan] || 'FREE') + ' Plan';
   if(userProfile?.is_superadmin || userProfile?.is_admin){
     planBadge.textContent = '🛡 ADMIN';
     planBadge.className = 'plan-badge paid';
