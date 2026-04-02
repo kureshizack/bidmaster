@@ -100,7 +100,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
 <nav>
   <div style="display:flex;align-items:center;gap:10px;">
-    <button onclick="document.getElementById('sideMenu').classList.toggle('open')" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 6px;line-height:1;">☰</button>
+    <button onclick="toggleMenu()" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 6px;line-height:1;">☰</button>
     <a href="index.html" class="logo" style="text-decoration:none;">captainXI.com</a>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
@@ -109,33 +109,33 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   </div>
 </nav>
 
-<!-- SIDE MENU -->
-<div id="sideMenu" style="position:fixed;top:0;left:-280px;width:260px;height:100vh;background:var(--surface);border-right:1px solid var(--border);z-index:999;transition:left .25s ease;padding:0;overflow-y:auto;">
+<!-- SIDE MENU + OVERLAY -->
+<div id="menuOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:998;display:none;" onclick="toggleMenu()"></div>
+<div id="sideMenu" style="position:fixed;top:0;left:-270px;width:260px;height:100%;background:var(--surface);border-right:1px solid var(--border);z-index:999;transition:left .25s ease;overflow-y:auto;">
   <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
     <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--accent);">captainXI.com</div>
-    <button onclick="document.getElementById('sideMenu').classList.remove('open')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
+    <button onclick="toggleMenu()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
   </div>
-  <div style="padding:16px 18px;border-bottom:1px solid var(--border);">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
     <div style="font-size:14px;font-weight:600;color:var(--text);" id="menuUserName"></div>
     <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="menuPlan"></div>
   </div>
-  <div style="padding:8px 0;">
-    <a href="index.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏠 Home</a>
-    <a href="dashboard.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--accent);text-decoration:none;font-size:14px;font-weight:700;background:rgba(245,158,11,0.06);">📋 Dashboard</a>
-    <a href="matches.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏟️ Matches</a>
-    <a href="tournament.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">🏆 Tournament</a>
-    <a href="player.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">👤 Player Lookup</a>
-    <a href="help.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--text);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">❓ Help / FAQ</a>
-    <a href="upgrade.html" style="display:flex;align-items:center;gap:10px;padding:12px 18px;color:var(--accent);text-decoration:none;font-size:14px;transition:background .15s;" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background='transparent'">⚡ Upgrade Plan</a>
+  <div style="padding:6px 0;">
+    <a href="index.html" class="menu-link">🏠 Home</a>
+    <a href="dashboard.html" class="menu-link" style="color:var(--accent);background:rgba(245,158,11,0.06);font-weight:700;">📋 Dashboard</a>
+    <a href="tournament.html" class="menu-link">🏆 Create Tournament</a>
+    <a href="matches.html" class="menu-link">🏟️ Create Match</a>
+    <a href="player.html" class="menu-link">👤 Player Lookup</a>
+    <a href="help.html" class="menu-link">❓ Help / FAQ</a>
+    <a href="upgrade.html" class="menu-link" style="color:var(--accent);">⚡ Upgrade Plan</a>
   </div>
-  <div style="padding:8px 18px;border-top:1px solid var(--border);">
+  <div style="padding:10px 18px;border-top:1px solid var(--border);">
     <button onclick="signOut()" style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;">Sign Out</button>
   </div>
 </div>
-<div id="sideMenuOverlay" onclick="document.getElementById('sideMenu').classList.remove('open')" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:998;display:none;"></div>
 <style>
-#sideMenu.open{left:0;}
-#sideMenu.open ~ #sideMenuOverlay{display:block;}
+.menu-link{display:flex;align-items:center;gap:10px;padding:11px 18px;color:var(--text);text-decoration:none;font-size:14px;}
+.menu-link:active{background:var(--surface2);}
 </style>
 
 <span class="user-name" id="userName" style="display:none;"></span>
@@ -144,23 +144,71 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <!-- LIVE ACTIVITY FEED -->
   <div id="liveFeed" style="display:none;margin-bottom:14px;"></div>
 
-  <!-- TOURNAMENT HUB -->
-  <div id="tournamentHub"></div>
+  <!-- 3 SECTION TABS -->
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+    <div class="dash-tab active" onclick="showSection('tournaments')">🏆 Tournaments</div>
+    <div class="dash-tab" onclick="showSection('matches')">🏟️ Matches</div>
+    <div class="dash-tab" onclick="showSection('auctions')">🏏 Auctions</div>
+  </div>
+  <style>
+  .dash-tab{flex:1;text-align:center;padding:10px 8px;font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;}
+  .dash-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .dash-section{display:none;}.dash-section.active{display:block;}
+  .cat-tabs{display:flex;gap:6px;margin-bottom:12px;}
+  .cat-tab{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:700;font-family:Rajdhani,sans-serif;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s;}
+  .cat-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+  .item-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .15s;}
+  .item-card:hover{border-color:rgba(245,158,11,0.3);}
+  .item-empty{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px;}
+  </style>
 
-  <!-- MATCH SCORING CARD -->
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
-    <div>
-      <div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;">🏟️ Match Scoring</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:2px;">Create & manage live cricket matches</div>
+  <!-- TOURNAMENTS SECTION -->
+  <div class="dash-section active" id="sec-tournaments">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;">My Tournaments</div>
+      <a href="tournament.html" style="font-size:11px;background:var(--accent);color:#000;padding:5px 14px;border-radius:6px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">+ New</a>
     </div>
-    <a href="matches.html" style="background:var(--accent);color:#000;padding:8px 18px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;text-decoration:none;">Go to Matches →</a>
+    <div class="cat-tabs">
+      <div class="cat-tab active" onclick="filterCat('tournaments','ongoing')">Ongoing</div>
+      <div class="cat-tab" onclick="filterCat('tournaments','upcoming')">Upcoming</div>
+      <div class="cat-tab" onclick="filterCat('tournaments','completed')">Completed</div>
+    </div>
+    <div id="tournList-ongoing"></div>
+    <div id="tournList-upcoming" style="display:none;"></div>
+    <div id="tournList-completed" style="display:none;"></div>
   </div>
 
-  <div class="page-header">
-    <h1>My Auctions</h1>
-    <button class="btn btn-primary" onclick="openCreateModal()">+ New Auction</button>
+  <!-- MATCHES SECTION -->
+  <div class="dash-section" id="sec-matches">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;">My Matches</div>
+      <a href="matches.html" style="font-size:11px;background:var(--accent);color:#000;padding:5px 14px;border-radius:6px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">+ New</a>
+    </div>
+    <div class="cat-tabs">
+      <div class="cat-tab active" onclick="filterCat('matches','ongoing')">Ongoing</div>
+      <div class="cat-tab" onclick="filterCat('matches','upcoming')">Upcoming</div>
+      <div class="cat-tab" onclick="filterCat('matches','completed')">Completed</div>
+    </div>
+    <div id="matchList-ongoing"></div>
+    <div id="matchList-upcoming" style="display:none;"></div>
+    <div id="matchList-completed" style="display:none;"></div>
   </div>
-  <div id="auctionsList"><div class="loading">Loading your auctions...</div></div>
+
+  <!-- AUCTIONS SECTION -->
+  <div class="dash-section" id="sec-auctions">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;">My Auctions</div>
+      <button class="btn btn-primary" onclick="openCreateModal()" style="font-size:11px;padding:5px 14px;">+ New</button>
+    </div>
+    <div class="cat-tabs">
+      <div class="cat-tab active" onclick="filterCat('auctions','ongoing')">Ongoing</div>
+      <div class="cat-tab" onclick="filterCat('auctions','upcoming')">Upcoming</div>
+      <div class="cat-tab" onclick="filterCat('auctions','completed')">Completed</div>
+    </div>
+    <div id="auctionList-ongoing"></div>
+    <div id="auctionList-upcoming" style="display:none;"></div>
+    <div id="auctionList-completed" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- CREATE AUCTION MODAL -->
@@ -455,10 +503,110 @@ let userProfile = null;
   } else {
     planBadge.className = 'plan-badge free';
   }
-  loadAuctions();
-  loadTournaments();
+  loadDashboard();
   loadLiveFeed();
 })();
+
+function toggleMenu(){
+  const m=document.getElementById('sideMenu');
+  const o=document.getElementById('menuOverlay');
+  const isOpen=m.style.left==='0px';
+  m.style.left=isOpen?'-270px':'0px';
+  o.style.display=isOpen?'none':'block';
+}
+
+function showSection(sec){
+  ['tournaments','matches','auctions'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('active',s===sec);
+  });
+  document.querySelectorAll('.dash-tab').forEach((t,i)=>{
+    t.classList.toggle('active',['tournaments','matches','auctions'][i]===sec);
+  });
+}
+
+function filterCat(section,cat){
+  const prefix=section==='tournaments'?'tournList':section==='matches'?'matchList':'auctionList';
+  ['ongoing','upcoming','completed'].forEach(c=>{
+    document.getElementById(prefix+'-'+c).style.display=c===cat?'block':'none';
+  });
+  // Update tab active state within section
+  const tabs=document.getElementById('sec-'+section).querySelectorAll('.cat-tab');
+  tabs.forEach((t,i)=>{t.classList.toggle('active',['ongoing','upcoming','completed'][i]===cat);});
+}
+
+// ═══════════════════════════════════════════════════
+// LOAD ALL 3 SECTIONS
+// ═══════════════════════════════════════════════════
+async function loadDashboard(){
+  // ── TOURNAMENTS ──
+  const{data:tourneys}=await sb.from('tournaments').select('*').eq('owner_id',currentUser.id).order('created_at',{ascending:false});
+  const tOngoing=[],tUpcoming=[],tCompleted=[];
+  (tourneys||[]).forEach(t=>{
+    if(t.status==='live')tOngoing.push(t);
+    else if(t.status==='setup'||t.status==='registration')tUpcoming.push(t);
+    else if(t.status==='completed')tCompleted.push(t);
+  });
+
+  // Load matches for ongoing tournaments
+  async function tournCard(t,showMatches){
+    const sc={setup:'var(--blue)',registration:'var(--accent)',live:'var(--green)',completed:'var(--muted)'};
+    let matchHtml='';
+    if(showMatches){
+      const{data:matches}=await sb.from('matches').select('*').eq('tournament_id',t.id).order('match_number');
+      if(matches&&matches.length){
+        const live=matches.filter(m=>m.status==='live');
+        const upcoming=matches.filter(m=>m.status==='scheduled');
+        const done=matches.filter(m=>m.status==='completed');
+        matchHtml+=`<div style="display:flex;align-items:center;gap:6px;margin:6px 0 4px;"><div style="flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;"><div style="height:100%;background:var(--green);width:${matches.length?Math.round(done.length/matches.length*100):0}%;"></div></div><span style="font-size:9px;color:var(--muted);">${done.length}/${matches.length}</span></div>`;
+        live.forEach(m=>{matchHtml+=`<a href="scorer.html?match=${m.id}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:6px;text-decoration:none;margin-bottom:3px;"><div style="font-size:12px;font-weight:700;color:var(--text);font-family:Rajdhani,sans-serif;">${m.team_a} vs ${m.team_b}</div><span style="font-size:9px;background:var(--green);color:#000;padding:1px 8px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;">LIVE</span></a>`;});
+        upcoming.slice(0,2).forEach(m=>{
+          const isTBD=m.team_a.includes('Winner')||m.team_a.includes('1st ');
+          matchHtml+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:5px;margin-bottom:2px;"><div style="font-size:11px;color:${isTBD?'var(--muted)':'var(--text)'};font-family:Rajdhani,sans-serif;font-weight:700;">${m.team_a} vs ${m.team_b}</div>${isTBD?'':'<a href="scorer.html?match='+m.id+'" style="font-size:9px;background:var(--green);color:#000;padding:1px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>'}</div>`;
+        });
+        if(upcoming.length>2)matchHtml+=`<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:2px;">+${upcoming.length-2} more</div>`;
+      }
+    }
+    return `<div class="item-card" style="${t.status==='live'?'border-left:3px solid var(--accent);':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${matchHtml?'2':'0'}px;">
+        <div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);">🏆 ${t.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}</div></div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <span style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid ${sc[t.status]||'var(--border)'};color:${sc[t.status]||'var(--muted)'};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
+          ${t.status==='live'?'<a href="standings.html?t='+t.share_code+'" style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
+          <a href="tournament.html?id=${t.id}" style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid var(--border);color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
+        </div>
+      </div>${matchHtml}</div>`;
+  }
+
+  let tOnHtml='';for(const t of tOngoing){tOnHtml+=await tournCard(t,true);}
+  document.getElementById('tournList-ongoing').innerHTML=tOnHtml||'<div class="item-empty">No ongoing tournaments</div>';
+  document.getElementById('tournList-upcoming').innerHTML=tUpcoming.length?(await Promise.all(tUpcoming.map(t=>tournCard(t,false)))).join(''):'<div class="item-empty">No upcoming tournaments</div>';
+  document.getElementById('tournList-completed').innerHTML=tCompleted.length?(await Promise.all(tCompleted.map(t=>tournCard(t,false)))).join(''):'<div class="item-empty">No completed tournaments</div>';
+
+  // ── MATCHES (standalone, not tournament) ──
+  const{data:allMatches}=await sb.from('matches').select('*').eq('created_by',currentUser.id).is('tournament_id',null).order('created_at',{ascending:false}).limit(20);
+  const mOngoing=(allMatches||[]).filter(m=>m.status==='live');
+  const mUpcoming=(allMatches||[]).filter(m=>m.status==='scheduled');
+  const mCompleted=(allMatches||[]).filter(m=>m.status==='completed');
+
+  function matchCard(m){
+    const dt=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+    let btn='';
+    if(m.status==='live')btn=`<a href="scorer.html?match=${m.id}" style="font-size:9px;background:var(--green);color:#000;padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Resume</a>`;
+    else if(m.status==='scheduled')btn=`<a href="scorer.html?match=${m.id}" style="font-size:9px;background:var(--green);color:#000;padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a>`;
+    else btn=`<a href="scorecard.html?code=${m.share_code}" style="font-size:9px;border:1px solid var(--border);color:var(--accent);padding:2px 8px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Card</a>`;
+    return `<div class="item-card"><div style="display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;">${m.team_a} vs ${m.team_b}</div>
+      <div style="font-size:10px;color:var(--muted);">${dt}${m.venue?' · '+m.venue:''}${m.result?' · '+m.result:''}</div></div>${btn}</div></div>`;
+  }
+
+  document.getElementById('matchList-ongoing').innerHTML=mOngoing.length?mOngoing.map(matchCard).join(''):'<div class="item-empty">No live matches</div>';
+  document.getElementById('matchList-upcoming').innerHTML=mUpcoming.length?mUpcoming.map(matchCard).join(''):'<div class="item-empty">No scheduled matches</div>';
+  document.getElementById('matchList-completed').innerHTML=mCompleted.length?mCompleted.map(matchCard).join(''):'<div class="item-empty">No completed matches</div>';
+
+  // ── AUCTIONS ──
+  loadAuctions();
+}
 
 // ── LOAD AUCTIONS ─────────────────────────────────────────
 async function loadAuctions() {
@@ -469,122 +617,13 @@ async function loadAuctions() {
     .eq('owner_id', currentUser.id)
     .order('created_at', { ascending: false });
 
-  const el = document.getElementById('auctionsList');
-  if (error) { el.innerHTML = `<div class="msg msg-error">Failed to load auctions.</div>`; return; }
-  if (!auctions.length) {
-    el.innerHTML = `<div class="empty-state">
-      <div class="icon">🏏</div>
-      <h3>No auctions yet</h3>
-      <p>Create your first auction to get started.</p>
-      <button class="btn btn-primary" onclick="openCreateModal()">+ Create Auction</button>
-    </div>`; return;
-  }
-  el.innerHTML = `<div class="auctions-grid">${auctions.map(a => auctionCard(a)).join('')}</div>`;
-}
+  const aOngoing=(auctions||[]).filter(a=>a.status==='live');
+  const aUpcoming=(auctions||[]).filter(a=>a.status==='setup');
+  const aCompleted=(auctions||[]).filter(a=>a.status==='ended');
 
-// ═══════════════════════════════════════════════════
-// TOURNAMENT HUB
-// ═══════════════════════════════════════════════════
-async function loadTournaments(){
-  const hub=document.getElementById('tournamentHub');
-  const{data:tourneys}=await sb.from('tournaments').select('*').eq('owner_id',currentUser.id).order('created_at',{ascending:false});
-
-  if(!tourneys||!tourneys.length){
-    // No tournaments — show create card
-    hub.innerHTML=`<div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.05));border:1px solid var(--accent);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
-      <div><div style="font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--accent);">🏆 Tournament Mode</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:2px;">Create full tournament — teams, schedule, scoring, standings</div></div>
-      <a href="tournament.html" style="background:var(--accent);color:#000;padding:8px 18px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;">Create Tournament →</a>
-    </div>`;
-    return;
-  }
-
-  let html='<div style="margin-bottom:14px;">';
-
-  for(const t of tourneys){
-    const isActive=t.status==='live'||t.status==='registration'||t.status==='setup';
-    const sc={setup:'var(--blue)',registration:'var(--accent)',live:'var(--green)',completed:'var(--muted)'};
-    const statusColor=sc[t.status]||'var(--muted)';
-
-    // Load matches for active tournaments
-    let matchesHtml='';
-    if(isActive){
-      const{data:matches}=await sb.from('matches').select('*').eq('tournament_id',t.id).order('match_number');
-      if(matches&&matches.length){
-        const upcoming=matches.filter(m=>m.status==='scheduled');
-        const live=matches.filter(m=>m.status==='live');
-        const completed=matches.filter(m=>m.status==='completed');
-        const total=matches.length;
-
-        // Progress bar
-        matchesHtml+=`<div style="display:flex;align-items:center;gap:8px;margin:8px 0 6px;">
-          <div style="flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">
-            <div style="height:100%;background:var(--green);width:${Math.round(completed.length/total*100)}%;border-radius:2px;"></div>
-          </div>
-          <span style="font-size:10px;color:var(--muted);">${completed.length}/${total} played</span>
-        </div>`;
-
-        // Live matches first
-        live.forEach(m=>{
-          matchesHtml+=`<a href="scorer.html?match=${m.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,0.08);border:1px solid var(--green);border-radius:8px;margin-bottom:4px;text-decoration:none;">
-            <div><div style="font-size:9px;color:var(--green);font-weight:700;font-family:Rajdhani,sans-serif;">LIVE NOW</div>
-            <div style="font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;color:var(--text);">${m.team_a} vs ${m.team_b}</div></div>
-            <span style="font-size:10px;background:var(--green);color:#000;padding:2px 10px;border-radius:4px;font-family:Rajdhani,sans-serif;font-weight:700;">Resume</span>
-          </a>`;
-        });
-
-        // Next 3 upcoming matches
-        upcoming.slice(0,3).forEach(m=>{
-          const isTBD=m.team_a.includes('Winner')||m.team_a.includes('1st ')||m.team_a.includes('2nd ');
-          const dt=m.match_date?new Date(m.match_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-          matchesHtml+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:3px;">
-            <div style="min-width:0;flex:1;">
-              <div style="font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;color:${isTBD?'var(--muted)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.team_a} vs ${m.team_b}</div>
-              <div style="font-size:9px;color:var(--muted);">M${m.match_number}${m.stage?' · '+m.stage:''}${dt?' · '+dt:''}</div>
-            </div>
-            ${isTBD?'<span style="font-size:9px;color:var(--muted);padding:2px 6px;border:1px solid var(--border);border-radius:4px;">TBD</span>':'<a href="scorer.html?match='+m.id+'" style="font-size:9px;background:var(--green);color:#000;padding:2px 10px;border-radius:4px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Score</a>'}
-          </div>`;
-        });
-
-        if(upcoming.length>3){
-          matchesHtml+=`<div style="text-align:center;font-size:10px;color:var(--muted);margin-top:2px;">+${upcoming.length-3} more matches</div>`;
-        }
-
-        // Last completed result
-        if(completed.length){
-          const last=completed[completed.length-1];
-          matchesHtml+=`<div style="padding:5px 10px;background:rgba(139,148,158,0.06);border:1px solid var(--border);border-radius:6px;margin-top:4px;">
-            <div style="font-size:9px;color:var(--green);font-weight:700;">Last Result</div>
-            <div style="font-family:Rajdhani,sans-serif;font-size:12px;font-weight:700;">${last.team_a} vs ${last.team_b}</div>
-            ${last.result?'<div style="font-size:9px;color:var(--muted);">'+last.result+'</div>':''}
-          </div>`;
-        }
-      }
-    }
-
-    // Tournament card
-    html+=`<div style="background:var(--surface);border:1px solid ${isActive?'var(--accent)':'var(--border)'};border-radius:10px;padding:12px 14px;margin-bottom:8px;${isActive?'border-left:3px solid var(--accent);':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${matchesHtml?'4':'0'}px;">
-        <div style="min-width:0;flex:1;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);">🏆 ${t.name}</span>
-            <span style="font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid ${statusColor};color:${statusColor};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
-          </div>
-          <div style="font-size:11px;color:var(--muted);">${t.teams_count} teams · ${t.overs_per_match} ov · ${t.format.replace(/_/g,' ')}</div>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;">
-          ${isActive?'<a href="standings.html?t='+t.share_code+'" style="font-size:9px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
-          <a href="tournament.html?id=${t.id}" style="font-size:9px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
-        </div>
-      </div>
-      ${matchesHtml}
-    </div>`;
-  }
-
-  // Add "Create New" at bottom
-  html+=`<a href="tournament.html" style="display:block;text-align:center;padding:10px;background:var(--surface);border:1px dashed var(--accent);border-radius:8px;color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;margin-bottom:14px;">+ Create New Tournament</a>`;
-  html+='</div>';
-  hub.innerHTML=html;
+  document.getElementById('auctionList-ongoing').innerHTML=aOngoing.length?aOngoing.map(a=>auctionCard(a)).join(''):'<div class="item-empty">No live auctions</div>';
+  document.getElementById('auctionList-upcoming').innerHTML=aUpcoming.length?aUpcoming.map(a=>auctionCard(a)).join(''):'<div class="item-empty">No auctions in setup</div>';
+  document.getElementById('auctionList-completed').innerHTML=aCompleted.length?aCompleted.map(a=>auctionCard(a)).join(''):'<div class="item-empty">No completed auctions</div>';
 }
 
 // ═══════════════════════════════════════════════════
