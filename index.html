@@ -6,7 +6,12 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CaptainXI">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>captainXI.com — Cricket Tournament Management Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -901,6 +906,7 @@ footer {
 }
 .ticker-item::after { content: '🏏'; margin-left: 32px; }
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
 </head>
 <body>
 
@@ -2080,5 +2086,11 @@ window.addEventListener('scroll', () => {
   }
 });
 </script>
+<!-- PWA INSTALL BANNER -->
+<div id="pwaInstall">
+  <div><div class="pwa-text">Install CaptainXI App</div><div class="pwa-sub">One-tap access · No app store needed</div></div>
+  <div style="display:flex;align-items:center;"><button class="pwa-btn" onclick="installPWA()">Install</button><button class="pwa-close" onclick="dismissPWA()">✕</button></div>
+</div>
+<script src="/cxi-modern.js"></script>
 </body>
 </html>

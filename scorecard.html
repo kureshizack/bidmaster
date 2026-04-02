@@ -8,6 +8,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Scorecard — captainXI.com</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -168,6 +171,7 @@ footer a{color:var(--accent);text-decoration:none;}
 .paywall-btn{display:inline-block;margin-top:14px;padding:12px 28px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;letter-spacing:0.5px;}
 .paywall-btn:hover{filter:brightness(1.1);}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
 </head>
 <body>
 
@@ -1354,5 +1358,6 @@ async function shareScorecard(){
   if(btn){btn.textContent='Shared!';setTimeout(()=>btn.textContent='Share',2000);}
 }
 </script>
+<script src="/cxi-modern.js"></script>
 </body>
 </html>

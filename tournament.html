@@ -5,6 +5,9 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Create Tournament — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
@@ -62,6 +65,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .cxi-modal-btn-primary{background:var(--accent);color:#000;}
 .cxi-modal-btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
 </head>
 <body>
 <nav><a href="dashboard.html" class="logo">captainXI.com</a><div class="nav-right"><a href="dashboard.html" class="nav-link">Dashboard</a><a href="matches.html" class="nav-link">Matches</a></div></nav>
@@ -605,5 +609,6 @@ async function toggleRegistration(){const newStatus=T.status==='registration'?'l
 function shareTeamWA(code,name){const url='https://captainxi.com/join.html?team='+code+'&t='+T.share_code;const fee=T.free_registration?'FREE':'Rs.'+T.registration_fee;let m='━━━━━━━━━━━━━━━━━━━\n  *'+T.name.toUpperCase()+'*\n━━━━━━━━━━━━━━━━━━━\n\nYou are invited to join\nTeam: *'+name+'*\n\nFormat: '+T.format.replace(/_/g,' ')+'\nOvers: '+T.overs_per_match+'\n';if(T.venue)m+='Venue: '+T.venue+'\n';if(T.start_date)m+='Date: '+new Date(T.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'\n';m+='Entry: '+fee+'\n\nRegister now:\n'+url+'\n\n_Powered by captainXI.com_\n_My Game. My Rules._';window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');}
 function shareTournWA(){const url='https://captainxi.com/standings.html?t='+T.share_code;let m='━━━━━━━━━━━━━━━━━━━\n  *'+T.name.toUpperCase()+'*\n━━━━━━━━━━━━━━━━━━━\n\nFormat: '+T.format.replace(/_/g,' ')+'\nOvers: '+T.overs_per_match+'\nTeams: '+teams.length+'\n';if(T.venue)m+='Venue: '+T.venue+'\n';if(T.start_date)m+='Date: '+new Date(T.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'\n';if(T.sponsor_name)m+='\nPresented by *'+T.sponsor_name+'*\n';m+='\nLive standings & scores:\n'+url+'\n\n_Powered by captainXI.com_\n_My Game. My Rules._';window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');}
 </script>
+<script src="/cxi-modern.js"></script>
 </body>
 </html>

@@ -1,0 +1,20 @@
+{
+  "name": "CaptainXI - Cricket Tournament Manager",
+  "short_name": "CaptainXI",
+  "description": "India's #1 Cricket Tournament Management Platform",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "utilities"],
+  "lang": "en-IN"
+}

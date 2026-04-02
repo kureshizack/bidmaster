@@ -1,0 +1,87 @@
+/* ═══════════════════════════════════════════════════
+   CaptainXI Modern JS — cxi-modern.js
+   Drop this into any page for PWA + micro-interactions
+   ═══════════════════════════════════════════════════ */
+
+// ── PWA SERVICE WORKER ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+// ── PWA INSTALL PROMPT ──
+let _deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _deferredPrompt=e;
+  // Show install banner
+  const banner=document.getElementById('pwaInstall');
+  if(banner)banner.style.display='flex';
+});
+function installPWA(){
+  if(!_deferredPrompt)return;
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(r=>{
+    _deferredPrompt=null;
+    const banner=document.getElementById('pwaInstall');
+    if(banner)banner.style.display='none';
+  });
+}
+function dismissPWA(){
+  const banner=document.getElementById('pwaInstall');
+  if(banner)banner.style.display='none';
+  sessionStorage.setItem('pwa_dismissed','1');
+}
+
+// ── RIPPLE EFFECT ON BUTTONS ──
+document.addEventListener('click',function(e){
+  const btn=e.target.closest('button,a.btn,[class*="btn-"],.nav-cta,.plan-btn');
+  if(!btn||btn.closest('input,select,textarea'))return;
+  const rect=btn.getBoundingClientRect();
+  const ripple=document.createElement('span');
+  ripple.className='cxi-ripple';
+  const size=Math.max(rect.width,rect.height);
+  ripple.style.width=ripple.style.height=size+'px';
+  ripple.style.left=(e.clientX-rect.left-size/2)+'px';
+  ripple.style.top=(e.clientY-rect.top-size/2)+'px';
+  btn.style.position=btn.style.position||'relative';
+  btn.style.overflow='hidden';
+  btn.appendChild(ripple);
+  setTimeout(()=>ripple.remove(),500);
+});
+
+// ── UPGRADED TOAST ──
+function showToast(msg,duration){
+  let t=document.getElementById('toast')||document.querySelector('.toast');
+  if(!t){
+    t=document.createElement('div');
+    t.className='toast';
+    t.id='toast';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.classList.add('show');
+  t.style.display='block';
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.style.display='none',300);},duration||2500);
+}
+
+// ── SKELETON HELPERS ──
+function showSkeleton(containerId,count){
+  const el=document.getElementById(containerId);
+  if(!el)return;
+  let html='';
+  for(let i=0;i<(count||3);i++){
+    html+='<div class="cxi-skeleton-card"><div class="cxi-skeleton cxi-skeleton-line w75"></div><div class="cxi-skeleton cxi-skeleton-line w50"></div><div class="cxi-skeleton cxi-skeleton-line w30"></div></div>';
+  }
+  el.innerHTML=html;
+}
+
+// ── HAPTIC FEEDBACK (if supported) ──
+function haptic(type){
+  if(navigator.vibrate){
+    if(type==='light')navigator.vibrate(10);
+    else if(type==='medium')navigator.vibrate(20);
+    else if(type==='success')navigator.vibrate([10,50,10]);
+    else if(type==='error')navigator.vibrate([30,50,30,50,30]);
+  }
+}

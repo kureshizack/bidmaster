@@ -1,0 +1,183 @@
+/* ═══════════════════════════════════════════════════
+   CaptainXI Modern Design System — cxi-modern.css
+   Drop this into any page for instant design upgrade
+   ═══════════════════════════════════════════════════ */
+
+/* ── SMOOTH DEFAULTS ── */
+*{-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+img,svg{max-width:100%;height:auto;}
+input,select,button,textarea{font-family:inherit;}
+
+/* ── MINIMUM TOUCH TARGETS ── */
+button,a,.btn,.nav-cta,.plan-btn,[onclick]{min-height:44px;min-width:44px;}
+input,select,textarea{min-height:44px;font-size:16px !important;} /* prevents iOS zoom */
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8faa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px;}
+
+/* ── BUTTON MICRO-INTERACTIONS ── */
+button,a.btn,.plan-btn,.nav-cta,[class*="btn-"]{
+  transition:all .15s ease;
+  position:relative;
+  overflow:hidden;
+}
+button:active,a.btn:active,.plan-btn:active,.nav-cta:active,[class*="btn-"]:active{
+  transform:scale(0.96);
+  opacity:0.9;
+}
+/* Ripple effect */
+.cxi-ripple{
+  position:absolute;
+  border-radius:50%;
+  background:rgba(255,255,255,0.25);
+  transform:scale(0);
+  animation:cxiRipple .5s ease-out;
+  pointer-events:none;
+}
+@keyframes cxiRipple{to{transform:scale(3);opacity:0;}}
+
+/* ── CARD ENTRANCE ANIMATION ── */
+.item-card,.match-row,.team-card,.player-row,.fixture,.pricing-card,.feature-card,.faq-item{
+  animation:cxiFadeUp .35s ease both;
+}
+@keyframes cxiFadeUp{
+  from{opacity:0;transform:translateY(12px);}
+  to{opacity:1;transform:translateY(0);}
+}
+/* Stagger children */
+.item-card:nth-child(1){animation-delay:.05s;}
+.item-card:nth-child(2){animation-delay:.1s;}
+.item-card:nth-child(3){animation-delay:.15s;}
+.item-card:nth-child(4){animation-delay:.2s;}
+.item-card:nth-child(5){animation-delay:.25s;}
+
+/* ── SKELETON LOADING ── */
+.cxi-skeleton{
+  background:linear-gradient(90deg,var(--surface,#1f2937) 25%,var(--surface2,#27364b) 50%,var(--surface,#1f2937) 75%);
+  background-size:200% 100%;
+  animation:cxiShimmer 1.5s infinite;
+  border-radius:8px;
+  min-height:20px;
+}
+@keyframes cxiShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.cxi-skeleton-card{
+  background:var(--surface,#1f2937);
+  border:1px solid var(--border,#3d5068);
+  border-radius:10px;
+  padding:14px;
+  margin-bottom:8px;
+}
+.cxi-skeleton-line{height:14px;margin-bottom:8px;border-radius:4px;}
+.cxi-skeleton-line.w75{width:75%;}
+.cxi-skeleton-line.w50{width:50%;}
+.cxi-skeleton-line.w30{width:30%;}
+
+/* ── TAB TRANSITIONS ── */
+.dash-tab,.tab,.live-tab,.cat-tab,.stab{
+  transition:all .2s ease;
+  position:relative;
+}
+.dash-tab::after,.tab::after,.live-tab::after{
+  content:'';
+  position:absolute;
+  bottom:-2px;
+  left:50%;
+  width:0;
+  height:2px;
+  background:var(--accent,#f59e0b);
+  transition:all .2s ease;
+  transform:translateX(-50%);
+}
+.dash-tab.active::after,.tab.active::after,.live-tab.active::after{
+  width:100%;
+}
+
+/* ── TOAST UPGRADE ── */
+.toast,.cxi-toast{
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%) translateY(100px);
+  background:var(--surface,#1f2937);
+  border:1px solid var(--accent,#f59e0b);
+  color:var(--text,#f0f4ff);
+  padding:12px 24px;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:600;
+  z-index:10000;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  backdrop-filter:blur(12px);
+}
+.toast.show,.cxi-toast.show{
+  transform:translateX(-50%) translateY(0);
+}
+
+/* ── MODAL UPGRADE ── */
+.cxi-modal-overlay{
+  animation:cxiOverlayIn .2s ease;
+}
+@keyframes cxiOverlayIn{from{opacity:0;}to{opacity:1;}}
+.cxi-modal-box{
+  animation:cxiModalIn .25s cubic-bezier(.4,0,.2,1);
+}
+@keyframes cxiModalIn{from{opacity:0;transform:scale(0.9) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+/* ── PROGRESS BAR ANIMATION ── */
+[style*="width:"][style*="background:var(--green)"]{
+  transition:width .8s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── SCROLLBAR STYLING ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(245,158,11,0.2);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(245,158,11,0.4);}
+
+/* ── FOCUS STATES (accessibility) ── */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{
+  outline:2px solid var(--accent,#f59e0b);
+  outline-offset:2px;
+}
+
+/* ── PWA INSTALL BANNER ── */
+#pwaInstall{
+  position:fixed;
+  bottom:0;
+  left:0;right:0;
+  background:linear-gradient(135deg,var(--surface,#1f2937),rgba(245,158,11,0.08));
+  border-top:1px solid var(--accent,#f59e0b);
+  padding:14px 18px;
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  z-index:9990;
+  animation:cxiSlideUp .3s ease;
+}
+@keyframes cxiSlideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+#pwaInstall .pwa-text{font-size:13px;font-weight:600;color:var(--text,#f0f4ff);}
+#pwaInstall .pwa-sub{font-size:11px;color:var(--muted,#7a8faa);}
+#pwaInstall .pwa-btn{
+  background:var(--accent,#f59e0b);color:#000;
+  padding:8px 18px;border:none;border-radius:8px;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;
+  cursor:pointer;flex-shrink:0;
+}
+#pwaInstall .pwa-close{
+  background:none;border:none;color:var(--muted,#7a8faa);
+  font-size:18px;cursor:pointer;padding:4px;margin-left:8px;
+}
+
+/* ── SAFE AREA (notch phones) ── */
+body{padding-bottom:env(safe-area-inset-bottom);}
+nav{padding-top:max(12px,env(safe-area-inset-top));}
+
+/* ── PULL TO REFRESH INDICATOR ── */
+.cxi-pull-indicator{
+  text-align:center;
+  padding:8px;
+  font-size:11px;
+  color:var(--muted,#7a8faa);
+  display:none;
+}
