@@ -349,18 +349,20 @@ async function saveS2(){
   
   if(T.team_formation==='auction'){
     // Check if auction already exists for this tournament
-    const{data:existingAuction}=await sb.from('auctions').select('id,status,room_code').eq('tournament_id',T.id).maybeSingle();
-    if(existingAuction){
-      // Auction exists — redirect to it
-      if(existingAuction.status==='ended'){
-        // Auction completed — import sold players into tournament_players
-        await importAuctionPlayers(existingAuction.id);
-        showToast('Players imported from auction!');
-        goStep(3);
-      } else {
-        window.location.href='setup.html?auction='+existingAuction.id;
+    if(T.auction_id){
+      const{data:existingAuction}=await sb.from('auctions').select('id,status,room_code').eq('id',T.auction_id).maybeSingle();
+      if(existingAuction){
+        if(existingAuction.status==='ended'){
+          await importAuctionPlayers(existingAuction.id);
+          showToast('Players imported from auction!');
+          if(T.status==='setup')await sb.from('tournaments').update({status:'registration'}).eq('id',T.id);
+          T.status='registration';
+          goStep(3);
+        } else {
+          window.location.href='setup.html?auction='+existingAuction.id;
+        }
+        return;
       }
-      return;
     }
     // Create auction linked to this tournament
     const roomCode=Math.random().toString(36).substring(2,8).toUpperCase();
@@ -370,11 +372,16 @@ async function saveS2(){
       room_code:roomCode,
       owner_id:user.id,
       status:'setup',
-      tournament_id:T.id,
       max_teams:T.teams_count,
-      team_budget:100000
+      default_credits:100000,
+      base_price:1000,
+      bid_step:500,
+      min_squad:T.players_per_team||11
     }).select().single();
     if(error){cxiAlert('Error creating auction: '+error.message);return;}
+    // Store link: save auction_id in tournament
+    await sb.from('tournaments').update({auction_id:newAuction.id}).eq('id',T.id);
+    T.auction_id=newAuction.id;
     // Create auction teams matching tournament teams
     for(const t of teams){
       await sb.from('teams').insert({auction_id:newAuction.id,name:t.team_name,budget:100000,owner_name:''});
