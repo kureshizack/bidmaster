@@ -29,3 +29,5 @@ Allow: /viewer.html
 Allow: /certificate.html
 Allow: /upgrade.html
 Allow: /help.html
+Allow: /privacy.html
+Allow: /terms.html
