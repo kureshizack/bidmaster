@@ -592,7 +592,7 @@ async function loadDashboard(){
           const border=type==='live'?'1px solid rgba(34,197,94,0.2)':'1px solid var(--border)';
           let btn='';
           if(type==='live')btn='<a href="scorer.html?match='+m.id+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">LIVE</a>';
-          else if(type==='up'&&!isTBD)btn='<a href="scorer.html?match='+m.id+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Score</a>';
+          else if(type==='up'&&!isTBD)btn='<div style="display:flex;gap:4px;flex-shrink:0;"><a href="scorer.html?match='+m.id+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a><button onclick="openManualEntry(\''+m.id+'\')" style="font-size:10px;border:1px solid var(--accent);color:var(--accent);background:none;padding:3px 8px;border-radius:5px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">Manual</button></div>';
           else if(type==='done')btn='<a href="scorecard.html?code='+m.share_code+'" style="font-size:10px;border:1px solid var(--border);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Card</a>';
           else if(isTBD)btn='<span style="font-size:10px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:5px;">TBD</span>';
           return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:'+bg+';border:'+border+';border-radius:7px;margin-bottom:4px;"><div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:'+(isTBD?'var(--muted)':'var(--text)')+';">'+m.team_a+' vs '+m.team_b+'</div>'+(dtStr||m.stage?'<div style="font-size:10px;color:var(--muted);">M'+m.match_number+(m.stage?' · '+m.stage:'')+(dtStr?' · '+dtStr:'')+'</div>':'')+(m.result?'<div style="font-size:10px;color:var(--green);">'+m.result+'</div>':'')+'</div>'+btn+'</div>';
@@ -1066,6 +1066,244 @@ async function signOut() {
   <div><div class="pwa-text">Install CaptainXI App</div><div class="pwa-sub">Score matches offline · Instant access</div></div>
   <div style="display:flex;align-items:center;"><button class="pwa-btn" onclick="installPWA()">Install</button><button class="pwa-close" onclick="dismissPWA()">✕</button></div>
 </div>
+<!-- MANUAL MATCH ENTRY MODAL -->
+<div id="manualModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;overflow-y:auto;padding:16px;">
+  <div style="max-width:420px;margin:20px auto;background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-family:Rajdhani,sans-serif;font-size:20px;font-weight:700;color:var(--accent);">Manual Match Entry</div>
+      <button onclick="document.getElementById('manualModal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div id="manualMatchInfo" style="font-size:13px;color:var(--text);margin-bottom:12px;font-weight:700;"></div>
+
+    <!-- INNINGS 1 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:12px;color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:8px;">1ST INNINGS</div>
+      <label style="font-size:11px;color:var(--muted);">Batting Team</label>
+      <select id="me_bat1" class="form-input" style="margin-bottom:6px;padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:14px;"></select>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Runs</label><input id="me_runs1" type="number" min="0" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;font-weight:700;"></div>
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Wickets</label><input id="me_wkts1" type="number" min="0" max="10" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;"></div>
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Overs</label><input id="me_overs1" type="text" placeholder="e.g. 5.0" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;"></div>
+      </div>
+    </div>
+
+    <!-- INNINGS 2 -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:12px;color:var(--green);font-family:Rajdhani,sans-serif;font-weight:700;letter-spacing:1px;margin-bottom:8px;">2ND INNINGS</div>
+      <div id="me_bat2_label" style="font-size:12px;color:var(--text);font-weight:700;margin-bottom:6px;"></div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Runs</label><input id="me_runs2" type="number" min="0" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;font-weight:700;"></div>
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Wickets</label><input id="me_wkts2" type="number" min="0" max="10" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;"></div>
+        <div style="flex:1;"><label style="font-size:11px;color:var(--muted);">Overs</label><input id="me_overs2" type="text" placeholder="e.g. 4.3" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:16px;"></div>
+      </div>
+    </div>
+
+    <!-- PLAYER OF THE MATCH -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--muted);">Player of the Match (optional)</label>
+      <input id="me_mom" type="text" placeholder="e.g. Virat Kohli" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:14px;">
+    </div>
+
+    <!-- RESULT TYPE -->
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;color:var(--muted);">Result Type</label>
+      <select id="me_resultType" class="form-input" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;width:100%;font-size:14px;">
+        <option value="auto">Auto-calculate from scores</option>
+        <option value="tie">Match Tied</option>
+        <option value="noresult">No Result</option>
+      </select>
+    </div>
+
+    <div id="meError" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px;"></div>
+    <button onclick="submitManualEntry()" style="width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:10px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:16px;cursor:pointer;letter-spacing:1px;">Save Match Result</button>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">This will mark the match as completed and update standings</div>
+  </div>
+</div>
+
+<script>
+// ── MANUAL MATCH ENTRY ──
+let _meMatchId=null;
+
+async function openManualEntry(matchId){
+  _meMatchId=matchId;
+  const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
+  if(!m){cxiAlert('Match not found');return;}
+
+  // Fill info
+  document.getElementById('manualMatchInfo').textContent=m.team_a+' vs '+m.team_b+(m.match_number?' · Match '+m.match_number:'');
+
+  // Batting team dropdown
+  const sel=document.getElementById('me_bat1');
+  sel.innerHTML='<option value="'+m.team_a+'">'+m.team_a+'</option><option value="'+m.team_b+'">'+m.team_b+'</option>';
+  sel.onchange=function(){
+    const bowl=this.value===m.team_a?m.team_b:m.team_a;
+    document.getElementById('me_bat2_label').textContent='Batting: '+bowl;
+  };
+  sel.onchange();
+
+  // Clear fields
+  ['me_runs1','me_wkts1','me_overs1','me_runs2','me_wkts2','me_overs2','me_mom'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('me_resultType').value='auto';
+  document.getElementById('meError').textContent='';
+
+  document.getElementById('manualModal').style.display='block';
+}
+
+function oversToTotalBalls(oversStr){
+  // Convert "4.3" → 27 balls (4*6+3)
+  const parts=oversStr.split('.');
+  const full=parseInt(parts[0])||0;
+  const partial=parseInt(parts[1])||0;
+  if(partial>5)return null; // invalid — max 5 balls in partial over
+  return full*6+partial;
+}
+
+async function submitManualEntry(){
+  const err=document.getElementById('meError');
+  err.textContent='';
+
+  if(!_meMatchId){err.textContent='No match selected';return;}
+
+  const{data:m}=await sb.from('matches').select('*').eq('id',_meMatchId).maybeSingle();
+  if(!m){err.textContent='Match not found';return;}
+
+  const bat1=document.getElementById('me_bat1').value;
+  const bowl1=bat1===m.team_a?m.team_b:m.team_a;
+  const runs1=parseInt(document.getElementById('me_runs1').value);
+  const wkts1=parseInt(document.getElementById('me_wkts1').value);
+  const overs1=document.getElementById('me_overs1').value.trim();
+  const runs2=parseInt(document.getElementById('me_runs2').value);
+  const wkts2=parseInt(document.getElementById('me_wkts2').value);
+  const overs2=document.getElementById('me_overs2').value.trim();
+  const mom=document.getElementById('me_mom').value.trim();
+  const resultType=document.getElementById('me_resultType').value;
+
+  // Validate
+  if(isNaN(runs1)||isNaN(runs2)){err.textContent='Enter runs for both innings';return;}
+  if(isNaN(wkts1)||isNaN(wkts2)){err.textContent='Enter wickets for both innings';return;}
+  if(!overs1||!overs2){err.textContent='Enter overs for both innings';return;}
+
+  const balls1=oversToTotalBalls(overs1);
+  const balls2=oversToTotalBalls(overs2);
+  if(balls1===null){err.textContent='Invalid overs format for innings 1 (use e.g. 5.0 or 4.3)';return;}
+  if(balls2===null){err.textContent='Invalid overs format for innings 2 (use e.g. 5.0 or 4.3)';return;}
+  if(wkts1<0||wkts1>10||wkts2<0||wkts2>10){err.textContent='Wickets must be 0-10';return;}
+
+  // Confirm
+  if(!await cxiConfirm('Save this result?\n\n'+bat1+': '+runs1+'/'+wkts1+' ('+overs1+' ov)\n'+bowl1+': '+runs2+'/'+wkts2+' ('+overs2+' ov)\n\nThis cannot be easily undone.'))return;
+
+  try{
+    // Parse overs for display
+    const ov1Full=Math.floor(balls1/6);const ov1Balls=balls1%6;
+    const ov2Full=Math.floor(balls2/6);const ov2Balls=balls2%6;
+
+    // Create innings 1
+    const{data:inn1,error:e1}=await sb.from('innings').insert({
+      match_id:m.id,innings_number:1,batting_team:bat1,bowling_team:bowl1,
+      status:'completed',total_runs:runs1,total_wickets:wkts1,total_balls:balls1,
+      current_over:ov1Full,current_over_balls:ov1Balls,
+      extras_total:0,extras_wides:0,extras_noballs:0,extras_byes:0,extras_legbyes:0
+    }).select().single();
+    if(e1)throw new Error('Innings 1: '+e1.message);
+
+    // Create innings 2
+    const{data:inn2,error:e2}=await sb.from('innings').insert({
+      match_id:m.id,innings_number:2,batting_team:bowl1,bowling_team:bat1,
+      status:'completed',total_runs:runs2,total_wickets:wkts2,total_balls:balls2,
+      current_over:ov2Full,current_over_balls:ov2Balls,target:runs1+1,
+      extras_total:0,extras_wides:0,extras_noballs:0,extras_byes:0,extras_legbyes:0
+    }).select().single();
+    if(e2)throw new Error('Innings 2: '+e2.message);
+
+    // Determine result
+    let result='';let winner=null;
+    if(resultType==='tie'){
+      result='Match Tied';
+    } else if(resultType==='noresult'){
+      result='No Result';
+    } else {
+      // Auto-calculate
+      if(runs1>runs2){
+        winner=bat1;
+        result=bat1+' won by '+(runs1-runs2)+' runs';
+      } else if(runs2>runs1){
+        winner=bowl1;
+        result=bowl1+' won by '+(10-wkts2)+' wickets';
+      } else {
+        result='Match Tied';
+      }
+    }
+
+    // Update match
+    const matchUpdate={status:'completed',result:result,winner:winner,current_innings:2};
+    if(mom)matchUpdate.mom_name=mom;
+    const{error:mErr}=await sb.from('matches').update(matchUpdate).eq('id',m.id);
+    if(mErr)throw new Error('Match update: '+mErr.message);
+
+    // Update tournament_teams for points table
+    if(m.tournament_id){
+      await updateManualTournStats(m,inn1,inn2,winner,result);
+    }
+
+    document.getElementById('manualModal').style.display='none';
+    cxiAlert('Match result saved successfully!');
+    setTimeout(()=>loadDashboard(),1000);
+
+  }catch(ex){
+    console.error('Manual entry error:',ex);
+    err.textContent='Error: '+ex.message;
+  }
+}
+
+async function updateManualTournStats(m,inn1,inn2,winner,result){
+  try{
+    const teamA=m.team_a;const teamB=m.team_b;
+    const{data:ttA}=await sb.from('tournament_teams').select('*').eq('tournament_id',m.tournament_id).eq('team_name',teamA).maybeSingle();
+    const{data:ttB}=await sb.from('tournament_teams').select('*').eq('tournament_id',m.tournament_id).eq('team_name',teamB).maybeSingle();
+    if(!ttA||!ttB)return;
+
+    function ballsToOvers(b){return Math.floor(b/6)+(b%6)/10;}
+
+    // Figure out which innings belongs to which team
+    const innA=inn1.batting_team===teamA?inn1:inn2;
+    const innB=inn1.batting_team===teamB?inn1:inn2;
+
+    // Update Team A
+    const updA={
+      matches_played:(ttA.matches_played||0)+1,
+      runs_scored:(ttA.runs_scored||0)+innA.total_runs,
+      overs_faced:parseFloat(ttA.overs_faced||0)+ballsToOvers(innA.total_balls),
+      runs_conceded:(ttA.runs_conceded||0)+innB.total_runs,
+      overs_bowled:parseFloat(ttA.overs_bowled||0)+ballsToOvers(innB.total_balls)
+    };
+    if(winner===teamA){updA.wins=(ttA.wins||0)+1;updA.points=(ttA.points||0)+2;}
+    else if(winner===teamB){updA.losses=(ttA.losses||0)+1;}
+    else if(result.includes('Tied')){updA.ties=(ttA.ties||0)+1;updA.points=(ttA.points||0)+1;}
+    else{updA.no_results=(ttA.no_results||0)+1;updA.points=(ttA.points||0)+1;}
+    if(updA.overs_faced>0&&updA.overs_bowled>0){
+      updA.nrr=((updA.runs_scored/updA.overs_faced)-(updA.runs_conceded/updA.overs_bowled)).toFixed(3);
+    }
+    await sb.from('tournament_teams').update(updA).eq('id',ttA.id);
+
+    // Update Team B
+    const updB={
+      matches_played:(ttB.matches_played||0)+1,
+      runs_scored:(ttB.runs_scored||0)+innB.total_runs,
+      overs_faced:parseFloat(ttB.overs_faced||0)+ballsToOvers(innB.total_balls),
+      runs_conceded:(ttB.runs_conceded||0)+innA.total_runs,
+      overs_bowled:parseFloat(ttB.overs_bowled||0)+ballsToOvers(innA.total_balls)
+    };
+    if(winner===teamB){updB.wins=(ttB.wins||0)+1;updB.points=(ttB.points||0)+2;}
+    else if(winner===teamA){updB.losses=(ttB.losses||0)+1;}
+    else if(result.includes('Tied')){updB.ties=(ttB.ties||0)+1;updB.points=(ttB.points||0)+1;}
+    else{updB.no_results=(ttB.no_results||0)+1;updB.points=(ttB.points||0)+1;}
+    if(updB.overs_faced>0&&updB.overs_bowled>0){
+      updB.nrr=((updB.runs_scored/updB.overs_faced)-(updB.runs_conceded/updB.overs_bowled)).toFixed(3);
+    }
+    await sb.from('tournament_teams').update(updB).eq('id',ttB.id);
+  }catch(e){console.error('Tournament stats update error:',e);}
+}
+</script>
 <script src="/cxi-modern.js"></script>
 </body>
 </html>
