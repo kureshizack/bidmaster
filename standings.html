@@ -219,9 +219,13 @@ function teamLogo(name){const t=teams.find(x=>x.team_name===name);return t?rende
 
   // Load batting/bowling data from completed matches
   const completedIds=matches.filter(m=>m.status==='completed').map(m=>m.id);
+  let _innTeamMap={};
   if(completedIds.length){
-    const{data:innings}=await sb.from('innings').select('id,match_id,batting_team').in('match_id',completedIds);
+    const{data:innings}=await sb.from('innings').select('id,match_id,batting_team,bowling_team').in('match_id',completedIds);
     const innIds=(innings||[]).map(i=>i.id);
+    // Build innings_id → team map
+    (innings||[]).forEach(inn=>{_innTeamMap[inn.id]={bat:inn.batting_team,bowl:inn.bowling_team};});
+    window._innTeamMap=_innTeamMap;
     if(innIds.length){
       const{data:bat}=await sb.from('batting_card').select('*').in('innings_id',innIds);
       const{data:bowl}=await sb.from('bowling_card').select('*').in('innings_id',innIds);
@@ -263,19 +267,19 @@ function renderHeader(){
     const banner=document.getElementById('sponsorBanner');
     banner.style.display='block';
 
-    // Build slides for each sponsor
-    let bannerHtml='<div style="position:relative;min-height:120px;margin:10px 12px;">';
+    // Build slides — each sponsor full width, image on top, name + text below
+    let bannerHtml='<div style="position:relative;margin:10px 12px;">';
     allSponsors.forEach((s,i)=>{
       bannerHtml+='<div class="sponsor-slide'+(i===0?' active':'')+'" data-slide="'+i+'" style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">';
-      if(s.logo)bannerHtml+='<img src="'+s.logo+'" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">';
+      if(s.logo)bannerHtml+='<img src="'+s.logo+'" style="width:100%;max-height:220px;object-fit:contain;border-radius:8px;margin-bottom:10px;display:block;">';
       if(s.name)bannerHtml+='<div style="font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+s.name+'</div>';
-      if(s.text)bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+s.text+'</div>';
+      if(s.text)bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">'+s.text+'</div>';
       bannerHtml+='</div>';
     });
     bannerHtml+='</div>';
     banner.innerHTML=bannerHtml;
 
-    // Auto-rotate sponsors every 4 seconds
+    // Auto-rotate sponsors every 5 seconds
     if(allSponsors.length>1){
       let currentSlide=0;
       setInterval(()=>{
@@ -283,15 +287,15 @@ function renderHeader(){
         slides.forEach(s=>s.classList.remove('active'));
         currentSlide=(currentSlide+1)%slides.length;
         slides[currentSlide].classList.add('active');
-      },4000);
+      },5000);
     }
 
-    // Marquee strip — include ALL sponsors
+    // Marquee strip — all sponsors in scrolling text
     const marquee=document.getElementById('sponsorMarquee');
     marquee.style.display='block';
     let mText='';
     allSponsors.forEach(s=>{
-      if(s.name)mText+='Presented by '+s.name+' ★ ';
+      if(s.name)mText+=s.name+' ★ ';
       if(s.text)mText+=s.text+' ★ ';
     });
     mText+=tournament.name+' ★ '+tournament.teams_count+' teams ★ '+tournament.overs_per_match+' overs ★ ';
@@ -443,19 +447,24 @@ function renderStats(){
   // Aggregate batting
   const batAgg={};
   allBatting.forEach(b=>{
-    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,inn:0,hs:0,notOuts:0};
+    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,inn:0,hs:0,notOuts:0,team:''};
     const p=batAgg[b.player_name];p.runs+=b.runs;p.balls+=b.balls_faced;p.fours+=b.fours;p.sixes+=b.sixes;p.inn++;
     if(!b.is_out)p.notOuts++;
     if(b.runs>p.hs)p.hs=b.runs;
+    // Get team from innings map
+    const tm=window._innTeamMap&&window._innTeamMap[b.innings_id];
+    if(tm&&tm.bat)p.team=tm.bat;
   });
   const batRanked=Object.entries(batAgg).sort((a,b)=>b[1].runs-a[1].runs);
 
   // Aggregate bowling
   const bowlAgg={};
   allBowling.forEach(b=>{
-    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wkts:0,runs:0,balls:0,inn:0,best:0,maidens:0};
+    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wkts:0,runs:0,balls:0,inn:0,best:0,maidens:0,team:''};
     const p=bowlAgg[b.player_name];p.wkts+=b.wickets;p.runs+=b.runs_conceded;p.balls+=(b.overs_balls||0);p.inn++;p.maidens+=b.maidens;
     if(b.wickets>p.best)p.best=b.wickets;
+    const tm=window._innTeamMap&&window._innTeamMap[b.innings_id];
+    if(tm&&tm.bowl)p.team=tm.bowl;
   });
   const bowlRanked=Object.entries(bowlAgg).sort((a,b)=>b[1].wkts-a[1].wkts);
 
@@ -466,7 +475,7 @@ function renderStats(){
   html+='<table class="leader-table"><thead><tr><th>Player</th><th>Inn</th><th>R</th><th>HS</th><th>SR</th><th>4s</th><th>6s</th></tr></thead><tbody>';
   batRanked.slice(0,10).forEach(([name,b])=>{
     const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):'-';
-    html+='<tr><td>'+name+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--accent);">'+b.runs+'</td><td>'+b.hs+(b.notOuts?'*':'')+'</td><td>'+sr+'</td><td style="color:var(--green);">'+b.fours+'</td><td style="color:var(--accent);">'+b.sixes+'</td></tr>';
+    html+='<tr><td>'+name+(b.team?'<div style="font-size:10px;color:var(--muted);font-weight:400;">'+b.team+'</div>':'')+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--accent);">'+b.runs+'</td><td>'+b.hs+(b.notOuts?'*':'')+'</td><td>'+sr+'</td><td style="color:var(--green);">'+b.fours+'</td><td style="color:var(--accent);">'+b.sixes+'</td></tr>';
   });
   html+='</tbody></table>';
 
@@ -475,7 +484,7 @@ function renderStats(){
   html+='<table class="leader-table"><thead><tr><th>Player</th><th>Inn</th><th>W</th><th>R</th><th>Best</th><th>Econ</th></tr></thead><tbody>';
   bowlRanked.slice(0,10).forEach(([name,b])=>{
     const econ=b.balls>0?((b.runs/(b.balls/6))).toFixed(2):'-';
-    html+='<tr><td>'+name+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--red);">'+b.wkts+'</td><td>'+b.runs+'</td><td>'+b.best+'</td><td>'+econ+'</td></tr>';
+    html+='<tr><td>'+name+(b.team?'<div style="font-size:10px;color:var(--muted);font-weight:400;">'+b.team+'</div>':'')+'</td><td>'+b.inn+'</td><td style="font-weight:700;color:var(--red);">'+b.wkts+'</td><td>'+b.runs+'</td><td>'+b.best+'</td><td>'+econ+'</td></tr>';
   });
   html+='</tbody></table>';
 
