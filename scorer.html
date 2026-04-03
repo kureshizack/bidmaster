@@ -6,14 +6,13 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Live Scorer — CaptainXI</title>
+<title>Live Scorer — captainXI.com</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/cxi-offline.js"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--surface3:#2e3f5a;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 [data-theme="light"]{--bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf3;--surface3:#dce4ee;--border:#c8d5e2;--accent:#d97706;--text:#1a2535;--muted:#64748b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--yellow:#ca8a04;--purple:#7c3aed;}
@@ -134,8 +133,6 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 </style>
 <link rel="stylesheet" href="/cxi-modern.css">
-<meta name="description" content="Ball-by-ball cricket scoring with real-time updates, undo, AI Player of the Match, and offline support.">
-<meta name="robots" content="noindex">
 </head>
 <body>
 
@@ -450,15 +447,6 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 const SUPABASE_URL='https://ofondrfejzcznxsvpuec.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-
-// Start offline auto-sync
-if (typeof CXIOffline !== 'undefined') {
-  CXIOffline.startAutoSync(async (b) => {
-    const { data, error } = await sb.from('balls').insert(b).select().single();
-    if (error) return { success: false, error: error.message };
-    return { success: true, data };
-  });
-}
 
 // ── CXI Modal Utility (replaces browser alert/confirm/prompt) ──
 function _cxiEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -777,19 +765,23 @@ async function startMatch(){
   localStorage.setItem('captainxi_active_match', match.id);
 
   // Create 1st innings
-  const{data:inn}=await sb.from('innings').insert({
+  const{data:inn,error:innErr}=await sb.from('innings').insert({
     match_id:match.id,innings_number:1,batting_team:battingFirst,bowling_team:bowlingFirst,status:'in_progress'
   }).select().single();
+  if(innErr||!inn){msg.style.color='var(--red)';msg.textContent='Error creating innings: '+(innErr?.message||'Unknown error. Check login status.');console.error('Innings error:',innErr);return;}
   currentInnings=inn;
 
   // Create batting card entries
-  const{data:s1}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:strikerName,batting_order:1,is_striker:true,is_on_crease:true}).select().single();
-  const{data:s2}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:nonStrikerName,batting_order:2,is_striker:false,is_on_crease:true}).select().single();
+  const{data:s1,error:s1Err}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:strikerName,batting_order:1,is_striker:true,is_on_crease:true}).select().single();
+  if(s1Err||!s1){msg.style.color='var(--red)';msg.textContent='Error creating batting card: '+(s1Err?.message||'Unknown');console.error('Batting card error:',s1Err);return;}
+  const{data:s2,error:s2Err}=await sb.from('batting_card').insert({match_id:match.id,innings_id:inn.id,player_name:nonStrikerName,batting_order:2,is_striker:false,is_on_crease:true}).select().single();
+  if(s2Err||!s2){msg.style.color='var(--red)';msg.textContent='Error creating batting card: '+(s2Err?.message||'Unknown');console.error('Batting card error:',s2Err);return;}
   striker=s1;nonStriker=s2;
   battingCard=[s1,s2];
 
   // Create bowler card
-  const{data:b1}=await sb.from('bowling_card').insert({match_id:match.id,innings_id:inn.id,player_name:bowlerName,is_current:true}).select().single();
+  const{data:b1,error:b1Err}=await sb.from('bowling_card').insert({match_id:match.id,innings_id:inn.id,player_name:bowlerName,is_current:true}).select().single();
+  if(b1Err||!b1){msg.style.color='var(--red)';msg.textContent='Error creating bowling card: '+(b1Err?.message||'Unknown');console.error('Bowling card error:',b1Err);return;}
   bowler=b1;
   bowlingCard=[b1];
 
@@ -806,7 +798,13 @@ async function startMatch(){
 // RECORD BALL — the core scoring function
 // ══════════════════════════════════════════════════════════
 async function recordBall(outcome){
-  if(!currentInnings||!striker||!bowler)return;
+  if(!currentInnings||!striker||!bowler){
+    console.error('[CXI] Cannot score: currentInnings=',!!currentInnings,'striker=',!!striker,'bowler=',!!bowler);
+    if(!currentInnings) cxiAlert('Error: No active innings. Try refreshing the page or re-starting the match.');
+    else if(!striker) cxiAlert('Error: Striker not set. Re-open the match from dashboard.');
+    else if(!bowler) cxiAlert('Error: Bowler not set. Re-open the match from dashboard.');
+    return;
+  }
   if(isMatchEnded){cxiAlert('Match is over! No more balls can be scored.');return;}
   if(isProcessing)return;
   isProcessing=true;
@@ -839,15 +837,7 @@ async function recordBall(outcome){
     commentary:generateCommentary(outcome,runsBat)
   };
 
-  // Offline-capable ball insert
-  let savedBall = ball;
-  const offResult1 = await CXIOffline.queueBall(ball, async (b) => {
-    const { data, error } = await sb.from('balls').insert(b).select().single();
-    if (error) return { success: false, error: error.message };
-    savedBall = data;
-    return { success: true, data };
-  });
-  if (!offResult1.offline && savedBall) ball = savedBall;
+  const{data:savedBall}=await sb.from('balls').insert(ball).select().single();
   allBalls.push(savedBall);
   overBalls.push(savedBall);
 
@@ -947,15 +937,7 @@ async function confirmExtra(additionalRuns){
     commentary:generateExtraCommentary(type,additionalRuns)
   };
 
-  // Offline-capable ball insert
-  let savedBall = ball;
-  const offResult2 = await CXIOffline.queueBall(ball, async (b) => {
-    const { data, error } = await sb.from('balls').insert(b).select().single();
-    if (error) return { success: false, error: error.message };
-    savedBall = data;
-    return { success: true, data };
-  });
-  if (!offResult2.offline && savedBall) ball = savedBall;
+  const{data:savedBall}=await sb.from('balls').insert(ball).select().single();
   allBalls.push(savedBall);
   overBalls.push(savedBall);
 
@@ -1124,15 +1106,7 @@ async function finalizeWicket(){
     fielder_name:fielder||null,is_free_hit:false,
     commentary:'OUT! '+outPlayer.player_name+' '+dismissalText
   };
-  // Offline-capable ball insert
-  let savedBall = ball;
-  const offResult3 = await CXIOffline.queueBall(ball, async (b) => {
-    const { data, error } = await sb.from('balls').insert(b).select().single();
-    if (error) return { success: false, error: error.message };
-    savedBall = data;
-    return { success: true, data };
-  });
-  if (!offResult3.offline && savedBall) ball = savedBall;
+  const{data:savedBall}=await sb.from('balls').insert(ball).select().single();
   allBalls.push(savedBall);
   overBalls.push(savedBall);
 
@@ -2206,6 +2180,5 @@ function showSponsorBanner(event){
 }
 </script>
 <script src="/cxi-modern.js"></script>
-<script src="/cxi-seo.js"></script>
 </body>
 </html>
