@@ -525,25 +525,28 @@ async function loadAll(){
   const ogU=document.getElementById('ogUrl');if(ogU)ogU.content='https://captainxi.com/scorecard.html?code='+m.share_code;
 
   // Load organizer plan for feature gating
-  if(organizerPlan==='free'){
-    let creatorId=m.created_by;
-    // For tournament matches, created_by may be null — look up tournament creator
-    if(!creatorId&&m.tournament_id){
-      const{data:tInfo}=await sb.from('tournaments').select('created_by').eq('id',m.tournament_id).maybeSingle();
-      if(tInfo)creatorId=tInfo.created_by;
+  try{
+    if(organizerPlan==='free'){
+      let creatorId=m.created_by;
+      // For tournament matches, created_by may be null — look up tournament creator
+      if(!creatorId&&m.tournament_id){
+        const{data:tInfo}=await sb.from('tournaments').select('created_by').eq('id',m.tournament_id).maybeSingle();
+        if(tInfo)creatorId=tInfo.created_by;
+      }
+      if(creatorId){
+        const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',creatorId).maybeSingle();
+        if(orgProfile)organizerPlan=orgProfile.plan||'free';
+      }
     }
-    if(creatorId){
-      const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',creatorId).maybeSingle();
-      if(orgProfile)organizerPlan=orgProfile.plan||'free';
-    }
-  }
+  }catch(e){console.warn('Plan detection error:',e);}
 
   // Show "Standings" link if this is a tournament match
-  if(m.tournament_id){
-    const sLink=document.getElementById('standingsLink');
-    if(sLink&&!sLink._loaded){
-      const{data:tData}=await sb.from('tournaments').select('share_code,name').eq('id',m.tournament_id).maybeSingle();
-      if(tData&&tData.share_code){
+  try{
+    if(m.tournament_id){
+      const sLink=document.getElementById('standingsLink');
+      if(sLink&&!sLink._loaded){
+        const{data:tData}=await sb.from('tournaments').select('share_code,name').eq('id',m.tournament_id).maybeSingle();
+        if(tData&&tData.share_code){
         const standingsUrl='standings.html?t='+tData.share_code;
         sLink.href=standingsUrl;
         sLink.onclick=null;
@@ -560,6 +563,7 @@ async function loadAll(){
       }
     }
   }
+  }catch(e){console.warn('Standings link error:',e);}
 
   // Load ALL innings (both 1st and 2nd)
   const{data:innings}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number');
@@ -655,10 +659,12 @@ function renderMarquee(){
 
   // Show ad-free button for non-organizers
   let isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
-  if(!isOrg&&matchData.tournament_id&&window._currentUserId){
-    const{data:tc}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
-    if(tc&&tc.created_by===window._currentUserId)isOrg=true;
-  }
+  try{
+    if(!isOrg&&matchData.tournament_id&&window._currentUserId){
+      const{data:tc}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
+      if(tc&&tc.created_by===window._currentUserId)isOrg=true;
+    }
+  }catch(e){}
   if(!isOrg&&!window._isAdFree){
     document.getElementById('adFreeBtn').style.display='block';
   }
@@ -1154,10 +1160,12 @@ async function renderCharts(){
 
   // Check if user is the organizer (always free)
   let isOrganizer=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
-  if(!isOrganizer&&matchData.tournament_id&&window._currentUserId){
-    const{data:tCheck}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
-    if(tCheck&&tCheck.created_by===window._currentUserId)isOrganizer=true;
-  }
+  try{
+    if(!isOrganizer&&matchData.tournament_id&&window._currentUserId){
+      const{data:tCheck}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
+      if(tCheck&&tCheck.created_by===window._currentUserId)isOrganizer=true;
+    }
+  }catch(e){console.warn('Organizer check error:',e);}
 
   // Gating logic: free for first 5 overs OR if paid OR if organizer
   if(totalBalls>FREE_BALL_LIMIT&&!fullUnlocked&&!isOrganizer){
