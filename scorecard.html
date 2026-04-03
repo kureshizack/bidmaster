@@ -657,11 +657,8 @@ function renderMarquee(){
     track.style.animationDuration=duration+'s';
   }
 
-  // Show ad-free button for non-organizers
-  const isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
-  if(!isOrg&&!window._isAdFree){
-    document.getElementById('adFreeBtn').style.display='block';
-  }
+  // Ad-free button disabled — payment tracking not yet built
+  // Will re-enable after Razorpay webhook + receipt system
 }
 
 function showAdFreeOffer(){
@@ -1161,12 +1158,8 @@ async function renderCharts(){
     }
   }catch(e){console.warn('Organizer check error:',e);}
 
-  // Gating logic: free for first 5 overs OR if paid OR if organizer
-  if(totalBalls>FREE_BALL_LIMIT&&!fullUnlocked&&!isOrganizer){
-    document.getElementById('statsLocked').style.display='block';
-    document.getElementById('statsContent').style.display='none';
-    return;
-  }
+  // Gating logic: temporarily FREE for all — payment tracking not yet built
+  // TODO: re-enable after Razorpay webhook + receipt system is ready
   document.getElementById('statsLocked').style.display='none';
   document.getElementById('statsContent').style.display='block';
 

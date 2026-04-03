@@ -1489,10 +1489,10 @@ async function showPoMSelector(){
 
   html+='<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Or choose manually:</div>';
 
-  // All players ranked by impact
+  // All players ranked by impact (exclude top pick — already shown above)
   ranked.forEach(p=>{
-    const isTop=topPick&&p.name===topPick.name;
-    html+='<button class="modal-btn modal-btn-ghost pom-pick'+(isTop?' wkt-selected':'')+'" onclick="selectPoM(this,\''+p.name.replace(/'/g,"\\'")+'\')"><span style="font-weight:700;">'+p.name+'</span><br><span style="font-size:11px;color:var(--muted);">'+p.statLine+(p.impact>0?' | Impact: '+Math.round(p.impact):'')+'</span></button>';
+    if(topPick&&p.name===topPick.name)return; // skip — already in suggestion banner
+    html+='<button class="modal-btn modal-btn-ghost pom-pick" onclick="selectPoM(this,\''+p.name.replace(/'/g,"\\'")+'\')"><span style="font-weight:700;">'+p.name+'</span><br><span style="font-size:11px;color:var(--muted);">'+p.statLine+(p.impact>0?' | Impact: '+Math.round(p.impact):'')+'</span></button>';
   });
 
   list.innerHTML=html;
