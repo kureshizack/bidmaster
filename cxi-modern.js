@@ -85,3 +85,48 @@ function haptic(type){
     else if(type==='error')navigator.vibrate([30,50,30,50,30]);
   }
 }
+
+// ── GLOBAL BOTTOM NAVIGATION BAR ──
+(function(){
+  // Don't show on scorer (too busy) or bidder (auction mode)
+  const page=location.pathname.split('/').pop()||'index.html';
+  const hideOn=['scorer.html','bidder.html','viewer.html','login.html'];
+  if(hideOn.includes(page))return;
+
+  // Only show if user is logged in (check Supabase session in localStorage)
+  let isLoggedIn=false;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.includes('auth-token')){
+        const val=localStorage.getItem(key);
+        if(val&&val.includes('access_token')){isLoggedIn=true;break;}
+      }
+    }
+  }catch(e){}
+  if(!isLoggedIn)return;
+
+  // Create bottom nav
+  const nav=document.createElement('div');
+  nav.id='cxiBottomNav';
+  const items=[
+    {icon:'🏠',label:'Home',href:'/index.html',pages:['index.html','']},
+    {icon:'📊',label:'Dashboard',href:'/dashboard.html',pages:['dashboard.html']},
+    {icon:'🏆',label:'Tournaments',href:'/tournament.html',pages:['tournament.html','standings.html','schedule.html']},
+    {icon:'⭐',label:'Upgrade',href:'/upgrade.html',pages:['upgrade.html']},
+    {icon:'❓',label:'Help',href:'/help.html',pages:['help.html']}
+  ];
+
+  nav.innerHTML=items.map(item=>{
+    const isActive=item.pages.includes(page);
+    return '<a href="'+item.href+'" class="cxi-bnav-item'+(isActive?' active':'')+'">'
+      +'<span class="cxi-bnav-icon">'+item.icon+'</span>'
+      +'<span class="cxi-bnav-label">'+item.label+'</span>'
+      +'</a>';
+  }).join('');
+
+  document.body.appendChild(nav);
+
+  // Add padding to body so content isn't hidden behind nav
+  document.body.style.paddingBottom='72px';
+})();

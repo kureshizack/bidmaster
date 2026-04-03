@@ -162,3 +162,52 @@ nav{padding-top:max(12px,env(safe-area-inset-top));}
   color:var(--muted,#7a8faa);
   display:none;
 }
+
+/* ── GLOBAL BOTTOM NAVIGATION BAR ── */
+#cxiBottomNav{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  z-index:9980;
+  display:flex;
+  align-items:stretch;
+  background:rgba(13,17,23,0.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(245,158,11,0.15);
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+}
+.cxi-bnav-item{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:8px 4px 6px;
+  text-decoration:none;
+  color:var(--muted,#7a8faa);
+  transition:color 0.2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.cxi-bnav-item.active{
+  color:var(--accent,#f59e0b);
+}
+.cxi-bnav-item:hover{
+  color:var(--text,#f0f4ff);
+}
+.cxi-bnav-icon{
+  font-size:20px;
+  line-height:1;
+  margin-bottom:2px;
+}
+.cxi-bnav-label{
+  font-family:'Rajdhani',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+}
+/* Hide bottom nav when PWA install banner is showing */
+#pwaInstall[style*="flex"]~#cxiBottomNav{
+  bottom:60px;
+}

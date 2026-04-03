@@ -36,8 +36,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .tourn-sponsor{font-size:12px;color:var(--accent);margin-bottom:6px;}
 @keyframes sponsorScroll{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
 @keyframes sponsorFade{0%,15%{opacity:1;}20%,100%{opacity:0;}}
-.sponsor-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.8s ease-in-out;}
-.sponsor-slide.active{opacity:1;}
+.sponsor-slide{display:none;transition:opacity 0.8s ease-in-out;opacity:0;}
+.sponsor-slide.active{display:block;opacity:1;}
 .tourn-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent);line-height:1;}
 .tourn-meta{font-size:12px;color:var(--muted);margin-top:6px;}
 .tourn-status{display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;margin-top:8px;}
