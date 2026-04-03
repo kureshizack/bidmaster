@@ -333,16 +333,16 @@ footer a{color:var(--accent);text-decoration:none;}
       </div>
     </div>
 
-    <!-- STATS TAB (Club+ Feature) -->
+    <!-- STATS TAB -->
     <div class="sc-tab-content" id="tab-stats">
       <div id="statsLocked" style="display:none;">
         <div class="viewer-paywall">
           <div class="paywall-icon">📊</div>
-          <div class="paywall-title">Match Analytics</div>
-          <div class="paywall-desc">Worm Chart, Manhattan, Run Rate comparison,<br>Scoring Breakdown — IPL-style match analysis</div>
-          <div class="paywall-price">₹9</div>
+          <div class="paywall-title">Full Match Experience</div>
+          <div class="paywall-desc">Unlock all charts beyond 5 overs,<br>remove ads & sponsor banners</div>
+          <div class="paywall-price">₹29</div>
           <div class="paywall-unit">one-time · this match only</div>
-          <button class="paywall-btn" onclick="unlockStats()">Unlock Stats</button>
+          <button class="paywall-btn" onclick="unlockFullExperience()">Unlock Full Experience</button>
           <div style="font-size:11px;color:var(--muted);margin-top:10px;">Secure payment via Razorpay</div>
         </div>
       </div>
@@ -525,9 +525,17 @@ async function loadAll(){
   const ogU=document.getElementById('ogUrl');if(ogU)ogU.content='https://captainxi.com/scorecard.html?code='+m.share_code;
 
   // Load organizer plan for feature gating
-  if(m.created_by&&organizerPlan==='free'){
-    const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',m.created_by).maybeSingle();
-    if(orgProfile)organizerPlan=orgProfile.plan||'free';
+  if(organizerPlan==='free'){
+    let creatorId=m.created_by;
+    // For tournament matches, created_by may be null — look up tournament creator
+    if(!creatorId&&m.tournament_id){
+      const{data:tInfo}=await sb.from('tournaments').select('created_by').eq('id',m.tournament_id).maybeSingle();
+      if(tInfo)creatorId=tInfo.created_by;
+    }
+    if(creatorId){
+      const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',creatorId).maybeSingle();
+      if(orgProfile)organizerPlan=orgProfile.plan||'free';
+    }
   }
 
   // Show "Standings" link if this is a tournament match
@@ -617,8 +625,8 @@ window._isAdFree=false;
     const{data:{session}}=await sb.auth.getSession();
     if(session)window._currentUserId=session.user.id;
   }catch(e){}
-  // Check ad-free status
-  if(localStorage.getItem('cxi_adfree_'+matchId)==='true')window._isAdFree=true;
+  // Check ad-free status (either direct ad-free or full experience unlock)
+  if(localStorage.getItem('cxi_adfree_'+matchId)==='true'||localStorage.getItem('cxi_full_'+matchId)==='unlocked')window._isAdFree=true;
 })();
 
 function renderMarquee(){
@@ -646,14 +654,18 @@ function renderMarquee(){
   }
 
   // Show ad-free button for non-organizers
-  const isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
+  let isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
+  if(!isOrg&&matchData.tournament_id&&window._currentUserId){
+    const{data:tc}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
+    if(tc&&tc.created_by===window._currentUserId)isOrg=true;
+  }
   if(!isOrg&&!window._isAdFree){
     document.getElementById('adFreeBtn').style.display='block';
   }
 }
 
 function showAdFreeOffer(){
-  // Show ad-free modal
+  // Show full experience modal — ₹29 for charts + ad-free + sponsor removal
   const existing=document.getElementById('adFreeModal');
   if(existing)existing.remove();
   const modal=document.createElement('div');
@@ -662,48 +674,53 @@ function showAdFreeOffer(){
   modal.innerHTML=`
     <div style="background:var(--surface,#1a2538);border:1px solid var(--border,#3d5474);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center;">
       <div style="font-size:36px;margin-bottom:8px;">✨</div>
-      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text,#f5f7ff);margin-bottom:6px;">Ad-Free Experience</div>
-      <div style="font-size:13px;color:var(--muted,#9ab0cc);line-height:1.6;margin-bottom:16px;">Remove sponsor marquee, over-break ads,<br>and all banners from this scorecard.</div>
+      <div style="font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--text,#f5f7ff);margin-bottom:6px;">Full Match Experience</div>
+      <div style="font-size:13px;color:var(--muted,#9ab0cc);line-height:1.6;margin-bottom:16px;">Remove all ads & sponsor banners<br>+ unlock all charts & analytics</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--accent,#f59e0b);letter-spacing:2px;">₹29</div>
-      <div style="font-size:11px;color:var(--muted);">one-time · this tournament</div>
-      <button onclick="unlockAdFree()" style="width:100%;margin-top:16px;padding:14px;background:var(--accent,#f59e0b);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Go Ad-Free</button>
+      <div style="font-size:11px;color:var(--muted);">one-time · this match</div>
+      <button onclick="document.getElementById('adFreeModal').remove();unlockFullExperience();" style="width:100%;margin-top:16px;padding:14px;background:var(--accent,#f59e0b);color:#000;border:none;border-radius:10px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;">Unlock Now</button>
       <div onclick="document.getElementById('adFreeModal').remove()" style="font-size:12px;color:var(--muted);margin-top:10px;cursor:pointer;">No thanks</div>
     </div>`;
   modal.onclick=function(e){if(e.target===modal)modal.remove();};
   document.body.appendChild(modal);
 }
 
-async function unlockStats(){
-  // For now: Razorpay micro-payment for ₹9
+async function unlockFullExperience(){
+  // Unified ₹29 payment — unlocks charts + ad-free + sponsor removal
   if(typeof Razorpay==='undefined'){
-    // Razorpay not loaded — unlock directly for testing
-    localStorage.setItem('cxi_stats_'+matchId,'unlocked');
-    chartsRendered=false;
-    renderCharts();
+    // Testing mode — unlock directly
+    activateFullExperience();
     return;
   }
   const options={
     key:'rzp_live_SYbRTBbAmBDn42',
-    amount:900,
+    amount:2900,
     currency:'INR',
     name:'CaptainXI',
-    description:'Match Stats Unlock',
+    description:'Full Match Experience — Charts + Ad-Free',
     image:'/favicon.svg',
     retry:{enabled:false},
+    confirm_close:true,
     theme:{color:'#f59e0b'},
     handler:function(response){
-      localStorage.setItem('cxi_stats_'+matchId,'unlocked');
-      chartsRendered=false;
-      renderCharts();
+      activateFullExperience();
     }
   };
-  // Try creating order for UPI support
   try{
-    const r=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},body:JSON.stringify({amount:900,currency:'INR'})});
+    const r=await fetch('https://ofondrfejzcznxsvpuec.supabase.co/functions/v1/create-razorpay-order',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no'},body:JSON.stringify({amount:2900,currency:'INR'})});
     const d=await r.json();if(d.order_id)options.order_id=d.order_id;
   }catch(e){}
   const rzp=new Razorpay(options);
   rzp.open();
+}
+
+function activateFullExperience(){
+  // Unlock charts
+  localStorage.setItem('cxi_full_'+matchId,'unlocked');
+  chartsRendered=false;
+  renderCharts();
+  // Also activate ad-free
+  activateAdFree();
 }
 
 async function unlockAdFree(){
@@ -1128,20 +1145,22 @@ async function renderCharts(){
   if(chartsRendered)return;
   if(!allInnings.length)return;
 
-  // Check if organizer has Club+ (features exist)
-  const orgHasClub=organizerPlan!=='free'&&organizerPlan!=='gully';
-  if(!orgHasClub){
-    // Organizer on free — stats don't exist at all, hide tab
-    const statsTab=document.querySelector('.sc-tab[onclick="switchTab(\'stats\')"]');
-    if(statsTab)statsTab.style.display='none';
-    return;
+  // Count total legal balls across all innings
+  const totalBalls=ballsData.filter(b=>b.is_legal!==false).length;
+  const FREE_BALL_LIMIT=30; // 5 overs × 6 balls
+
+  // Check if user has paid for full experience
+  const fullUnlocked=localStorage.getItem('cxi_full_'+matchId)==='unlocked';
+
+  // Check if user is the organizer (always free)
+  let isOrganizer=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
+  if(!isOrganizer&&matchData.tournament_id&&window._currentUserId){
+    const{data:tCheck}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
+    if(tCheck&&tCheck.created_by===window._currentUserId)isOrganizer=true;
   }
 
-  // Check if VIEWER has paid for stats (or is the organizer)
-  const viewerUnlocked=localStorage.getItem('cxi_stats_'+matchId)==='unlocked';
-  const isOrganizer=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
-
-  if(!viewerUnlocked&&!isOrganizer){
+  // Gating logic: free for first 5 overs OR if paid OR if organizer
+  if(totalBalls>FREE_BALL_LIMIT&&!fullUnlocked&&!isOrganizer){
     document.getElementById('statsLocked').style.display='block';
     document.getElementById('statsContent').style.display='none';
     return;
