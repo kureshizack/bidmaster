@@ -212,6 +212,7 @@ footer a{color:var(--accent);text-decoration:none;}
     <div class="live-strip">
       <div class="live-dot" id="liveStatus">LIVE</div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <a href="#" id="standingsLink" onclick="return false;" style="display:none;padding:6px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(63,185,80,0.1);color:var(--green);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;text-decoration:none;">Standings</a>
         <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
         <button class="share-btn-top" onclick="shareScorecard()">Share</button>
       </div>
@@ -400,6 +401,13 @@ footer a{color:var(--accent);text-decoration:none;}
     <div id="adSlotContent" style="font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--accent);">📣 Advertisement · Contact organizer</div>
   </div>
 
+<!-- Tournament Standings CTA (shown for tournament matches) -->
+<div id="tournamentCTA" style="display:none;margin:16px 12px;background:linear-gradient(135deg,rgba(63,185,80,0.08),rgba(63,185,80,0.02));border:1px solid rgba(63,185,80,0.3);border-radius:12px;padding:18px 16px;text-align:center;">
+  <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:4px;" id="ctaTournName">Tournament Standings</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Points Table · Orange Cap · Purple Cap · Fixtures</div>
+  <a href="#" id="ctaStandingsLink" style="display:inline-block;background:var(--green);color:#000;padding:10px 28px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;text-decoration:none;letter-spacing:1px;">View Standings →</a>
+</div>
+
 <footer>
   Powered by <a href="https://captainxi.com" style="color:var(--accent);text-decoration:none;">captainXI.com</a> 🏏
 </footer>
@@ -520,6 +528,29 @@ async function loadAll(){
   if(m.created_by&&organizerPlan==='free'){
     const{data:orgProfile}=await sb.from('profiles').select('plan').eq('id',m.created_by).maybeSingle();
     if(orgProfile)organizerPlan=orgProfile.plan||'free';
+  }
+
+  // Show "Standings" link if this is a tournament match
+  if(m.tournament_id){
+    const sLink=document.getElementById('standingsLink');
+    if(sLink&&!sLink._loaded){
+      const{data:tData}=await sb.from('tournaments').select('share_code,name').eq('id',m.tournament_id).maybeSingle();
+      if(tData&&tData.share_code){
+        const standingsUrl='standings.html?t='+tData.share_code;
+        sLink.href=standingsUrl;
+        sLink.onclick=null;
+        sLink.style.display='inline-block';
+        sLink.title=tData.name+' — Standings';
+        sLink._loaded=true;
+        // Also show bottom CTA
+        const cta=document.getElementById('tournamentCTA');
+        if(cta){cta.style.display='block';}
+        const ctaName=document.getElementById('ctaTournName');
+        if(ctaName&&tData.name){ctaName.textContent=tData.name+' — Standings';}
+        const ctaLink=document.getElementById('ctaStandingsLink');
+        if(ctaLink){ctaLink.href=standingsUrl;}
+      }
+    }
   }
 
   // Load ALL innings (both 1st and 2nd)
@@ -1390,6 +1421,5 @@ async function shareScorecard(){
 }
 </script>
 <script src="/cxi-modern.js"></script>
-<script src="/cxi-seo.js"></script>
 </body>
 </html>
