@@ -1,0 +1,31 @@
+# CaptainXI — robots.txt
+# India's #1 Cricket Tournament Management Platform
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://captainxi.com/sitemap.xml
+
+# Block admin and internal pages from indexing
+Disallow: /admin.html
+
+# Allow all public-facing pages
+Allow: /index.html
+Allow: /login.html
+Allow: /dashboard.html
+Allow: /tournament.html
+Allow: /standings.html
+Allow: /scorecard.html
+Allow: /scorer.html
+Allow: /join.html
+Allow: /auction.html
+Allow: /matches.html
+Allow: /schedule.html
+Allow: /player.html
+Allow: /register.html
+Allow: /bidder.html
+Allow: /viewer.html
+Allow: /certificate.html
+Allow: /upgrade.html
+Allow: /help.html
