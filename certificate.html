@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player Certificate — CaptainXI</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Certificate — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -97,6 +103,9 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 @keyframes spin{to{transform:rotate(360deg)}}
 .error-box{text-align:center;padding:40px 20px;}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Cricket tournament certificates — Player of the Match, Player of the Tournament, and participation certificates.">
+<link rel="canonical" href="https://captainxi.com/certificate.html">
 </head>
 <body>
 <div class="page">
@@ -485,5 +494,7 @@ function shareWhatsApp(){
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

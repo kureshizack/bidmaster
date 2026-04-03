@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Match Schedule — captainXI.com</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Match Schedule — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -99,6 +105,9 @@ footer a{color:var(--accent);text-decoration:none;}
 .cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
 
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="View and manage cricket match schedules for your tournament.">
+<meta name="robots" content="noindex">
 </head>
 <body>
 
@@ -625,7 +634,7 @@ function exportPDF(){
   const aName=auction?.name||'Tournament';
   const date=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
 
-  let html=`<html><head><title>${aName} — Schedule</title>
+  let html=`<html><head><title>Match Schedule — CaptainXI</title>
   <style>*{margin:0;padding:0;box-sizing:border-box;}body{overflow-x:hidden;font-family:Arial,sans-serif;padding:20px;font-size:12px;}
   .header{text-align:center;margin-bottom:20px;border-bottom:2px solid #f59e0b;padding-bottom:10px;}
   .header h1{font-size:20px;margin-bottom:4px;}.header p{color:#666;font-size:11px;}
@@ -636,7 +645,9 @@ function exportPDF(){
   tr:nth-child(even) td{background:#fafafa;}
   .footer{text-align:center;margin-top:20px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px;}
   @media print{body{overflow-x:hidden;padding:10px;}@page{size:A4;margin:10mm;}}
-  </style></head><body>
+  </style>
+<meta name="robots" content="noindex">
+</head><body>
   <div class="header"><h1>🏏 ${aName}</h1><p>Match Schedule · ${teamNames.length} teams · ${matches.length} matches · Generated ${date}</p><p>captainXI.com</p></div>`;
 
   let currentStage='';
@@ -668,5 +679,7 @@ async function resetSchedule(){
   renderFormatOptions();
 }
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

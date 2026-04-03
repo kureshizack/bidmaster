@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>captainXI.com — Live Bidding</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Live Bidding — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -134,6 +140,9 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 .cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
 
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Bid on cricket players in real-time IPL-style auctions.">
+<meta name="robots" content="noindex">
 </head>
 <body>
 
@@ -962,5 +971,7 @@ function subscribeBidderRatings(){
     .subscribe();
 }
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

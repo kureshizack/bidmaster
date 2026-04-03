@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Tournament — captainXI.com</title>
+<title>Create Tournament — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -66,6 +66,8 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .cxi-modal-btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 </style>
 <link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Create a cricket tournament in minutes. Choose Round Robin, Knockout, or Group+KO format. Add teams, schedule matches, go live.">
+<link rel="canonical" href="https://captainxi.com/tournament.html">
 </head>
 <body>
 <nav><a href="dashboard.html" class="logo">captainXI.com</a><div class="nav-right"><a href="dashboard.html" class="nav-link">Dashboard</a><a href="matches.html" class="nav-link">Matches</a></div></nav>
@@ -696,5 +698,6 @@ function shareTeamWA(code,name){const url='https://captainxi.com/join.html?team=
 function shareTournWA(){const url='https://captainxi.com/standings.html?t='+T.share_code;let m='━━━━━━━━━━━━━━━━━━━\n  *'+T.name.toUpperCase()+'*\n━━━━━━━━━━━━━━━━━━━\n\nFormat: '+T.format.replace(/_/g,' ')+'\nOvers: '+T.overs_per_match+'\nTeams: '+teams.length+'\n';if(T.venue)m+='Venue: '+T.venue+'\n';if(T.start_date)m+='Date: '+new Date(T.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'\n';if(T.sponsor_name)m+='\nPresented by *'+T.sponsor_name+'*\n';m+='\nLive standings & scores:\n'+url+'\n\n_Powered by captainXI.com_\n_My Game. My Rules._';window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');}
 </script>
 <script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

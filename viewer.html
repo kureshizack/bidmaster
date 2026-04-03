@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>captainXI.com — Live Viewer</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Live Viewer — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -146,6 +152,9 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 /* ENDED BANNER */
 .ended-banner{background:rgba(148,163,184,0.1);border:1px solid var(--muted);border-radius:8px;margin:12px;padding:12px 16px;text-align:center;color:var(--muted);font-size:14px;}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Watch live cricket auctions in real-time.">
+<meta name="robots" content="noindex">
 </head>
 <body>
 
@@ -1019,5 +1028,7 @@ function subscribeRatings() {
     .subscribe();
 }
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

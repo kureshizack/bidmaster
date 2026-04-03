@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>captainXI.com — My Matches</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Matches — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -141,6 +147,9 @@ select.form-input option{background:var(--surface2);}
 .cxi-modal-input:focus{border-color:var(--accent,#f59e0b);}
 
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="View all cricket matches — live, upcoming, and completed. Ball-by-ball scorecards and results.">
+<link rel="canonical" href="https://captainxi.com/matches.html">
 </head>
 <body>
 
@@ -784,5 +793,7 @@ document.getElementById('matchModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>

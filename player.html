@@ -6,10 +6,17 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-3Y7FEWB710");</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Player Profile — captainXI.com</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Player Stats — CaptainXI</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/cxi-player-stats.js"></script>
 <style>
 :root{--bg:#0f1724;--surface:#1a2538;--surface2:#243248;--surface3:#2e3f5a;--border:#3d5474;--accent:#f59e0b;--text:#f5f7ff;--muted:#9ab0cc;--green:#34d399;--red:#f87171;--blue:#7cb3f5;--purple:#b4a0f5;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -101,6 +108,9 @@ body{overflow-x:hidden;font-family:'Noto Sans',sans-serif;background:var(--bg);c
 footer{text-align:center;padding:20px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin:20px 16px 0;}
 footer a{color:var(--accent);text-decoration:none;}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Cricket player career stats — batting average, strike rate, bowling economy, catches. Track your performance across tournaments.">
+<link rel="canonical" href="https://captainxi.com/player.html">
 </head>
 <body>
 <div class="page">
@@ -529,6 +539,9 @@ function showProfile(){
 
   // Update page title
   document.title=p.name+' — Cricket Profile | captainXI.com';
+
+  // Load verified stats from balls table (overrides profile table stats)
+  loadVerifiedStats(p.name);
 }
 
 function renderMilestones(){
@@ -624,6 +637,85 @@ function copyLink(){
     setTimeout(()=>btn.textContent='🔗 Copy Link',2000);
   });
 }
+</script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js">
+
+// ── VERIFIED CAREER STATS FROM BALLS TABLE ─────────────
+async function loadVerifiedStats(playerName) {
+  if (!playerName || typeof CXIPlayerStats === 'undefined') return;
+  try {
+    const stats = await CXIPlayerStats.getCareerStats(playerName, sb);
+    if (!stats || stats.summary.totalMatches === 0) return;
+
+    const s = stats.summary;
+
+    // Update quick stats with verified data
+    document.getElementById('qMatches').textContent = s.totalMatches;
+    document.getElementById('qRuns').textContent = s.bat_runs;
+    document.getElementById('qWickets').textContent = s.bowl_wickets;
+
+    // Update batting table with verified ball-by-ball data
+    const batEl = document.getElementById('batStats');
+    const bc = stats.batting.career;
+    batEl.innerHTML = [
+      ['Innings', bc.bat_innings], ['Runs', bc.bat_runs], ['Not Outs', bc.bat_notouts],
+      ['Highest Score', bc.bat_high], ['Average', bc.bat_average], ['Strike Rate', bc.bat_sr],
+      ['4s', bc.bat_fours], ['6s', bc.bat_sixes],
+      ['50s', bc.bat_50s], ['100s', bc.bat_100s],
+      ['30+ Scores', bc.bat_30s], ['Ducks', bc.bat_ducks],
+      ['Balls Faced', bc.bat_balls]
+    ].map(([k,v]) => '<tr><td style="color:var(--muted);">'+k+'</td><td style="color:var(--text);font-weight:700;">'+v+'</td></tr>').join('');
+
+    // Update bowling table
+    const bowlEl = document.getElementById('bowlStats');
+    const bwc = stats.bowling.career;
+    bowlEl.innerHTML = [
+      ['Overs', bwc.bowl_overs], ['Wickets', bwc.bowl_wickets],
+      ['Runs Conceded', bwc.bowl_runs], ['Maidens', bwc.bowl_maidens],
+      ['Average', bwc.bowl_average], ['Economy', bwc.bowl_economy],
+      ['Strike Rate', bwc.bowl_sr], ['Best Bowling', bwc.bowl_best],
+      ['3+ Wickets', bwc.bowl_3w], ['5+ Wickets', bwc.bowl_5w],
+      ['Dot Balls', bwc.bowl_dots]
+    ].map(([k,v]) => '<tr><td style="color:var(--muted);">'+k+'</td><td style="color:var(--text);font-weight:700;">'+v+'</td></tr>').join('');
+
+    // Update fielding table
+    const fieldEl = document.getElementById('fieldStats');
+    const fc = stats.fielding;
+    fieldEl.innerHTML = [
+      ['Catches', fc.catches], ['Run Outs', fc.runouts],
+      ['Stumpings', fc.stumpings], ['Total', fc.total]
+    ].map(([k,v]) => '<tr><td style="color:var(--muted);">'+k+'</td><td style="color:var(--text);font-weight:700;">'+v+'</td></tr>').join('');
+
+    // Update milestones with verified data
+    const ms = [];
+    if (s.totalMatches >= 50) ms.push('🏟 50+ Matches');
+    else if (s.totalMatches >= 25) ms.push('🏟 25+ Matches');
+    else if (s.totalMatches >= 10) ms.push('🏟 10+ Matches');
+    if (s.bat_runs >= 1000) ms.push('🏏 1000+ Runs');
+    else if (s.bat_runs >= 500) ms.push('🏏 500+ Runs');
+    if (bc.bat_100s >= 1) ms.push('💯 Century Maker');
+    if (bc.bat_50s >= 5) ms.push('⭐ 5+ Fifties');
+    if (s.bowl_wickets >= 50) ms.push('🎳 50+ Wickets');
+    else if (s.bowl_wickets >= 25) ms.push('🎳 25+ Wickets');
+    if (bc.bat_sixes >= 50) ms.push('💥 50+ Sixes');
+    else if (bc.bat_sixes >= 20) ms.push('💥 20+ Sixes');
+
+    const msEl = document.getElementById('milestones');
+    if (ms.length) {
+      // Prepend a verified badge
+      ms.unshift('✅ Verified');
+      msEl.style.display = 'block';
+      msEl.innerHTML = ms.map(m => '<span class="milestone">' + m + '</span>').join('');
+    }
+
+    console.log('[CXI] Verified career stats loaded from balls table');
+  } catch (err) {
+    console.warn('[CXI] Could not load verified stats:', err.message);
+    // Falls back to profile table stats (already rendered)
+  }
+}
+
 </script>
 </body>
 </html>

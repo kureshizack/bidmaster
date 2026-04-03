@@ -7,7 +7,13 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — captainXI.com</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f59e0b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+<title>Login — CaptainXI</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -60,6 +66,9 @@ input::placeholder{color:var(--muted);}
 .forgot-link a{color:var(--muted);font-size:12px;text-decoration:none;cursor:pointer;transition:color 0.2s;}
 .forgot-link a:hover{color:var(--gold);}
 </style>
+<link rel="stylesheet" href="/cxi-modern.css">
+<meta name="description" content="Sign in to CaptainXI to manage your cricket tournaments, auctions, and live scoring.">
+<link rel="canonical" href="https://captainxi.com/login.html">
 </head>
 <body>
 <div class="card">
@@ -644,5 +653,7 @@ async function verifySignupOtp(){
   window.location.href=getRedirectUrl();
 }
 </script>
+<script src="/cxi-modern.js"></script>
+<script src="/cxi-seo.js"></script>
 </body>
 </html>
