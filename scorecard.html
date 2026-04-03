@@ -658,13 +658,7 @@ function renderMarquee(){
   }
 
   // Show ad-free button for non-organizers
-  let isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
-  try{
-    if(!isOrg&&matchData.tournament_id&&window._currentUserId){
-      const{data:tc}=await sb.from('tournaments').select('created_by').eq('id',matchData.tournament_id).maybeSingle();
-      if(tc&&tc.created_by===window._currentUserId)isOrg=true;
-    }
-  }catch(e){}
+  const isOrg=matchData.created_by&&window._currentUserId&&matchData.created_by===window._currentUserId;
   if(!isOrg&&!window._isAdFree){
     document.getElementById('adFreeBtn').style.display='block';
   }
