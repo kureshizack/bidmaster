@@ -100,6 +100,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 
 footer{text-align:center;padding:16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);}
 footer a{color:var(--accent);text-decoration:none;}
+@keyframes lPulse{0%,100%{box-shadow:0 0 8px rgba(34,197,94,0.4);}50%{box-shadow:0 0 18px rgba(34,197,94,0.15);}}
 </style>
 <link rel="stylesheet" href="/cxi-modern.css">
 </head>
@@ -138,6 +139,7 @@ footer a{color:var(--accent);text-decoration:none;}
 
     <!-- STANDINGS TAB -->
     <div class="tab-content active" id="tab-standings">
+      <div id="liveMatchBanner"></div>
       <div id="pointsTable"></div>
     </div>
 
@@ -239,6 +241,7 @@ function teamLogo(name){const t=teams.find(x=>x.team_name===name);return t?rende
   document.getElementById('mainContent').style.display='block';
   renderHeader();
   renderPointsTable();
+  renderLiveMatchBanner();
   renderFixtures();
   renderStats();
   renderCapHolders();
@@ -336,6 +339,22 @@ function buildPT(list,qualifyTop){
   return h+'</tbody></table>';
 }
 
+function renderLiveMatchBanner(){
+  const el=document.getElementById('liveMatchBanner');
+  const liveMatches=matches.filter(m=>m.status==='live');
+  if(!liveMatches.length){el.innerHTML='';return;}
+  el.innerHTML=liveMatches.map(m=>`<a href="scorecard.html?code=${m.share_code}" style="display:block;margin:10px 14px 6px;padding:12px 16px;background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04));border:1px solid var(--green);border-radius:10px;text-decoration:none;animation:lPulse 2s infinite;cursor:pointer;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:10px;color:var(--green);font-weight:700;font-family:Rajdhani,sans-serif;letter-spacing:1px;margin-bottom:2px;">● LIVE NOW</div>
+        <div style="font-family:Rajdhani,sans-serif;font-size:16px;font-weight:700;color:var(--text);">${m.team_a} vs ${m.team_b}</div>
+        <div style="font-size:11px;color:var(--muted);">Match ${m.match_number||''}${m.stage?' · '+m.stage:''}</div>
+      </div>
+      <div style="font-size:12px;color:var(--green);font-weight:700;font-family:Rajdhani,sans-serif;white-space:nowrap;">View Score →</div>
+    </div>
+  </a>`).join('');
+}
+
 function renderFixtures(){
   const el=document.getElementById('fixturesContent');
   if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">No matches scheduled yet</div>';return;}
@@ -366,13 +385,17 @@ function renderFixtures(){
   // UPCOMING LEAGUE/GROUP
   if(upcoming.length){
     html+='<div class="section-title">Upcoming</div>';
-    html+=upcoming.map(m=>`<div class="fixture">
-      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span>${m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':''}</div>
+    html+=upcoming.map(m=>{
+      const isLive=m.status==='live';
+      const liveStyle=isLive?'border:1px solid var(--green);box-shadow:0 0 12px rgba(34,197,94,0.3);animation:lPulse 2s infinite;cursor:pointer;':'';
+      const clickAttr=isLive?'onclick="window.location.href=\'scorecard.html?code='+m.share_code+'\'"':'';
+      return `<div class="fixture" style="${liveStyle}" ${clickAttr}>
+      <div class="fixture-header"><span>Match ${m.match_number||''}${m.stage?' · '+m.stage:''}${m.group_name?' · Grp '+m.group_name:''}</span>${isLive?'<span style="color:var(--green);font-weight:700;animation:lPulse 1.5s infinite;">● LIVE</span>':''}</div>
       <div class="fixture-teams"><div class="fixture-team">${teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team">${teamLogo(m.team_b)}${m.team_b}</div></div>
       ${matchDate(m)}
       ${m.venue?'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+m.venue+'</div>':''}
-      ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Live Score →</a>':''}
-    </div>`).join('');
+      ${isLive?'<div style="font-size:12px;color:var(--green);font-weight:700;margin-top:6px;text-align:center;">Tap to view Live Scorecard →</div>':''}
+    </div>`}).join('');
   }
 
   // KNOCKOUT STAGE (always shown)
@@ -382,13 +405,13 @@ function renderFixtures(){
       const isTBD=m.team_a.includes('1st ')||m.team_a.includes('2nd ')||m.team_a.includes('Winner')||m.team_a.includes('Top ')||m.team_a.includes('Best ');
       const done=m.status==='completed';
       const borderColor=m.stage.includes('Final')?'var(--accent)':'var(--green)';
-      return `<div class="fixture" style="border-left:3px solid ${borderColor};${isTBD?'opacity:0.7;':''}">
-        <div class="fixture-header"><span>${m.stage}</span>${done?'<span style="color:var(--green);font-weight:700;">COMPLETED</span>':(m.status==='live'?'<span style="color:var(--green);font-weight:700;">LIVE</span>':'<span style="color:var(--muted);font-size:10px;">${isTBD?"TBD":"SCHEDULED"}</span>')}</div>
+      return `<div class="fixture" style="border-left:3px solid ${borderColor};${isTBD?'opacity:0.7;':''}${m.status==='live'?'box-shadow:0 0 12px rgba(34,197,94,0.3);animation:lPulse 2s infinite;cursor:pointer;':''}" ${m.status==='live'?'onclick="window.location.href=\'scorecard.html?code='+m.share_code+'\'"':''}>
+        <div class="fixture-header"><span>${m.stage}</span>${done?'<span style="color:var(--green);font-weight:700;">COMPLETED</span>':(m.status==='live'?'<span style="color:var(--green);font-weight:700;animation:lPulse 1.5s infinite;">● LIVE</span>':'<span style="color:var(--muted);font-size:10px;">'+(isTBD?'TBD':'SCHEDULED')+'</span>')}</div>
         <div class="fixture-teams"><div class="fixture-team" style="${done&&m.winner===m.team_a?'color:var(--green);':''}">${isTBD?'':teamLogo(m.team_a)}${m.team_a}</div><div class="fixture-vs">VS</div><div class="fixture-team" style="${done&&m.winner===m.team_b?'color:var(--green);':''}">${isTBD?'':teamLogo(m.team_b)}${m.team_b}</div></div>
         ${done&&m.result?'<div class="fixture-result">'+m.result+'</div>':''}
         ${matchDate(m)}
         ${done?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Scorecard →</a>':''}
-        ${m.status==='live'?'<a href="scorecard.html?code='+m.share_code+'" class="fixture-link" style="display:inline-block;margin-top:4px;">View Live →</a>':''}
+        ${m.status==='live'?'<div style="font-size:12px;color:var(--green);font-weight:700;margin-top:6px;text-align:center;">Tap to view Live Scorecard →</div>':''}
       </div>`;
     }).join('');
   }
