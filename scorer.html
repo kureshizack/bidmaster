@@ -340,6 +340,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <button class="action-btn" onclick="shareScore()">📱 Share</button>
     <button class="action-btn" onclick="endInnings()">🔄 End Innings</button>
     <button class="action-btn danger" onclick="endMatch()">🏁 End</button>
+    <button class="action-btn" onclick="resetMatch()" style="color:var(--red);border-color:var(--red);">🔄 Reset</button>
   </div>
 </div>
 
@@ -2177,6 +2178,56 @@ function showSponsorBanner(event){
     banner.style.animation='slideUp 0.3s ease forwards';
     setTimeout(()=>{ banner.style.display='none'; },300);
   },3000);
+}
+
+// ── RESET MATCH — delete all data and restart from setup ──
+async function resetMatch(){
+  if(!match||!match.id){cxiAlert('No active match to reset.');return;}
+  const confirmed=await cxiConfirm('⚠️ RESET MATCH?\n\nThis will delete ALL balls, scores, and innings for this match. The match will go back to setup screen.\n\nThis cannot be undone!');
+  if(!confirmed)return;
+
+  const mid=match.id;
+
+  try{
+    // Delete in correct order (foreign key dependencies)
+    // 1. Delete all balls
+    await sb.from('balls').delete().eq('match_id',mid);
+
+    // 2. Delete batting cards
+    const{data:allInn}=await sb.from('innings').select('id').eq('match_id',mid);
+    if(allInn&&allInn.length){
+      const innIds=allInn.map(i=>i.id);
+      for(const iid of innIds){
+        await sb.from('batting_card').delete().eq('innings_id',iid);
+        await sb.from('bowling_card').delete().eq('innings_id',iid);
+      }
+    }
+
+    // 3. Delete all innings
+    await sb.from('innings').delete().eq('match_id',mid);
+
+    // 4. Reset match status back to scheduled
+    await sb.from('matches').update({
+      status:'scheduled',
+      current_innings:null,
+      result:null,
+      winner:null,
+      player_of_match:null,
+      pom_stats:null
+    }).eq('id',mid);
+
+    // 5. Clear local state
+    localStorage.removeItem('captainxi_active_match');
+
+    cxiAlert('✅ Match reset successfully! Reloading...');
+    setTimeout(()=>{
+      window.location.href='scorer.html?match='+mid;
+    },1500);
+
+  }catch(err){
+    console.error('Reset error:',err);
+    cxiAlert('Error resetting match: '+err.message);
+  }
 }
 </script>
 <script src="/cxi-modern.js"></script>
