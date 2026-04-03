@@ -270,10 +270,10 @@ function renderHeader(){
     // Build slides — each sponsor full width, image on top, name + text below
     let bannerHtml='<div style="position:relative;margin:10px 12px;">';
     allSponsors.forEach((s,i)=>{
-      bannerHtml+='<div class="sponsor-slide'+(i===0?' active':'')+'" data-slide="'+i+'" style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">';
-      if(s.logo)bannerHtml+='<img src="'+s.logo+'" style="width:100%;max-height:220px;object-fit:contain;border-radius:8px;margin-bottom:10px;display:block;">';
-      if(s.name)bannerHtml+='<div style="font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+s.name+'</div>';
-      if(s.text)bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">'+s.text+'</div>';
+      bannerHtml+='<div class="sponsor-slide'+(i===0?' active':'')+'" data-slide="'+i+'" style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;overflow:hidden;text-align:center;">';
+      if(s.logo)bannerHtml+='<div style="width:100%;height:200px;overflow:hidden;"><img src="'+s.logo+'" style="width:100%;height:100%;object-fit:cover;display:block;"></div>';
+      if(s.name)bannerHtml+='<div style="padding:12px 16px 4px;font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+s.name+'</div>';
+      if(s.text)bannerHtml+='<div style="padding:0 16px 12px;font-size:12px;color:var(--muted);line-height:1.5;">'+s.text+'</div>';
       bannerHtml+='</div>';
     });
     bannerHtml+='</div>';
@@ -415,27 +415,31 @@ function renderCapHolders(){
   // Orange Cap — most runs
   const batAgg={};
   allBatting.forEach(b=>{
-    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,innings:0};
+    if(!batAgg[b.player_name])batAgg[b.player_name]={runs:0,balls:0,fours:0,sixes:0,innings:0,team:''};
     const p=batAgg[b.player_name];p.runs+=b.runs;p.balls+=b.balls_faced;p.fours+=b.fours;p.sixes+=b.sixes;p.innings++;
+    const tm=window._innTeamMap&&window._innTeamMap[b.innings_id];
+    if(tm&&tm.bat)p.team=tm.bat;
   });
   const topBat=Object.entries(batAgg).sort((a,b)=>b[1].runs-a[1].runs)[0];
 
   // Purple Cap — most wickets
   const bowlAgg={};
   allBowling.forEach(b=>{
-    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wickets:0,runs:0,balls:0,overs:0,innings:0};
+    if(!bowlAgg[b.player_name])bowlAgg[b.player_name]={wickets:0,runs:0,balls:0,overs:0,innings:0,team:''};
     const p=bowlAgg[b.player_name];p.wickets+=b.wickets;p.runs+=b.runs_conceded;p.balls+=(b.overs_balls||0);p.innings++;
+    const tm=window._innTeamMap&&window._innTeamMap[b.innings_id];
+    if(tm&&tm.bowl)p.team=tm.bowl;
   });
   const topBowl=Object.entries(bowlAgg).sort((a,b)=>b[1].wickets-a[1].wickets)[0];
 
   let html='';
   if(topBat&&topBat[1].runs>0){
     const b=topBat[1];const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):'0';
-    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBat[0]+'</div><div class="cap-stats">'+b.runs+' runs ('+b.innings+' inn, SR '+sr+', '+b.sixes+' sixes)</div></div><span class="cap-label cap-orange">Orange Cap</span></div>';
+    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBat[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.runs+' runs ('+b.innings+' inn, SR '+sr+', '+b.sixes+' sixes)</div></div><span class="cap-label cap-orange">Orange Cap</span></div>';
   }
   if(topBowl&&topBowl[1].wickets>0){
     const b=topBowl[1];const econ=b.balls>0?((b.runs/(b.balls/6))).toFixed(2):'0';
-    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBowl[0]+'</div><div class="cap-stats">'+b.wickets+' wkts ('+b.innings+' inn, Econ '+econ+')</div></div><span class="cap-label cap-purple">Purple Cap</span></div>';
+    html+='<div class="cap-card"><div class="cap-icon">🧢</div><div style="flex:1;"><div class="cap-name">'+topBowl[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.wickets+' wkts ('+b.innings+' inn, Econ '+econ+')</div></div><span class="cap-label cap-purple">Purple Cap</span></div>';
   }
   el.innerHTML=html;
 }

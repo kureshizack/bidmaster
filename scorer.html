@@ -1870,6 +1870,10 @@ async function shareScore(){
   }
 
   msg+='\nFull Scorecard:\n'+url+'\n';
+  // Sponsor details
+  if(match.sponsor_name)msg+='\nPresented by *'+match.sponsor_name+'*';
+  if(match.branding_text)msg+=' | '+match.branding_text;
+  if(match.sponsor_name)msg+='\n';
   msg+='\n_Scored on captainXI.com_';
 
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
