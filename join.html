@@ -341,7 +341,7 @@ async function processPayment(name,mobile){
       image:'/favicon.svg',
       retry:{enabled:false},
       timeout:300,
-      prefill:{name:name,contact:'+91'+mobile},
+      prefill:{name:name,contact:mobile},
       theme:{color:'#f59e0b'},
       modal:{confirm_close:true,ondismiss:function(){resolve(false);}},
       handler:function(response){
