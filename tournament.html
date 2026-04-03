@@ -702,7 +702,7 @@ async function renderGo(){document.getElementById('goName').textContent=T.name;c
     gsList.innerHTML=allSponsors.map(s=>'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+(s.logo?'<img src="'+s.logo+'" style="max-height:36px;max-width:70px;border-radius:6px;">':'')+'<div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--accent);">'+s.name+'</div>'+(s.text?'<div style="font-size:11px;color:var(--muted);">'+s.text+'</div>':'')+'</div></div>').join('');
   } else { gs.style.display='none'; }
 }
-async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.open('https://captainxi.com/standings.html?t='+T.share_code,'_blank');}
+async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.location.href='dashboard.html';}
 
 async function toggleRegistration(){const newStatus=T.status==='registration'?'live':'registration';await sb.from('tournaments').update({status:newStatus}).eq('id',T.id);T.status=newStatus;showToast(newStatus==='live'?'Registration closed!':'Registration re-opened!');renderPlayers();}
 
@@ -753,6 +753,9 @@ function getExtraSponsors(){
 }
 
 function loadExtraSponsors(){
+  // Clear existing to prevent duplicates on re-load
+  document.getElementById('extraSponsors').innerHTML='';
+  _extraSponsorCount=0;
   // Load existing extra sponsors from T.sponsors JSONB
   if(!T||!T.sponsors||!Array.isArray(T.sponsors))return;
   T.sponsors.forEach(s=>{addSponsorSlot(s.name,s.text,s.logo);});

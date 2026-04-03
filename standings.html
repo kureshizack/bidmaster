@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tournament Standings — CaptainXI</title>
+<title>Tournament Standings — captainXI.com</title>
 <!-- WhatsApp / Social Link Preview -->
 <meta name="description" content="Live tournament standings, points table, fixtures & stats — captainXI.com">
 <meta property="og:type" content="website">
@@ -254,34 +254,49 @@ function renderHeader(){
   const s=sMap[tournament.status]||['UNKNOWN',''];
   statusEl.textContent=s[0];statusEl.className='tourn-status '+s[1];
 
-  // Full sponsor branding
-  if(tournament.sponsor_name||tournament.sponsor_logo){
+  // Full sponsor branding — supports multiple sponsors with rotation
+  const allSponsors=[];
+  if(tournament.sponsor_name)allSponsors.push({name:tournament.sponsor_name,logo:tournament.sponsor_logo,text:tournament.branding_text});
+  if(tournament.sponsors&&Array.isArray(tournament.sponsors))tournament.sponsors.forEach(s=>allSponsors.push(s));
+
+  if(allSponsors.length){
     const banner=document.getElementById('sponsorBanner');
     banner.style.display='block';
 
-    let bannerHtml='<div style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;margin:10px 12px;text-align:center;position:relative;overflow:hidden;">';
-    if(tournament.sponsor_logo){
-      bannerHtml+='<img src="'+tournament.sponsor_logo+'" style="max-width:100%;max-height:180px;border-radius:8px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">';
-    }
-    if(tournament.sponsor_name){
-      bannerHtml+='<div style="font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+tournament.sponsor_name+'</div>';
-    }
-    if(tournament.branding_text){
-      bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+tournament.branding_text+'</div>';
-    }
+    // Build slides for each sponsor
+    let bannerHtml='<div style="position:relative;min-height:120px;margin:10px 12px;">';
+    allSponsors.forEach((s,i)=>{
+      bannerHtml+='<div class="sponsor-slide'+(i===0?' active':'')+'" data-slide="'+i+'" style="background:linear-gradient(135deg,var(--surface),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">';
+      if(s.logo)bannerHtml+='<img src="'+s.logo+'" style="max-width:100%;max-height:160px;border-radius:8px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">';
+      if(s.name)bannerHtml+='<div style="font-family:Bebas Neue,Rajdhani,sans-serif;font-size:22px;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase;">'+s.name+'</div>';
+      if(s.text)bannerHtml+='<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+s.text+'</div>';
+      bannerHtml+='</div>';
+    });
     bannerHtml+='</div>';
     banner.innerHTML=bannerHtml;
 
-    // Marquee strip
+    // Auto-rotate sponsors every 4 seconds
+    if(allSponsors.length>1){
+      let currentSlide=0;
+      setInterval(()=>{
+        const slides=banner.querySelectorAll('.sponsor-slide');
+        slides.forEach(s=>s.classList.remove('active'));
+        currentSlide=(currentSlide+1)%slides.length;
+        slides[currentSlide].classList.add('active');
+      },4000);
+    }
+
+    // Marquee strip — include ALL sponsors
     const marquee=document.getElementById('sponsorMarquee');
     marquee.style.display='block';
     let mText='';
-    if(tournament.sponsor_name)mText+='Presented by '+tournament.sponsor_name+' ★ ';
-    if(tournament.branding_text)mText+=tournament.branding_text+' ★ ';
+    allSponsors.forEach(s=>{
+      if(s.name)mText+='Presented by '+s.name+' ★ ';
+      if(s.text)mText+=s.text+' ★ ';
+    });
     mText+=tournament.name+' ★ '+tournament.teams_count+' teams ★ '+tournament.overs_per_match+' overs ★ ';
     if(tournament.venue)mText+=tournament.venue+' ★ ';
     mText+='captainXI.com ★ ';
-    // Repeat for continuous scroll
     document.getElementById('marqueeInner').textContent=mText+mText+mText;
   }
 }
@@ -492,6 +507,5 @@ function shareTournament(){
 }
 </script>
 <script src="/cxi-modern.js"></script>
-<script src="/cxi-seo.js"></script>
 </body>
 </html>
