@@ -386,9 +386,11 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     <h3 style="color:var(--accent);">🏏 2nd Innings Setup</h3>
     <div id="inn2Info" style="font-size:14px;color:var(--green);margin-bottom:14px;font-weight:700;"></div>
     <label class="setup-label">Striker</label>
-    <select class="setup-input" id="inn2Striker" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select striker --</option></select>
+    <select class="setup-input" id="inn2Striker" style="color:var(--text);margin-bottom:4px;"><option value="">-- Select striker --</option></select>
+    <input class="setup-input" id="inn2StrikerCustom" placeholder="Or type new striker name" style="margin-bottom:8px;">
     <label class="setup-label">Non-Striker</label>
-    <select class="setup-input" id="inn2NonStriker" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select non-striker --</option></select>
+    <select class="setup-input" id="inn2NonStriker" style="color:var(--text);margin-bottom:4px;"><option value="">-- Select non-striker --</option></select>
+    <input class="setup-input" id="inn2NonStrikerCustom" placeholder="Or type new non-striker name" style="margin-bottom:8px;">
     <label class="setup-label">Opening Bowler</label>
     <select class="setup-input" id="inn2Bowler" style="color:var(--text);margin-bottom:8px;"><option value="">-- Select bowler --</option></select>
     <input class="setup-input" id="inn2BowlerCustom" placeholder="Or type new bowler name" style="margin-bottom:10px;">
@@ -1321,12 +1323,12 @@ async function endInnings(){
 }
 
 async function confirmInn2Setup(){
-  const s=document.getElementById('inn2Striker').value;
-  const ns=document.getElementById('inn2NonStriker').value;
+  const s=document.getElementById('inn2Striker').value||document.getElementById('inn2StrikerCustom').value.trim();
+  const ns=document.getElementById('inn2NonStriker').value||document.getElementById('inn2NonStrikerCustom').value.trim();
   const bw=document.getElementById('inn2Bowler').value||document.getElementById('inn2BowlerCustom').value.trim();
 
-  if(!s){cxiAlert('Select striker');return;}
-  if(!ns){cxiAlert('Select non-striker');return;}
+  if(!s){cxiAlert('Select or type striker name');return;}
+  if(!ns){cxiAlert('Select or type non-striker name');return;}
   if(s===ns){cxiAlert('Striker and non-striker must be different');return;}
   if(!bw){cxiAlert('Select or enter opening bowler');return;}
 
@@ -2185,45 +2187,21 @@ async function resetMatch(){
   if(!match||!match.id){cxiAlert('No active match to reset.');return;}
   const confirmed=await cxiConfirm('⚠️ RESET MATCH?\n\nThis will delete ALL balls, scores, and innings for this match. The match will go back to setup screen.\n\nThis cannot be undone!');
   if(!confirmed)return;
-
   const mid=match.id;
-
   try{
-    // Delete in correct order (foreign key dependencies)
-    // 1. Delete all balls
     await sb.from('balls').delete().eq('match_id',mid);
-
-    // 2. Delete batting cards
     const{data:allInn}=await sb.from('innings').select('id').eq('match_id',mid);
     if(allInn&&allInn.length){
-      const innIds=allInn.map(i=>i.id);
-      for(const iid of innIds){
+      for(const iid of allInn.map(i=>i.id)){
         await sb.from('batting_card').delete().eq('innings_id',iid);
         await sb.from('bowling_card').delete().eq('innings_id',iid);
       }
     }
-
-    // 3. Delete all innings
     await sb.from('innings').delete().eq('match_id',mid);
-
-    // 4. Reset match status back to scheduled
-    await sb.from('matches').update({
-      status:'scheduled',
-      current_innings:null,
-      result:null,
-      winner:null,
-      player_of_match:null,
-      pom_stats:null
-    }).eq('id',mid);
-
-    // 5. Clear local state
+    await sb.from('matches').update({status:'scheduled',current_innings:null,result:null,winner:null,player_of_match:null,pom_stats:null}).eq('id',mid);
     localStorage.removeItem('captainxi_active_match');
-
-    cxiAlert('✅ Match reset successfully! Reloading...');
-    setTimeout(()=>{
-      window.location.href='scorer.html?match='+mid;
-    },1500);
-
+    cxiAlert('✅ Match reset! Reloading...');
+    setTimeout(()=>{window.location.href='scorer.html?match='+mid;},1500);
   }catch(err){
     console.error('Reset error:',err);
     cxiAlert('Error resetting match: '+err.message);
