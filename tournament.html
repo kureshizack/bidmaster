@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#f59e0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Tournament — CaptainXI</title>
+<title>Create Tournament — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Bebas+Neue&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -66,8 +66,6 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 .cxi-modal-btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 </style>
 <link rel="stylesheet" href="/cxi-modern.css">
-<meta name="description" content="Create a cricket tournament in minutes. Choose Round Robin, Knockout, or Group+KO format. Add teams, schedule matches, go live.">
-<link rel="canonical" href="https://captainxi.com/tournament.html">
 </head>
 <body>
 <nav><a href="dashboard.html" class="logo">captainXI.com</a><div class="nav-right"><a href="dashboard.html" class="nav-link">Dashboard</a><a href="matches.html" class="nav-link">Matches</a></div></nav>
@@ -92,6 +90,9 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
     <div class="form-group"><label class="form-label">Sponsor Name</label><input class="form-input" id="tSponsor" maxlength="40"></div>
     <div class="form-group"><label class="form-label">Sponsor Logo</label><div class="file-upload-box" onclick="document.getElementById('tSFile').click()"><img id="tSPrev" class="file-preview" src="" style="display:none;"><div id="tSPH" class="file-placeholder">Tap to upload</div></div><input type="file" id="tSFile" accept="image/*" style="display:none;" onchange="pvFile(this,'tSPrev','tSPH')"></div>
     <div class="form-group"><label class="form-label">Branding Text</label><input class="form-input" id="tBrand" maxlength="80" placeholder="e.g. Presented by XYZ"></div>
+    <!-- Multi-sponsor list -->
+    <div id="extraSponsors"></div>
+    <button type="button" class="btn btn-ghost" style="width:100%;padding:10px;font-size:13px;margin-bottom:12px;" onclick="addSponsorSlot()">+ Add Another Sponsor</button>
     <div id="s1Err" style="color:var(--red);font-size:13px;min-height:18px;margin-bottom:8px;"></div>
     <button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;" onclick="saveS1()">Save & Next →</button>
   </div></div>
@@ -131,7 +132,7 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
   <!-- STEP 5 -->
   <div class="step-content" id="step5"><div class="card" style="text-align:center;">
-    <div id="goSponsor" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:none;"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Sponsor</div><div style="display:flex;align-items:center;gap:10px;"><img id="goSLogo" src="" style="display:none;max-height:40px;max-width:80px;border-radius:6px;"><div><div id="goSName" style="font-family:Rajdhani,sans-serif;font-size:15px;font-weight:700;color:var(--accent);"></div><div id="goSSub" style="font-size:11px;color:var(--muted);"></div></div></div></div>
+    <div id="goSponsor" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Sponsors</div><button onclick="goStep(1)" style="background:none;border:1px solid var(--accent);color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;font-size:11px;padding:2px 10px;border-radius:4px;cursor:pointer;">Edit</button></div><div id="goSponsorList"></div></div>
     <div style="font-size:56px;margin-bottom:8px;">🏆</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--accent);" id="goName"></div>
     <div style="font-size:14px;color:var(--muted);margin:6px 0 20px;" id="goInfo"></div>
@@ -314,7 +315,7 @@ let user=null,T=null,teams=[];
 async function loadList(){const{data}=await sb.from('tournaments').select('*').eq('owner_id',user.id).order('created_at',{ascending:false});const el=document.getElementById('tournList');if(!data||!data.length){el.innerHTML='';document.getElementById('stepsBar').style.display='flex';document.getElementById('newBtn').style.display='none';goStep(1);return;}document.getElementById('newBtn').style.display='inline-block';el.innerHTML=data.map(t=>{const sc={setup:'var(--blue)',registration:'var(--accent)',live:'var(--green)',completed:'var(--muted)'};return '<div class="team-card" style="cursor:pointer;" onclick="location.href=\'tournament.html?id='+t.id+'\'"><div><div class="team-name">'+t.name+'</div><div style="font-size:12px;color:var(--muted);">'+t.teams_count+' teams · '+t.overs_per_match+' ov · '+t.format.replace(/_/g,' ')+'</div></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid '+(sc[t.status]||'var(--border)')+';color:'+(sc[t.status]||'var(--muted)')+';font-family:Rajdhani,sans-serif;">'+t.status.toUpperCase()+'</span><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();delT(\''+t.id+'\')">🗑</button></div></div>';}).join('');}
 function startNew(){T=null;teams=[];document.getElementById('tournList').style.display='none';document.getElementById('newBtn').style.display='none';document.getElementById('stepsBar').style.display='flex';goStep(1);}
 async function delT(id){if(!await cxiConfirm('Delete tournament?'))return;await sb.from('matches').delete().eq('tournament_id',id);await sb.from('tournaments').delete().eq('id',id);loadList();}
-function fillForm(){document.getElementById('tournList').style.display='none';document.getElementById('newBtn').style.display='inline-block';document.getElementById('stepsBar').style.display='flex';document.getElementById('tName').value=T.name||'';document.getElementById('tFormat').value=T.format||'round_robin';document.getElementById('tOvers').value=T.overs_per_match||20;document.getElementById('tTeams').value=T.teams_count||8;document.getElementById('tPPT').value=T.players_per_team||11;document.getElementById('tStart').value=T.start_date||'';document.getElementById('tEnd').value=T.end_date||'';document.getElementById('tVenue').value=T.venue||'';document.getElementById('tFormation').value=T.team_formation||'predefined';document.getElementById('tSponsor').value=T.sponsor_name||'';document.getElementById('tBrand').value=T.branding_text||'';toggleGrp();if(teams.length)goStep(2);else goStep(1);}
+function fillForm(){document.getElementById('tournList').style.display='none';document.getElementById('newBtn').style.display='inline-block';document.getElementById('stepsBar').style.display='flex';document.getElementById('tName').value=T.name||'';document.getElementById('tFormat').value=T.format||'round_robin';document.getElementById('tOvers').value=T.overs_per_match||20;document.getElementById('tTeams').value=T.teams_count||8;document.getElementById('tPPT').value=T.players_per_team||11;document.getElementById('tStart').value=T.start_date||'';document.getElementById('tEnd').value=T.end_date||'';document.getElementById('tVenue').value=T.venue||'';document.getElementById('tFormation').value=T.team_formation||'predefined';document.getElementById('tSponsor').value=T.sponsor_name||'';document.getElementById('tBrand').value=T.branding_text||'';toggleGrp();loadExtraSponsors();if(teams.length)goStep(2);else goStep(1);}
 
 function goStep(n){document.querySelectorAll('.step-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.step').forEach(e=>{const s=+e.dataset.step;e.classList.remove('active','done');if(s===n)e.classList.add('active');else if(s<n)e.classList.add('done');});const el=document.getElementById('step'+n);if(el)el.classList.add('active');if(n===2)renderTeams();if(n===3)renderPlayers();if(n===4)loadSched();if(n===5)renderGo();}
 function toggleGrp(){const v=document.getElementById('tFormat').value;document.getElementById('grpWrap').style.display=(v==='round_robin_groups'||v==='group_knockout')?'block':'none';}
@@ -327,7 +328,7 @@ async function saveS1(){const name=document.getElementById('tName').value.trim()
   const maxTeams=planLimits[plan]||6;
   const reqTeams=+document.getElementById('tTeams').value;
   if(reqTeams>maxTeams){err.textContent='Your '+plan.toUpperCase()+' plan allows max '+maxTeams+' teams. Upgrade to add more.';return;}
-  err.textContent='';let sLogo=T?.sponsor_logo||null;const sf=document.getElementById('tSFile').files[0];if(sf)sLogo=await upFile(sf,'sponsors');const ft=document.getElementById('tFeeType').value;const p={name,format:document.getElementById('tFormat').value,overs_per_match:+document.getElementById('tOvers').value,teams_count:reqTeams,players_per_team:+document.getElementById('tPPT').value,start_date:document.getElementById('tStart').value||null,end_date:document.getElementById('tEnd').value||null,venue:document.getElementById('tVenue').value.trim()||null,team_formation:document.getElementById('tFormation').value,free_registration:ft==='free',registration_fee:ft==='paid'?(+document.getElementById('tFee').value||0):0,sponsor_name:document.getElementById('tSponsor').value.trim()||null,sponsor_logo:sLogo,branding_text:document.getElementById('tBrand').value.trim()||null,status:T?.status||'setup'};if(T){await sb.from('tournaments').update(p).eq('id',T.id);T={...T,...p};}else{p.owner_id=user.id;p.share_code=Math.random().toString(36).substring(2,8).toUpperCase();const{data}=await sb.from('tournaments').insert(p).select().single();T=data;history.replaceState(null,'','tournament.html?id='+T.id);}showToast('Saved!');goStep(2);}
+  err.textContent='';let sLogo=T?.sponsor_logo||null;const sf=document.getElementById('tSFile').files[0];if(sf)sLogo=await upFile(sf,'sponsors');const ft=document.getElementById('tFeeType').value;const extraSponsors=getExtraSponsors();const p={name,format:document.getElementById('tFormat').value,overs_per_match:+document.getElementById('tOvers').value,teams_count:reqTeams,players_per_team:+document.getElementById('tPPT').value,start_date:document.getElementById('tStart').value||null,end_date:document.getElementById('tEnd').value||null,venue:document.getElementById('tVenue').value.trim()||null,team_formation:document.getElementById('tFormation').value,free_registration:ft==='free',registration_fee:ft==='paid'?(+document.getElementById('tFee').value||0):0,sponsor_name:document.getElementById('tSponsor').value.trim()||null,sponsor_logo:sLogo,branding_text:document.getElementById('tBrand').value.trim()||null,sponsors:extraSponsors,status:T?.status||'setup'};if(T){await sb.from('tournaments').update(p).eq('id',T.id);T={...T,...p};}else{p.owner_id=user.id;p.share_code=Math.random().toString(36).substring(2,8).toUpperCase();const{data}=await sb.from('tournaments').insert(p).select().single();T=data;history.replaceState(null,'','tournament.html?id='+T.id);}showToast('Saved!');goStep(2);}
 
 function renderTeams(manual){const el=document.getElementById('teamsCon');document.getElementById('tNeed').textContent=T?.teams_count||8;document.getElementById('tAdded').textContent=teams.length;const fmt=T?.format||'round_robin';const hasG=fmt==='round_robin_groups'||fmt==='group_knockout';document.getElementById('grpSection').style.display=hasG&&teams.length>=2?'block':'none';if(!teams.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);">Type team name and press Add</div>';return;}const gc=+(document.getElementById('tGrpCount')?.value||2);const gN='ABCDEFGH'.split('').slice(0,gc);el.innerHTML=teams.map(t=>{let gh='';if(hasG&&manual)gh='<select class="form-input" style="width:50px;padding:4px;font-size:12px;" onchange="chGrp(\''+t.id+'\',this.value)">'+gN.map(g=>'<option'+(t.group_name===g?' selected':'')+'>'+g+'</option>').join('')+'</select>';const badge=hasG&&t.group_name?'<span class="grp-badge grp-'+t.group_name+'">'+t.group_name+'</span>':'';const logo=t.logo_url?renderLogo(t.logo_url,36):'<div style="width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);cursor:pointer;" onclick="openLogoPicker(\''+t.id+'\')">+</div>';return '<div class="team-card"><div style="display:flex;align-items:center;gap:10px;"><div onclick="openLogoPicker(\''+t.id+'\')" style="cursor:pointer;flex-shrink:0;">'+logo+'</div><div><div class="team-name">'+t.team_name+badge+'</div><div style="font-size:11px;color:var(--muted);">'+t.team_code+'</div></div></div><div class="team-actions">'+gh+'<button class="btn btn-ghost btn-sm" onclick="rmTeam(\''+t.id+'\')" style="color:var(--red);">✕</button></div></div>';}).join('');if(hasG)renderGD();}
 async function addTeam(){const inp=document.getElementById('newTN');const n=inp.value.trim();if(!n)return;if(teams.length>=(T?.teams_count||16)){cxiAlert('Max teams reached');return;}
@@ -689,15 +690,74 @@ async function genSched(){
   loadSched();
 }
 
-async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;if(T.sponsor_name){const gs=document.getElementById('goSponsor');gs.style.display='block';document.getElementById('goSName').textContent=T.sponsor_name;if(T.sponsor_logo){const l=document.getElementById('goSLogo');l.src=T.sponsor_logo;l.style.display='block';}if(T.branding_text)document.getElementById('goSSub').textContent=T.branding_text;}}
+async function renderGo(){document.getElementById('goName').textContent=T.name;const fm={round_robin:'Round Robin',round_robin_groups:'RR with Groups',knockout:'Knockout',group_knockout:'Group+KO'};document.getElementById('goInfo').textContent=T.teams_count+' teams · '+T.overs_per_match+' ov · '+(fm[T.format]||T.format);document.getElementById('goT').textContent=teams.length;const{count:pc}=await sb.from('tournament_players').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goP').textContent=pc||0;const{count:mc}=await sb.from('matches').select('*',{count:'exact',head:true}).eq('tournament_id',T.id);document.getElementById('goM').textContent=mc||0;const fs={round_robin:'RR',round_robin_groups:'RR+G',knockout:'KO',group_knockout:'G+KO'};document.getElementById('goF').textContent=fs[T.format]||'';document.getElementById('goUrl').textContent='captainxi.com/standings.html?t='+T.share_code;
+  // Build all sponsors list (primary + extras from JSONB)
+  const allSponsors=[];
+  if(T.sponsor_name)allSponsors.push({name:T.sponsor_name,logo:T.sponsor_logo,text:T.branding_text});
+  if(T.sponsors&&Array.isArray(T.sponsors))T.sponsors.forEach(s=>allSponsors.push(s));
+  const gs=document.getElementById('goSponsor');
+  const gsList=document.getElementById('goSponsorList');
+  if(allSponsors.length){
+    gs.style.display='block';
+    gsList.innerHTML=allSponsors.map(s=>'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+(s.logo?'<img src="'+s.logo+'" style="max-height:36px;max-width:70px;border-radius:6px;">':'')+'<div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--accent);">'+s.name+'</div>'+(s.text?'<div style="font-size:11px;color:var(--muted);">'+s.text+'</div>':'')+'</div></div>').join('');
+  } else { gs.style.display='none'; }
+}
 async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.open('https://captainxi.com/standings.html?t='+T.share_code,'_blank');}
 
 async function toggleRegistration(){const newStatus=T.status==='registration'?'live':'registration';await sb.from('tournaments').update({status:newStatus}).eq('id',T.id);T.status=newStatus;showToast(newStatus==='live'?'Registration closed!':'Registration re-opened!');renderPlayers();}
 
 function shareTeamWA(code,name){const url='https://captainxi.com/join.html?team='+code+'&t='+T.share_code;const fee=T.free_registration?'FREE':'Rs.'+T.registration_fee;let m='━━━━━━━━━━━━━━━━━━━\n  *'+T.name.toUpperCase()+'*\n━━━━━━━━━━━━━━━━━━━\n\nYou are invited to join\nTeam: *'+name+'*\n\nFormat: '+T.format.replace(/_/g,' ')+'\nOvers: '+T.overs_per_match+'\n';if(T.venue)m+='Venue: '+T.venue+'\n';if(T.start_date)m+='Date: '+new Date(T.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'\n';m+='Entry: '+fee+'\n\nRegister now:\n'+url+'\n\n_Powered by captainXI.com_\n_My Game. My Rules._';window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');}
 function shareTournWA(){const url='https://captainxi.com/standings.html?t='+T.share_code;let m='━━━━━━━━━━━━━━━━━━━\n  *'+T.name.toUpperCase()+'*\n━━━━━━━━━━━━━━━━━━━\n\nFormat: '+T.format.replace(/_/g,' ')+'\nOvers: '+T.overs_per_match+'\nTeams: '+teams.length+'\n';if(T.venue)m+='Venue: '+T.venue+'\n';if(T.start_date)m+='Date: '+new Date(T.start_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'\n';if(T.sponsor_name)m+='\nPresented by *'+T.sponsor_name+'*\n';m+='\nLive standings & scores:\n'+url+'\n\n_Powered by captainXI.com_\n_My Game. My Rules._';window.open('https://wa.me/?text='+encodeURIComponent(m),'_blank');}
+
+// ── MULTI-SPONSOR MANAGEMENT ──
+let _extraSponsorCount=0;
+function addSponsorSlot(name,text,logo){
+  _extraSponsorCount++;
+  const i=_extraSponsorCount;
+  const container=document.getElementById('extraSponsors');
+  const div=document.createElement('div');
+  div.id='extraSponsor'+i;
+  div.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;position:relative;';
+  div.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:11px;color:var(--accent);font-weight:700;font-family:Rajdhani,sans-serif;">SPONSOR '+(i+1)+'</div><button onclick="document.getElementById(\'extraSponsor'+i+'\').remove()" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;">✕</button></div>'+
+    '<input class="form-input exSponsorName" placeholder="Sponsor name" maxlength="40" value="'+(name||'')+'" style="margin-bottom:6px;">'+
+    '<input class="form-input exSponsorText" placeholder="Branding text" maxlength="80" value="'+(text||'')+'" style="margin-bottom:6px;">'+
+    '<div class="file-upload-box" onclick="document.getElementById(\'exSFile'+i+'\').click()" style="padding:8px;"><img class="file-preview exSponsorLogo" src="'+(logo||'')+'" style="'+(logo?'display:block;':'display:none;')+'max-height:40px;"><div class="file-placeholder" style="font-size:12px;">'+(logo?'Change logo':'Upload logo')+'</div></div>'+
+    '<input type="file" id="exSFile'+i+'" accept="image/*" style="display:none;" onchange="pvExSponsor(this,'+i+')">';
+  container.appendChild(div);
+}
+
+async function pvExSponsor(input,i){
+  const file=input.files[0];if(!file)return;
+  const div=document.getElementById('extraSponsor'+i);
+  const img=div.querySelector('.exSponsorLogo');
+  const ph=div.querySelector('.file-placeholder');
+  const reader=new FileReader();
+  reader.onload=e=>{img.src=e.target.result;img.style.display='block';ph.textContent='Change logo';};
+  reader.readAsDataURL(file);
+  // Upload to Supabase storage
+  const url=await upFile(file,'sponsors');
+  if(url){img.dataset.url=url;}
+}
+
+function getExtraSponsors(){
+  const sponsors=[];
+  document.querySelectorAll('[id^="extraSponsor"]').forEach(div=>{
+    const name=div.querySelector('.exSponsorName')?.value?.trim();
+    if(!name)return;
+    const text=div.querySelector('.exSponsorText')?.value?.trim()||null;
+    const img=div.querySelector('.exSponsorLogo');
+    const logo=img?.dataset?.url||((img?.src&&!img.src.startsWith('data:'))?img.src:null);
+    sponsors.push({name,text,logo});
+  });
+  return sponsors;
+}
+
+function loadExtraSponsors(){
+  // Load existing extra sponsors from T.sponsors JSONB
+  if(!T||!T.sponsors||!Array.isArray(T.sponsors))return;
+  T.sponsors.forEach(s=>{addSponsorSlot(s.name,s.text,s.logo);});
+}
 </script>
 <script src="/cxi-modern.js"></script>
-<script src="/cxi-seo.js"></script>
 </body>
 </html>
