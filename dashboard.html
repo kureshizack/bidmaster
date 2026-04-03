@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CaptainXI">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Dashboard — CaptainXI</title>
+<title>Dashboard — captainXI.com</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -101,9 +101,6 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
 
 </style>
 <link rel="stylesheet" href="/cxi-modern.css">
-<meta name="description" content="Manage your cricket tournaments, live matches, and auctions from one dashboard.">
-<link rel="canonical" href="https://captainxi.com/dashboard.html">
-<meta name="robots" content="noindex">
 </head>
 <body>
 
@@ -611,8 +608,19 @@ async function loadDashboard(){
           matchHtml+='</div>';
           matchHtml+='<div style="text-align:center;margin-top:4px;"><button onclick="const el=document.getElementById(\''+uid+'\');const show=el.style.display===\'none\';el.style.display=show?\'block\':\'none\';this.textContent=show?\'Show Less ▲\':\'+'+(upcoming.length-3)+' more ▼\';" style="background:none;border:1px solid var(--border);color:var(--accent);padding:4px 16px;border-radius:6px;font-size:11px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">+'+(upcoming.length-3)+' more ▼</button></div>';
         }
-        // Last result
-        if(done.length){matchHtml+='<div style="margin-top:4px;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;">LAST RESULT</div>'+mRow(done[done.length-1],'done');}
+        // Completed results
+        if(done.length){
+          matchHtml+='<div style="margin-top:4px;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;">COMPLETED RESULTS</div>';
+          const doneReversed=done.slice().reverse();
+          doneReversed.slice(0,2).forEach(m=>{matchHtml+=mRow(m,'done');});
+          if(doneReversed.length>2){
+            const did='doneMore_'+t.id;
+            matchHtml+='<div id="'+did+'" style="display:none;">';
+            doneReversed.slice(2).forEach(m=>{matchHtml+=mRow(m,'done');});
+            matchHtml+='</div>';
+            matchHtml+='<div style="text-align:center;margin-top:4px;"><button onclick="const el=document.getElementById(\''+did+'\');const show=el.style.display===\'none\';el.style.display=show?\'block\':\'none\';this.textContent=show?\'Show Less ▲\':\'+'+(doneReversed.length-2)+' more results ▼\';" style="background:none;border:1px solid var(--border);color:var(--accent);padding:4px 16px;border-radius:6px;font-size:11px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">+'+(doneReversed.length-2)+' more results ▼</button></div>';
+          }
+        }
       }
     }
     return `<div class="item-card" style="${t.status==='live'?'border-left:3px solid var(--accent);':''}">
@@ -1059,6 +1067,5 @@ async function signOut() {
   <div style="display:flex;align-items:center;"><button class="pwa-btn" onclick="installPWA()">Install</button><button class="pwa-close" onclick="dismissPWA()">✕</button></div>
 </div>
 <script src="/cxi-modern.js"></script>
-<script src="/cxi-seo.js"></script>
 </body>
 </html>
