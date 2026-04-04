@@ -133,6 +133,22 @@ nav{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px
   <!-- STEP 5 -->
   <div class="step-content" id="step5"><div class="card" style="text-align:center;">
     <div id="goSponsor" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Sponsors</div><button onclick="goStep(1)" style="background:none;border:1px solid var(--accent);color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;font-size:11px;padding:2px 10px;border-radius:4px;cursor:pointer;">Edit</button></div><div id="goSponsorList"></div></div>
+    <!-- SPONSOR VISIBILITY TOGGLES -->
+    <div id="sponsorToggles" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px;text-align:left;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Sponsor Visibility</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text);">Standings Page</div><div style="font-size:10px;color:var(--muted);">Banner & marquee on public standings</div></div>
+        <input type="checkbox" id="togStandings" checked onchange="saveSponsorSettings()" style="width:40px;height:22px;accent-color:var(--accent);cursor:pointer;">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text);">4 · 6 · Wicket Banner</div><div style="font-size:10px;color:var(--muted);">Sponsor popup on boundaries & wickets</div></div>
+        <input type="checkbox" id="togCelebrations" checked onchange="saveSponsorSettings()" style="width:40px;height:22px;accent-color:var(--accent);cursor:pointer;">
+      </label>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;">
+        <div><div style="font-size:13px;font-weight:700;color:var(--text);">Over Break Flip</div><div style="font-size:10px;color:var(--muted);">Sponsor card flip between overs</div></div>
+        <input type="checkbox" id="togFlipBanner" checked onchange="saveSponsorSettings()" style="width:40px;height:22px;accent-color:var(--accent);cursor:pointer;">
+      </label>
+    </div>
     <div style="font-size:56px;margin-bottom:8px;">🏆</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--accent);" id="goName"></div>
     <div style="font-size:14px;color:var(--muted);margin:6px 0 20px;" id="goInfo"></div>
@@ -699,8 +715,27 @@ async function renderGo(){document.getElementById('goName').textContent=T.name;c
   const gsList=document.getElementById('goSponsorList');
   if(allSponsors.length){
     gs.style.display='block';
-    gsList.innerHTML=allSponsors.map(s=>'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'+(s.logo?'<img src="'+s.logo+'" style="max-height:36px;max-width:70px;border-radius:6px;">':'')+'<div><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--accent);">'+s.name+'</div>'+(s.text?'<div style="font-size:11px;color:var(--muted);">'+s.text+'</div>':'')+'</div></div>').join('');
+    const ss=T.sponsor_settings||{};
+    const disabled=ss.disabled||[];
+    gsList.innerHTML=allSponsors.map((s,i)=>{
+      const isOn=!disabled.includes(s.name);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:6px 0;'+(i<allSponsors.length-1?'border-bottom:1px solid var(--border);':'')+'">'
+        +(s.logo?'<img src="'+s.logo+'" style="max-height:36px;max-width:70px;border-radius:6px;'+(isOn?'':'opacity:0.3;')+'">':'')
+        +'<div style="flex:1;'+(isOn?'':'opacity:0.4;')+'"><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:var(--accent);">'+s.name+'</div>'
+        +(s.text?'<div style="font-size:11px;color:var(--muted);">'+s.text+'</div>':'')+'</div>'
+        +'<input type="checkbox" class="sponsorIndvToggle" data-name="'+s.name.replace(/"/g,'&quot;')+'" '+(isOn?'checked':'')+' onchange="saveSponsorSettings()" style="width:36px;height:20px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">'
+        +'</div>';
+    }).join('');
   } else { gs.style.display='none'; }
+  // Show/load sponsor toggles
+  const togDiv=document.getElementById('sponsorToggles');
+  if(allSponsors.length){
+    togDiv.style.display='block';
+    const ss=T.sponsor_settings||{standings:true,celebrations:true,flip_banner:true};
+    document.getElementById('togStandings').checked=ss.standings!==false;
+    document.getElementById('togCelebrations').checked=ss.celebrations!==false;
+    document.getElementById('togFlipBanner').checked=ss.flip_banner!==false;
+  } else { togDiv.style.display='none'; }
 }
 async function launch(){if(!await cxiConfirm('Launch tournament?'))return;await sb.from('tournaments').update({status:'live'}).eq('id',T.id);T.status='live';showToast('Tournament is LIVE!');const share=await cxiConfirm('Share on WhatsApp?');if(share)shareTournWA();window.location.href='dashboard.html';}
 
@@ -759,6 +794,26 @@ function loadExtraSponsors(){
   // Load existing extra sponsors from T.sponsors JSONB
   if(!T||!T.sponsors||!Array.isArray(T.sponsors))return;
   T.sponsors.forEach(s=>{addSponsorSlot(s.name,s.text,s.logo);});
+}
+
+async function saveSponsorSettings(){
+  if(!T||!T.id)return;
+  // Collect individual sponsor toggles
+  const disabled=[];
+  document.querySelectorAll('.sponsorIndvToggle').forEach(cb=>{
+    if(!cb.checked)disabled.push(cb.dataset.name);
+  });
+  const settings={
+    standings:document.getElementById('togStandings').checked,
+    celebrations:document.getElementById('togCelebrations').checked,
+    flip_banner:document.getElementById('togFlipBanner').checked,
+    disabled:disabled
+  };
+  await sb.from('tournaments').update({sponsor_settings:settings}).eq('id',T.id);
+  T.sponsor_settings=settings;
+  showToast('Sponsor settings saved');
+  // Re-render to update opacity
+  renderGo();
 }
 </script>
 <script src="/cxi-modern.js"></script>

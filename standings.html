@@ -261,10 +261,13 @@ function renderHeader(){
   const s=sMap[tournament.status]||['UNKNOWN',''];
   statusEl.textContent=s[0];statusEl.className='tourn-status '+s[1];
 
-  // Full sponsor branding — supports multiple sponsors with rotation
+  // Full sponsor branding — check organizer toggle
+  const ss=tournament.sponsor_settings||{standings:true};
+  if(ss.standings===false){return;} // Organizer disabled sponsor on standings
+  const disabledList=ss.disabled||[];
   const allSponsors=[];
-  if(tournament.sponsor_name)allSponsors.push({name:tournament.sponsor_name,logo:tournament.sponsor_logo,text:tournament.branding_text});
-  if(tournament.sponsors&&Array.isArray(tournament.sponsors))tournament.sponsors.forEach(s=>allSponsors.push(s));
+  if(tournament.sponsor_name&&!disabledList.includes(tournament.sponsor_name))allSponsors.push({name:tournament.sponsor_name,logo:tournament.sponsor_logo,text:tournament.branding_text});
+  if(tournament.sponsors&&Array.isArray(tournament.sponsors))tournament.sponsors.forEach(s=>{if(!disabledList.includes(s.name))allSponsors.push(s);});
 
   if(allSponsors.length){
     const banner=document.getElementById('sponsorBanner');

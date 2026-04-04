@@ -439,6 +439,9 @@ function showSponsorBanner(event,matchData){
   const banner=document.getElementById('sponsorBanner');
   if(!banner) return;
   const sponsor=(matchData&&matchData.sponsor_name)||'captainXI.com';
+  // Check if this sponsor is individually disabled
+  const disabled=(window._sponsorSettings&&window._sponsorSettings.disabled)||[];
+  if(disabled.includes(sponsor))return;
   const colors={four:'linear-gradient(90deg,#16a34a,#15803d)',six:'linear-gradient(90deg,#d97706,#b45309)',wicket:'linear-gradient(90deg,#dc2626,#b91c1c)'};
   const msgs={four:'🏏 FOUR! Brought to you by '+sponsor,six:'💥 SIX! Powered by '+sponsor,wicket:'🎯 WICKET! Presented by '+sponsor};
   banner.style.background=colors[event]||colors.four;
@@ -469,9 +472,9 @@ function playSound(type){
 }
 
 // ── CELEBRATIONS ─────────────────────────────────────
-function celebrateFour(matchData){playSound('four');showSponsorBanner('four',matchData);launchConfetti(['#16a34a','#4ade80','#fff'],25);}
-function celebrateSix(matchData){playSound('six');showSponsorBanner('six',matchData);launchConfetti(['#f59e0b','#fbbf24','#ef4444','#fff'],50);showBigText('SIX!','#d97706');}
-function celebrateWicket(matchData){playSound('wicket');showSponsorBanner('wicket',matchData);launchConfetti(['#dc2626','#f87171','#fff'],20);showBigText('WICKET!','#dc2626');}
+function celebrateFour(matchData){playSound('four');if(!window._sponsorSettings||window._sponsorSettings.celebrations!==false)showSponsorBanner('four',matchData);launchConfetti(['#16a34a','#4ade80','#fff'],25);}
+function celebrateSix(matchData){playSound('six');if(!window._sponsorSettings||window._sponsorSettings.celebrations!==false)showSponsorBanner('six',matchData);launchConfetti(['#f59e0b','#fbbf24','#ef4444','#fff'],50);showBigText('SIX!','#d97706');}
+function celebrateWicket(matchData){playSound('wicket');if(!window._sponsorSettings||window._sponsorSettings.celebrations!==false)showSponsorBanner('wicket',matchData);launchConfetti(['#dc2626','#f87171','#fff'],20);showBigText('WICKET!','#dc2626');}
 function showBigText(txt,color){
   const el=document.createElement('div');
   el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:"Bebas Neue",sans-serif;font-size:72px;color:'+color+';text-shadow:0 4px 20px rgba(0,0,0,0.5);pointer-events:none;z-index:9998;animation:celebPop 2.5s forwards;';
@@ -545,8 +548,9 @@ async function loadAll(){
     if(m.tournament_id){
       const sLink=document.getElementById('standingsLink');
       if(sLink&&!sLink._loaded){
-        const{data:tData}=await sb.from('tournaments').select('share_code,name').eq('id',m.tournament_id).maybeSingle();
+        const{data:tData}=await sb.from('tournaments').select('share_code,name,sponsor_settings').eq('id',m.tournament_id).maybeSingle();
         if(tData&&tData.share_code){
+        window._sponsorSettings=tData.sponsor_settings||{standings:true,celebrations:true,flip_banner:true};
         const standingsUrl='standings.html?t='+tData.share_code;
         sLink.href=standingsUrl;
         sLink.onclick=null;
@@ -637,6 +641,13 @@ function renderMarquee(){
   if(!matchData)return;
   if(window._isAdFree)return; // ad-free viewer
   const sponsor=matchData.sponsor_name;
+  // Check if sponsor is individually disabled
+  const disabled=(window._sponsorSettings&&window._sponsorSettings.disabled)||[];
+  if(sponsor&&disabled.includes(sponsor)){
+    const marquee=document.getElementById('sponsorMarquee');
+    if(marquee)marquee.style.display='none';
+    return;
+  }
   const branding=matchData.branding_text;
   const adText=matchData.ad_text;
   // Build marquee text from all available sponsor/branding data
@@ -767,7 +778,8 @@ function activateAdFree(){
 }
 
 function flipScorecardSponsor(){
-  if(window._isAdFree)return; // ad-free viewer
+  if(window._isAdFree)return;
+  if(window._sponsorSettings&&window._sponsorSettings.flip_banner===false)return; // organizer disabled
   const inner=document.getElementById('scFlipInner');
   if(!inner)return;
   inner.style.transform='rotateX(180deg)';
@@ -817,7 +829,8 @@ function renderAll(){
   if(logoB&&bowlLogo){logoB.src=bowlLogo;logoB.style.display='inline';}else if(logoB){logoB.style.display='none';}
 
   // Sponsor flip setup (for over break animation)
-  if(matchData.sponsor_name){
+  const _disabledS=(window._sponsorSettings&&window._sponsorSettings.disabled)||[];
+  if(matchData.sponsor_name&&!_disabledS.includes(matchData.sponsor_name)){
     document.getElementById('scSponsorFlipName').textContent=matchData.sponsor_name;
     if(matchData.sponsor_logo){
       const sLogo=document.getElementById('scSponsorFlipLogo');
@@ -826,7 +839,7 @@ function renderAll(){
     if(matchData.branding_text)document.getElementById('scSponsorFlipSub').textContent=matchData.branding_text;
   }
   // Branding
-  if(matchData.branding_text){document.getElementById('brandingStrip').style.display='block';document.getElementById('brandingText').textContent=matchData.branding_text;}
+  if(matchData.branding_text&&!_disabledS.includes(matchData.sponsor_name)){document.getElementById('brandingStrip').style.display='block';document.getElementById('brandingText').textContent=matchData.branding_text;}
   // Ad slot
   if(matchData.ad_text){const ad=document.getElementById('adSlot');if(ad){ad.style.display='block';document.getElementById('adSlotContent').textContent=matchData.ad_text;window._adUrl=matchData.ad_url||null;}}
   document.getElementById('scBowlTeamName').textContent=inn.bowling_team;
