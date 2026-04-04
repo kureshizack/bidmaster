@@ -79,8 +79,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 .btn-bye{background:var(--surface2);color:var(--muted);border:1px solid var(--border);font-size:14px;}
 
 /* ACTION BAR */
-.action-bar{padding:6px 10px 12px;display:flex;gap:8px;}
-.action-btn{flex:1;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer;text-align:center;transition:all .15s;}
+.action-bar{padding:6px 10px 12px;display:flex;gap:4px;flex-wrap:wrap;}
+.action-btn{flex:1 1 auto;min-width:0;padding:10px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-align:center;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .action-btn:hover{border-color:var(--accent);color:var(--text);}
 .action-btn.danger{border-color:rgba(239,68,68,0.3);color:var(--red);}
 
@@ -484,6 +484,29 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
+<!-- EDIT BALL MODAL -->
+<div class="modal-overlay" id="editBallModal">
+  <div class="modal">
+    <h3 style="color:var(--accent);">Edit Ball</h3>
+    <div id="editBallInfo" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Change this delivery to:</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('dot')">• Dot</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('1')">1</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('2')">2</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('3')">3</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('4')" style="color:var(--green);">4</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('6')" style="color:var(--accent);">6</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('wide')">Wd</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmEditBall('noball')">Nb</button>
+    </div>
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
+      <button class="modal-btn modal-btn-ghost" style="color:var(--red);" onclick="confirmDeleteBall()">🗑 Delete This Ball</button>
+    </div>
+    <button class="modal-btn modal-btn-ghost" onclick="document.getElementById('editBallModal').classList.remove('open')" style="margin-top:6px;">Cancel</button>
+  </div>
+</div>
+
 <!-- OVERTHROW MODAL -->
 <div class="modal-overlay" id="overthrowModal">
   <div class="modal">
@@ -652,13 +675,6 @@ let allPlayerNames = []; // flat list of all player names
 // INIT — Load teams if auction context exists
 // ══════════════════════════════════════════════════════════
 (async()=>{
-  // VERSION CHECK — visible confirmation of which file is loaded
-  console.log('[CXI] Scorer v8 loaded');
-  const _vBadge=document.createElement('div');
-  _vBadge.style.cssText='position:fixed;bottom:80px;left:8px;font-size:9px;color:var(--muted);opacity:0.5;z-index:1;';
-  _vBadge.textContent='v8';
-  document.body.appendChild(_vBadge);
-
   try{
   // Update plan badge if logged in
   try{
@@ -1158,6 +1174,142 @@ async function confirmExtra(additionalRuns){
 }
 
 function closeExtraModal(){document.getElementById('extraModal').classList.remove('open');pendingExtraType=null;}
+
+// ══════════════════════════════════════════════════════════
+// EDIT BALL — tap on any ball in current over to change it
+// ══════════════════════════════════════════════════════════
+let _editBallIdx=null;
+function editBall(idx){
+  if(isMatchEnded)return;
+  if(idx<0||idx>=overBalls.length)return;
+  _editBallIdx=idx;
+  const b=overBalls[idx];
+  let desc='Ball '+(b.over_number+1)+'.'+(b.ball_number||'?')+' — currently: '+b.outcome+' ('+b.runs_total+' runs)';
+  if(b.is_wicket)desc='Ball '+(b.over_number+1)+'.'+(b.ball_number||'?')+' — WICKET';
+  document.getElementById('editBallInfo').textContent=desc;
+  document.getElementById('editBallModal').classList.add('open');
+}
+
+async function confirmEditBall(newOutcome){
+  document.getElementById('editBallModal').classList.remove('open');
+  if(_editBallIdx===null||_editBallIdx>=overBalls.length)return;
+  const oldBall=overBalls[_editBallIdx];
+  const oldRuns=oldBall.runs_total;
+  const oldBatRuns=oldBall.runs_bat||0;
+  const wasLegal=oldBall.is_legal;
+  const wasWicket=oldBall.is_wicket;
+
+  // Calculate new values
+  const isWide=newOutcome==='wide';
+  const isNoBall=newOutcome==='noball';
+  const newIsLegal=!isWide&&!isNoBall;
+  const newRunsBat=isWide?0:(isNoBall?0:(newOutcome==='dot'?0:parseInt(newOutcome)||0));
+  const newRunsExtra=isWide?1:(isNoBall?1:0);
+  const newRunsTotal=newRunsBat+newRunsExtra;
+
+  try{
+    // Update the ball record
+    await sb.from('balls').update({
+      outcome:newOutcome==='dot'?'dot':newOutcome,
+      runs_bat:newRunsBat,runs_extra:newRunsExtra,runs_total:newRunsTotal,
+      is_legal:newIsLegal,is_boundary:newRunsBat>=4,is_wicket:false,
+      wicket_type:null,wicket_player_id:null,fielder_name:null,
+      commentary:'Edited: '+newOutcome
+    }).eq('id',oldBall.id);
+
+    // Update innings total
+    currentInnings.total_runs+=(newRunsTotal-oldRuns);
+
+    // Adjust balls count if legality changed
+    if(wasLegal&&!newIsLegal){
+      currentInnings.total_balls-=1;
+      currentInnings.current_over_balls-=1;
+    } else if(!wasLegal&&newIsLegal){
+      currentInnings.total_balls+=1;
+      currentInnings.current_over_balls+=1;
+    }
+
+    // Adjust extras
+    if(isWide)currentInnings.extras_wides+=1;
+    if(oldBall.outcome==='wide')currentInnings.extras_wides-=Math.max(1,oldBall.runs_extra);
+    if(isNoBall)currentInnings.extras_noballs+=1;
+    if(oldBall.outcome==='noball')currentInnings.extras_noballs-=1;
+    currentInnings.extras_total+=(newRunsExtra-(oldBall.runs_extra||0));
+
+    // Adjust bowler
+    bowler.runs_conceded+=(newRunsTotal-oldRuns);
+    if(wasLegal&&!newIsLegal)bowler.overs_balls-=1;
+    if(!wasLegal&&newIsLegal)bowler.overs_balls+=1;
+    if(wasWicket&&!oldBall.outcome?.includes('run_out'))bowler.wickets-=1;
+    await sb.from('bowling_card').update({runs_conceded:bowler.runs_conceded,wickets:bowler.wickets,overs_balls:bowler.overs_balls}).eq('id',bowler.id);
+
+    // Adjust striker
+    striker.runs+=(newRunsBat-oldBatRuns);
+    if(wasLegal&&!newIsLegal)striker.balls_faced-=1;
+    if(!wasLegal&&newIsLegal)striker.balls_faced+=1;
+    striker.strike_rate=striker.balls_faced>0?((striker.runs/striker.balls_faced)*100):0;
+    await sb.from('batting_card').update({runs:striker.runs,balls_faced:striker.balls_faced,strike_rate:striker.strike_rate}).eq('id',striker.id);
+
+    // If old ball was a wicket, un-dismiss the player
+    if(wasWicket){
+      currentInnings.total_wickets-=1;
+    }
+
+    // Update local ball object
+    Object.assign(oldBall,{outcome:newOutcome==='dot'?'dot':newOutcome,runs_bat:newRunsBat,runs_extra:newRunsExtra,runs_total:newRunsTotal,is_legal:newIsLegal,is_wicket:false,is_boundary:newRunsBat>=4});
+
+    updateRunRate();
+    await saveInningsState();
+    renderScoreUI();
+    addCommentary('✏️ Ball edited → '+newOutcome);
+  }catch(e){
+    console.error('Edit ball error:',e);
+    cxiAlert('Error editing ball: '+e.message);
+  }
+}
+
+async function confirmDeleteBall(){
+  document.getElementById('editBallModal').classList.remove('open');
+  if(_editBallIdx===null||_editBallIdx>=overBalls.length)return;
+  if(!await cxiConfirm('Delete this ball? This will adjust all stats.'))return;
+
+  const b=overBalls[_editBallIdx];
+  try{
+    await sb.from('balls').delete().eq('id',b.id);
+
+    // Adjust innings
+    currentInnings.total_runs-=b.runs_total;
+    if(b.is_legal){currentInnings.total_balls-=1;currentInnings.current_over_balls-=1;}
+    if(b.is_wicket)currentInnings.total_wickets-=1;
+    currentInnings.extras_total-=(b.runs_extra||0);
+
+    // Adjust bowler
+    bowler.runs_conceded-=b.runs_total;
+    if(b.is_legal)bowler.overs_balls-=1;
+    if(b.is_wicket&&b.wicket_type!=='run_out')bowler.wickets-=1;
+    await sb.from('bowling_card').update({runs_conceded:bowler.runs_conceded,wickets:bowler.wickets,overs_balls:bowler.overs_balls}).eq('id',bowler.id);
+
+    // Adjust striker
+    if(b.is_legal||b.outcome==='noball')striker.balls_faced-=1;
+    striker.runs-=(b.runs_bat||0);
+    striker.strike_rate=striker.balls_faced>0?((striker.runs/striker.balls_faced)*100):0;
+    await sb.from('batting_card').update({runs:striker.runs,balls_faced:striker.balls_faced,strike_rate:striker.strike_rate}).eq('id',striker.id);
+
+    // Remove from arrays
+    overBalls.splice(_editBallIdx,1);
+    const allIdx=allBalls.findIndex(x=>x.id===b.id);
+    if(allIdx>=0)allBalls.splice(allIdx,1);
+    ballSequence=allBalls.length;
+
+    updateRunRate();
+    await saveInningsState();
+    renderScoreUI();
+    addCommentary('🗑 Ball deleted');
+  }catch(e){
+    console.error('Delete ball error:',e);
+    cxiAlert('Error: '+e.message);
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // OVERTHROW — add runs to last delivery
@@ -2209,10 +2361,10 @@ function renderScoreUI(){
     document.getElementById('bowlerFig').textContent=formatBowlerOvers(bowler);
   }
 
-  // Over balls
+  // Over balls — clickable to edit
   document.getElementById('overLabel').textContent='Over '+(inn.current_over+1);
   const ballsEl=document.getElementById('overBalls');
-  ballsEl.innerHTML=overBalls.map(b=>{
+  ballsEl.innerHTML=overBalls.map((b,idx)=>{
     let cls='ball-0',txt='•';
     if(b.is_wicket){cls='ball-w';txt='W';}
     else if(b.outcome==='wide'){cls='ball-wd';txt='Wd';}
@@ -2222,7 +2374,7 @@ function renderScoreUI(){
     else if(b.runs_bat===4){cls='ball-4';txt='4';}
     else if(b.runs_bat===6){cls='ball-6';txt='6';}
     else{cls='ball-'+Math.min(b.runs_bat,3);txt=b.runs_bat;}
-    return '<div class="ball-dot '+cls+'">'+txt+'</div>';
+    return '<div class="ball-dot '+cls+'" style="cursor:pointer;" onclick="editBall('+idx+')" title="Tap to edit">'+txt+'</div>';
   }).join('');
 }
 
