@@ -3,9 +3,17 @@
    Drop this into any page for PWA + micro-interactions
    ═══════════════════════════════════════════════════ */
 
-// ── PWA SERVICE WORKER ──
+// ── KILL OLD SERVICE WORKER — was causing stale cache ──
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+  // Clear all caches
+  if(window.caches){
+    caches.keys().then(names=>{
+      names.forEach(name=>caches.delete(name));
+    });
+  }
 }
 
 // ── PWA INSTALL PROMPT ──
