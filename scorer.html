@@ -337,6 +337,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <!-- Action bar -->
   <div class="action-bar">
     <button class="action-btn" onclick="undoLastBall()">↩ Undo</button>
+    <button class="action-btn" onclick="recordOverthrow()" style="color:var(--accent);border-color:var(--accent);">+OT</button>
     <button class="action-btn" onclick="shareScore()">📱 Share</button>
     <button class="action-btn" onclick="endInnings()">🔄 End Innings</button>
     <button class="action-btn danger" onclick="endMatch()">🏁 End</button>
@@ -400,6 +401,22 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
 </div>
 
 <!-- ══════════════════════════════════════════════════════ -->
+<!-- OVERTHROW MODAL -->
+<div class="modal-overlay" id="overthrowModal">
+  <div class="modal">
+    <h3 style="color:var(--accent);">+OT Overthrow</h3>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Add overthrow runs to the LAST delivery. These extra runs are added to the batting team's total.</div>
+    <div id="otLastBallInfo" style="font-size:12px;color:var(--text);margin-bottom:10px;font-weight:700;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="modal-btn modal-btn-ghost" onclick="confirmOverthrow(1)">+1</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmOverthrow(2)">+2</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmOverthrow(3)">+3</button>
+      <button class="modal-btn modal-btn-ghost" onclick="confirmOverthrow(4)">+4 (boundary)</button>
+    </div>
+    <button class="modal-btn modal-btn-ghost" onclick="document.getElementById('overthrowModal').classList.remove('open')" style="margin-top:10px;">Cancel</button>
+  </div>
+</div>
+
 <!-- MAN OF THE MATCH MODAL                              -->
 <!-- ══════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="pomModal" style="display:none;">
@@ -508,7 +525,16 @@ let pendingWicketType=null;
 let pendingRunOutWho='striker';
 let ballSequence=0;
 let isMatchEnded=false;
-let isProcessing=false; // prevent double-tap concurrent ball recording
+let setProcessing(false); // prevent double-tap concurrent ball recording
+let _processingTimer=null;
+function setProcessing(val){
+  isProcessing=val;
+  clearTimeout(_processingTimer);
+  if(val){
+    // Safety: auto-reset after 10 seconds to prevent stuck state
+    _processingTimer=setTimeout(()=>{setProcessing(false);console.warn('[CXI] Processing lock auto-reset');},10000);
+  }
+}
 
 // ── SOUND EFFECTS ────────────────────────────────────────
 const SFX={
@@ -810,13 +836,13 @@ async function recordBall(outcome){
   }
   if(isMatchEnded){cxiAlert('Match is over! No more balls can be scored.');return;}
   if(isProcessing)return;
-  isProcessing=true;
+  setProcessing(true);
   try{
 
   // Guard: prevent recording more than 6 legal balls in current over
   if(currentInnings.current_over_balls>=6){
     await endOver();
-    isProcessing=false;
+    setProcessing(false);
     return;
   }
 
@@ -885,7 +911,7 @@ async function recordBall(outcome){
 
   renderScoreUI();
   addCommentary(savedBall.commentary);
-  }finally{isProcessing=false;}
+  }finally{setProcessing(false);}
 }
 
 // ══════════════════════════════════════════════════════════
@@ -911,7 +937,7 @@ async function confirmExtra(additionalRuns){
   const type=pendingExtraType;
   if(!type)return;
   if(isProcessing)return;
-  isProcessing=true;
+  setProcessing(true);
   try{
 
   const isWide=type==='wide';
@@ -920,21 +946,39 @@ async function confirmExtra(additionalRuns){
   const isLegBye=type==='legbye';
 
   const penalty=(isWide||isNoBall)?1:0;
-  const totalExtra=penalty+additionalRuns;
   const isLegal=!(isWide||isNoBall); // wides and noballs are illegal deliveries
 
   ballSequence++;
   const overNum=currentInnings.current_over;
-  const ballNum=isLegal?currentInnings.current_over_balls+1:currentInnings.current_over_balls; // extras don't increment legal ball count
+  const ballNum=isLegal?currentInnings.current_over_balls+1:currentInnings.current_over_balls;
+
+  // ── Calculate runs correctly per ICC rules ──
+  // Wide: penalty(1) + additional runs all counted as extras
+  // No-ball: penalty(1) as extra, runs off bat credited to batsman
+  // Bye/LegBye: all runs are extras, legal delivery
+
+  let runsBat=0, runsExtra=0, runsTotal=0;
+  if(isWide){
+    runsExtra=penalty+additionalRuns; // all wide runs are extras
+    runsTotal=runsExtra;
+  } else if(isNoBall){
+    runsBat=additionalRuns; // runs off bat go to batsman
+    runsExtra=penalty; // only the 1-run penalty is extra
+    runsTotal=penalty+additionalRuns;
+  } else {
+    // Bye or Leg Bye — legal delivery, all runs are extras
+    runsExtra=additionalRuns;
+    runsTotal=additionalRuns;
+  }
 
   const ball={
     match_id:match.id,innings_id:currentInnings.id,
     over_number:overNum,ball_number:ballNum,ball_sequence:ballSequence,
     bowler_id:bowler.id,striker_id:striker.id,nonstriker_id:nonStriker.id,
     outcome:type,
-    runs_bat:isNoBall?additionalRuns:0, // no-ball: runs off bat credited to batsman
-    runs_extra:isNoBall?penalty:totalExtra,
-    runs_total:totalExtra+(isNoBall?additionalRuns:0),
+    runs_bat:runsBat,
+    runs_extra:runsExtra,
+    runs_total:runsTotal,
     is_legal:isLegal,is_boundary:additionalRuns>=4,is_wicket:false,
     is_free_hit:isNextFreeHit,
     commentary:generateExtraCommentary(type,additionalRuns)
@@ -945,49 +989,58 @@ async function confirmExtra(additionalRuns){
   overBalls.push(savedBall);
 
   // Update innings extras
-  if(isWide){currentInnings.extras_wides+=totalExtra;bowler.wides+=1;}
+  if(isWide){currentInnings.extras_wides+=(penalty+additionalRuns);bowler.wides+=1;}
   if(isNoBall){currentInnings.extras_noballs+=penalty;bowler.noballs+=1;}
   if(isBye)currentInnings.extras_byes+=additionalRuns;
   if(isLegBye)currentInnings.extras_legbyes+=additionalRuns;
-  currentInnings.extras_total+=(isNoBall?penalty:totalExtra);
+  currentInnings.extras_total+=runsExtra;
 
   // Update innings total
-  const runsToAdd=ball.runs_total;
-  currentInnings.total_runs+=runsToAdd;
+  currentInnings.total_runs+=runsTotal;
 
-  // Update bowler (wides and noballs count against bowler)
-  if(isWide||isNoBall){
-    bowler.runs_conceded+=totalExtra+(isNoBall?additionalRuns:0);
+  // Update bowler — wides and noballs count against bowler
+  if(isWide){
+    bowler.runs_conceded+=(penalty+additionalRuns);
+  } else if(isNoBall){
+    bowler.runs_conceded+=(penalty+additionalRuns); // penalty + bat runs all against bowler
   }
   // Byes and leg byes don't count against bowler
 
-  // Update batsman for no-ball (runs off bat)
-  if(isNoBall&&additionalRuns>0){
-    striker.runs+=additionalRuns;
-    striker.balls_faced+=1; // no-ball counts as ball faced
-    if(additionalRuns===4)striker.fours+=1;
-    if(additionalRuns===6)striker.sixes+=1;
+  // Update batsman
+  if(isNoBall){
+    // No-ball: batsman always faces the ball
+    striker.balls_faced+=1;
+    if(additionalRuns>0){
+      striker.runs+=additionalRuns;
+      if(additionalRuns===4)striker.fours+=1;
+      if(additionalRuns===6)striker.sixes+=1;
+    }
     striker.strike_rate=striker.balls_faced>0?((striker.runs/striker.balls_faced)*100):0;
     await sb.from('batting_card').update({runs:striker.runs,balls_faced:striker.balls_faced,fours:striker.fours,sixes:striker.sixes,strike_rate:striker.strike_rate}).eq('id',striker.id);
   }
 
-  // Legal balls increment
+  // Legal balls (bye/legbye) increment over count
   if(isLegal){
     currentInnings.current_over_balls=ballNum;
     currentInnings.total_balls+=1;
     currentInnings.total_overs=overNum+(ballNum/10);
     // Byes/legbyes: batsman faced ball
     striker.balls_faced+=1;
-    await sb.from('batting_card').update({balls_faced:striker.balls_faced}).eq('id',striker.id);
-    if(isLegal)bowler.overs_balls+=1;
+    striker.strike_rate=striker.balls_faced>0?((striker.runs/striker.balls_faced)*100):0;
+    await sb.from('batting_card').update({balls_faced:striker.balls_faced,strike_rate:striker.strike_rate}).eq('id',striker.id);
+    bowler.overs_balls+=1;
     await updateBowlerOvers();
   }
 
   updateRunRate();
   await saveInningsState();
 
-  // Swap strike on odd total runs
-  if(runsToAdd%2===1)swapStrikeInternal();
+  // ── Strike rotation per ICC rules ──
+  // Wide: swap based on physical runs ONLY (not penalty)
+  // No-ball: swap based on runs off bat
+  // Bye/Legbye: swap based on runs taken
+  // The penalty run from wide/no-ball NEVER causes swap
+  if(additionalRuns%2===1)swapStrikeInternal();
 
   // No-ball triggers free hit next ball
   if(isNoBall){
@@ -1002,10 +1055,60 @@ async function confirmExtra(additionalRuns){
   renderScoreUI();
   addCommentary(savedBall.commentary);
   pendingExtraType=null;
-  }finally{isProcessing=false;}
+  }finally{setProcessing(false);}
 }
 
 function closeExtraModal(){document.getElementById('extraModal').classList.remove('open');pendingExtraType=null;}
+
+// ══════════════════════════════════════════════════════════
+// OVERTHROW — add runs to last delivery
+// ══════════════════════════════════════════════════════════
+function recordOverthrow(){
+  if(isMatchEnded){cxiAlert('Match is over!');return;}
+  if(!allBalls.length){cxiAlert('No balls bowled yet');return;}
+  const lastBall=allBalls[allBalls.length-1];
+  const info='Last ball: '+lastBall.outcome+' ('+lastBall.runs_total+' runs)';
+  document.getElementById('otLastBallInfo').textContent=info;
+  document.getElementById('overthrowModal').classList.add('open');
+}
+
+async function confirmOverthrow(otRuns){
+  document.getElementById('overthrowModal').classList.remove('open');
+  if(!allBalls.length)return;
+  if(isProcessing)return;
+  setProcessing(true);
+  try{
+    const lastBall=allBalls[allBalls.length-1];
+
+    // Update the last ball record with additional overthrow runs
+    const newTotal=lastBall.runs_total+otRuns;
+    const newExtra=(lastBall.runs_extra||0)+otRuns;
+    await sb.from('balls').update({runs_total:newTotal,runs_extra:newExtra,
+      commentary:(lastBall.commentary||'')+' + '+otRuns+' overthrow'
+    }).eq('id',lastBall.id);
+    lastBall.runs_total=newTotal;
+    lastBall.runs_extra=newExtra;
+
+    // Update innings
+    currentInnings.total_runs+=otRuns;
+    currentInnings.extras_total+=otRuns;
+    updateRunRate();
+    await saveInningsState();
+
+    // Bowler concedes overthrow runs
+    bowler.runs_conceded+=otRuns;
+    await sb.from('bowling_card').update({runs_conceded:bowler.runs_conceded}).eq('id',bowler.id);
+
+    // Swap strike if odd overthrow runs
+    if(otRuns%2===1)swapStrikeInternal();
+
+    renderScoreUI();
+    addCommentary('+'+otRuns+' OVERTHROW!');
+  }catch(e){
+    console.error('Overthrow error:',e);
+    cxiAlert('Error: '+e.message);
+  }finally{setProcessing(false);}
+}
 
 // ══════════════════════════════════════════════════════════
 // WICKET
@@ -1076,7 +1179,7 @@ async function finalizeWicket(){
 
   document.getElementById('wicketModal').classList.remove('open');
   if(isProcessing)return;
-  isProcessing=true;
+  setProcessing(true);
   try{
   playSound('wicket');
 
@@ -1161,7 +1264,7 @@ async function finalizeWicket(){
   checkInningsEnd();
   renderScoreUI();
   addCommentary(savedBall.commentary);
-  }finally{isProcessing=false;}
+  }finally{setProcessing(false);}
 }
 
 function cancelWicket(){document.getElementById('wicketModal').classList.remove('open');}
