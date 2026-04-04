@@ -2131,67 +2131,84 @@ function renderScoreUI(){
 // RESUME MATCH (if page reloaded)
 // ══════════════════════════════════════════════════════════
 async function resumeMatch(id){
-  const{data:m}=await sb.from('matches').select('*').eq('id',id).single();
-  if(!m){cxiAlert('Match not found');return;}
+  const{data:m,error:mErr}=await sb.from('matches').select('*').eq('id',id).maybeSingle();
+  if(!m){cxiAlert('Match not found'+(mErr?' — '+mErr.message:''));return;}
   match=m;
 
-  // Load match_players for suggestions
-  const{data:mp}=await sb.from('match_players').select('*').eq('match_id',id).order('batting_order');
-  if(mp&&mp.length){
-    mp.forEach(p=>{
-      if(!allPlayersByTeam[p.team_name])allPlayersByTeam[p.team_name]=[];
-      allPlayersByTeam[p.team_name].push(p.player_name);
-      if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
-    });
-  }
+  // Load players from various sources (wrapped in try/catch for robustness)
+  try{
+    const{data:mp}=await sb.from('match_players').select('*').eq('match_id',id).order('batting_order');
+    if(mp&&mp.length){
+      mp.forEach(p=>{
+        if(!allPlayersByTeam[p.team_name])allPlayersByTeam[p.team_name]=[];
+        if(!allPlayersByTeam[p.team_name].includes(p.player_name))allPlayersByTeam[p.team_name].push(p.player_name);
+        if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
+      });
+    }
+  }catch(e){console.warn('match_players load error:',e);}
 
   // Load tournament_players if this is a tournament match
   if(m.tournament_id){
-    const{data:tt}=await sb.from('tournament_teams').select('id,team_name').eq('tournament_id',m.tournament_id);
-    if(tt&&tt.length){
-      for(const team of tt){
-        const{data:tp}=await sb.from('tournament_players').select('player_name,role').eq('team_id',team.id);
-        if(tp&&tp.length){
-          if(!allPlayersByTeam[team.team_name])allPlayersByTeam[team.team_name]=[];
-          tp.forEach(p=>{
-            if(!allPlayersByTeam[team.team_name].includes(p.player_name)){
-              allPlayersByTeam[team.team_name].push(p.player_name);
+    try{
+      const{data:tt}=await sb.from('tournament_teams').select('id,team_name').eq('tournament_id',m.tournament_id);
+      if(tt&&tt.length){
+        for(const team of tt){
+          try{
+            const{data:tp}=await sb.from('tournament_players').select('player_name,role').eq('team_id',team.id);
+            if(tp&&tp.length){
+              if(!allPlayersByTeam[team.team_name])allPlayersByTeam[team.team_name]=[];
+              tp.forEach(p=>{
+                if(!allPlayersByTeam[team.team_name].includes(p.player_name)){
+                  allPlayersByTeam[team.team_name].push(p.player_name);
+                }
+                if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
+              });
             }
-            if(!allPlayerNames.includes(p.player_name))allPlayerNames.push(p.player_name);
+          }catch(e){console.warn('tournament_players load error for team:',team.team_name,e);}
+        }
+      }
+    }catch(e){console.warn('tournament_teams load error:',e);}
+    // Also load from linked auction (if tournament uses auction formation)
+    try{
+      const{data:tournData}=await sb.from('tournaments').select('auction_id').eq('id',m.tournament_id).maybeSingle();
+      if(tournData&&tournData.auction_id){
+        const{data:sales}=await sb.from('sales').select('*,players(name),teams(name)').eq('auction_id',tournData.auction_id);
+        if(sales){
+          sales.forEach(s=>{
+            const tn=s.teams?.name;const pn=s.players?.name;
+            if(!tn||!pn)return;
+            if(!allPlayersByTeam[tn])allPlayersByTeam[tn]=[];
+            if(!allPlayersByTeam[tn].includes(pn))allPlayersByTeam[tn].push(pn);
+            if(!allPlayerNames.includes(pn))allPlayerNames.push(pn);
           });
         }
       }
-    }
-    // Also load from linked auction (if tournament uses auction formation)
-    const{data:tournData}=await sb.from('tournaments').select('auction_id').eq('id',m.tournament_id).maybeSingle();
-    if(tournData&&tournData.auction_id){
-      const{data:sales}=await sb.from('sales').select('*,players(name),teams(name)').eq('auction_id',tournData.auction_id);
-      if(sales){
-        sales.forEach(s=>{
-          const tn=s.teams?.name;const pn=s.players?.name;
-          if(!tn||!pn)return;
-          if(!allPlayersByTeam[tn])allPlayersByTeam[tn]=[];
-          if(!allPlayersByTeam[tn].includes(pn))allPlayersByTeam[tn].push(pn);
-          if(!allPlayerNames.includes(pn))allPlayerNames.push(pn);
-        });
-      }
-    }
+    }catch(e){console.warn('auction load error:',e);}
   }
 
   const{data:inn}=await sb.from('innings').select('*').eq('match_id',id).eq('status','in_progress').maybeSingle();
   if(!inn){
     // No active innings — pre-fill setup form from match data
-    if(m.team_a)document.getElementById('sTeamA').value=m.team_a;
-    if(m.team_b)document.getElementById('sTeamB').value=m.team_b;
-    if(m.overs_per_side)document.getElementById('sOvers').value=m.overs_per_side;
-    if(m.venue)document.getElementById('sVenue').value=m.venue;
+    if(m.team_a){document.getElementById('sTeamA').value=m.team_a;}
+    if(m.team_b){document.getElementById('sTeamB').value=m.team_b;}
+    if(m.overs_per_side){document.getElementById('sOvers').value=m.overs_per_side;}
+    if(m.venue){document.getElementById('sVenue').value=m.venue;}
+
+    // Lock team fields for tournament matches (can't change team names)
+    if(m.tournament_id){
+      document.getElementById('sTeamA').readOnly=true;
+      document.getElementById('sTeamB').readOnly=true;
+      document.getElementById('sTeamA').style.opacity='0.7';
+      document.getElementById('sTeamB').style.opacity='0.7';
+    }
+
     updateTossDropdown();
     if(m.toss_winner){
       document.getElementById('sTossWinner').value=m.toss_winner;
       if(m.toss_decision)setToss(m.toss_decision==='bat'?'bat':'bowl');
     }
 
-    // Populate player datalists from match_players
+    // Populate player datalists from loaded players
     const batTeamPlayers=document.getElementById('battingTeamPlayers');
     const bowlTeamPlayers=document.getElementById('bowlingTeamPlayers');
     // Determine batting/bowling team
@@ -2204,6 +2221,14 @@ async function resumeMatch(id){
     const bowlPlayers=allPlayersByTeam[bowlTeam]||[];
     batTeamPlayers.innerHTML=batPlayers.map(n=>'<option value="'+n+'">').join('');
     bowlTeamPlayers.innerHTML=bowlPlayers.map(n=>'<option value="'+n+'">').join('');
+
+    // Show player count hint
+    const totalPlayers=batPlayers.length+bowlPlayers.length;
+    if(totalPlayers>0){
+      const msg=document.getElementById('setupMsg');
+      msg.style.color='var(--green)';
+      msg.textContent=totalPlayers+' players loaded. Select toss, enter names & start!';
+    }
 
     // Match already exists, so startMatch should UPDATE not INSERT
     window._existingMatchId=m.id;
