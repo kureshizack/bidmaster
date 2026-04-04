@@ -569,11 +569,19 @@ let allPlayerNames = []; // flat list of all player names
 // INIT — Load teams if auction context exists
 // ══════════════════════════════════════════════════════════
 (async()=>{
+  // VERSION CHECK — visible confirmation of which file is loaded
+  console.log('[CXI] Scorer v8 loaded');
+  const _vBadge=document.createElement('div');
+  _vBadge.style.cssText='position:fixed;bottom:80px;left:8px;font-size:9px;color:var(--muted);opacity:0.5;z-index:1;';
+  _vBadge.textContent='v8';
+  document.body.appendChild(_vBadge);
+
+  try{
   // Update plan badge if logged in
   try{
     const{data:{session}}=await sb.auth.getSession();
     if(session){
-      const{data:_p}=await sb.from('profiles').select('plan').eq('id',session.user.id).single();
+      const{data:_p}=await sb.from('profiles').select('plan').eq('id',session.user.id).maybeSingle();
       const _pb=document.getElementById('scorerPlanBadge');
       if(_pb&&_p){
         const tm={free:'FREE',gully:'FREE',club:'CLUB',pro:'PRO',district:'PRO',national:'PRO'};
@@ -583,14 +591,13 @@ let allPlayerNames = []; // flat list of all player names
         }
       }
     }
-  }catch(e){}
+  }catch(e){console.warn('[CXI] Plan badge error:',e);}
 
   if(auctionId){
+    try{
     const{data:teams}=await sb.from('teams').select('name').eq('auction_id',auctionId).order('name');
     const dl=document.getElementById('teamSuggestions');
     (teams||[]).forEach(t=>{const o=document.createElement('option');o.value=t.name;dl.appendChild(o);});
-
-    // Load all players per team from sales
     const{data:sales}=await sb.from('sales').select('*,players(name),teams(name)').eq('auction_id',auctionId);
     if(sales){
       sales.forEach(s=>{
@@ -601,13 +608,13 @@ let allPlayerNames = []; // flat list of all player names
         allPlayerNames.push(pn);
       });
     }
-    // Also load unsold players (they might play)
     const{data:players}=await sb.from('players').select('name').eq('auction_id',auctionId);
     if(players){
       players.forEach(p=>{
         if(!allPlayerNames.includes(p.name))allPlayerNames.push(p.name);
       });
     }
+    }catch(e){console.warn('[CXI] Auction load error:',e);}
   }
   // If match ID passed, resume scoring
   if(matchId){
@@ -636,6 +643,11 @@ let allPlayerNames = []; // flat list of all player names
   if(urlTeamB)document.getElementById('sTeamB').value=urlTeamB;
   if(urlVenue)document.getElementById('sVenue').value=urlVenue;
   if(urlTeamA||urlTeamB)updateTossDropdown();
+  }catch(masterErr){
+    console.error('[CXI] INIT CRASH:',masterErr);
+    const msg=document.getElementById('setupMsg');
+    if(msg){msg.style.color='var(--red)';msg.textContent='Error loading: '+masterErr.message+'. Try refreshing.';}
+  }
 })();
 
 function updateTossDropdown(){
