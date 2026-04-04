@@ -270,6 +270,19 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     if(msg&&total>0){msg.style.color='#22c55e';msg.textContent=total+' players loaded!';}
   }catch(e){console.warn('[CXI] Inline player load:',e);}
 })();
+// INLINE: Ensure Start Match button works
+(function(){
+  var btn=document.querySelector('.setup-btn');
+  if(!btn)return;
+  btn.addEventListener('click',function(ev){
+    // If main script's startMatch exists, it handles via onclick
+    if(typeof startMatch==='function')return; // main script works, let it handle
+    // Fallback: main script broken/cached — show error
+    ev.preventDefault();ev.stopPropagation();
+    var msg=document.getElementById('setupMsg');
+    if(msg){msg.style.color='#ef4444';msg.textContent='Page needs refresh. Clear cache: Settings → Clear Data → Cached files. Then reload.';}
+  });
+})();
 </script>
 
 <!-- ══════════════════════════════════════════════════════ -->
@@ -595,7 +608,7 @@ let pendingWicketType=null;
 let pendingRunOutWho='striker';
 let ballSequence=0;
 let isMatchEnded=false;
-let setProcessing(false); // prevent double-tap concurrent ball recording
+let isProcessing=false; // prevent double-tap concurrent ball recording
 let _processingTimer=null;
 function setProcessing(val){
   isProcessing=val;
