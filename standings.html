@@ -461,11 +461,11 @@ function renderCapHolders(){
   let html='';
   if(topBat&&topBat[1].runs>0){
     const b=topBat[1];const sr=b.balls>0?((b.runs/b.balls)*100).toFixed(1):'0';
-    html+='<div class="cap-card" style="border-left:3px solid var(--orange);"><div class="cap-icon" style="font-size:28px;">🟠</div><div style="flex:1;"><div class="cap-name">'+topBat[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.runs+' runs ('+b.innings+' inn, SR '+sr+', '+b.sixes+' sixes)</div></div><span class="cap-label cap-orange">Orange Cap</span></div>';
+    html+='<div class="cap-card" style="border-left:3px solid var(--orange);"><div class="cap-icon" style="font-size:32px;filter:hue-rotate(180deg) saturate(3) brightness(1.2);">🧢</div><div style="flex:1;"><div class="cap-name">'+topBat[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.runs+' runs ('+b.innings+' inn, SR '+sr+', '+b.sixes+' sixes)</div></div><span class="cap-label cap-orange">Orange Cap</span></div>';
   }
   if(topBowl&&topBowl[1].wickets>0){
     const b=topBowl[1];const econ=b.balls>0?((b.runs/(b.balls/6))).toFixed(2):'0';
-    html+='<div class="cap-card" style="border-left:3px solid var(--purple);"><div class="cap-icon" style="font-size:28px;">🟣</div><div style="flex:1;"><div class="cap-name">'+topBowl[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.wickets+' wkts ('+b.innings+' inn, Econ '+econ+')</div></div><span class="cap-label cap-purple">Purple Cap</span></div>';
+    html+='<div class="cap-card" style="border-left:3px solid var(--purple);"><div class="cap-icon" style="font-size:32px;filter:hue-rotate(60deg) saturate(2);">🧢</div><div style="flex:1;"><div class="cap-name">'+topBowl[0]+'</div>'+(b.team?'<div style="font-size:11px;color:var(--muted);margin:-2px 0 2px;">'+b.team+'</div>':'')+'<div class="cap-stats">'+b.wickets+' wkts ('+b.innings+' inn, Econ '+econ+')</div></div><span class="cap-label cap-purple">Purple Cap</span></div>';
   }
   el.innerHTML=html;
 }
