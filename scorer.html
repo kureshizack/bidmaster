@@ -616,8 +616,20 @@ let allPlayerNames = []; // flat list of all player names
     }
     }catch(e){console.warn('[CXI] Auction load error:',e);}
   }
-  // If match ID passed, resume scoring
+  // Pre-fill from URL params FIRST (works even if resumeMatch fails)
+  const urlTeamA=params.get('teamA');
+  const urlTeamB=params.get('teamB');
+  const urlVenue=params.get('venue');
+  const urlOvers=params.get('overs');
+  if(urlTeamA)document.getElementById('sTeamA').value=decodeURIComponent(urlTeamA);
+  if(urlTeamB)document.getElementById('sTeamB').value=decodeURIComponent(urlTeamB);
+  if(urlVenue)document.getElementById('sVenue').value=decodeURIComponent(urlVenue);
+  if(urlOvers)document.getElementById('sOvers').value=urlOvers;
+  if(urlTeamA||urlTeamB)updateTossDropdown();
+
+  // If match ID passed, resume scoring (loads players, innings state)
   if(matchId){
+    window._existingMatchId=matchId; // Set early so startMatch uses UPDATE even if resumeMatch fails
     await resumeMatch(matchId);
   } else {
     // Check localStorage for active match
@@ -635,14 +647,6 @@ let allPlayerNames = []; // flat list of all player names
   ['sTeamA','sTeamB'].forEach(id=>{
     document.getElementById(id).addEventListener('input',updateTossDropdown);
   });
-  // Auto-fill from URL params (coming from schedule.html)
-  const urlTeamA=params.get('teamA');
-  const urlTeamB=params.get('teamB');
-  const urlVenue=params.get('venue');
-  if(urlTeamA)document.getElementById('sTeamA').value=urlTeamA;
-  if(urlTeamB)document.getElementById('sTeamB').value=urlTeamB;
-  if(urlVenue)document.getElementById('sVenue').value=urlVenue;
-  if(urlTeamA||urlTeamB)updateTossDropdown();
   }catch(masterErr){
     console.error('[CXI] INIT CRASH:',masterErr);
     const msg=document.getElementById('setupMsg');
