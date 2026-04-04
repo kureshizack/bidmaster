@@ -201,6 +201,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   <div id="setupMsg" style="font-size:13px;text-align:center;min-height:18px;color:var(--red);margin-bottom:8px;"></div>
   <button class="setup-btn" onclick="startMatch()">🏏 Start Match — Go Live!</button>
 </div>
+<script>
+// INLINE: Fill form from URL immediately — no async, no DB, no SW dependency
+(function(){
+  var p=new URLSearchParams(window.location.search);
+  var a=p.get('teamA'),b=p.get('teamB'),o=p.get('overs'),v=p.get('venue');
+  if(a)document.getElementById('sTeamA').value=decodeURIComponent(a);
+  if(b)document.getElementById('sTeamB').value=decodeURIComponent(b);
+  if(o)document.getElementById('sOvers').value=o;
+  if(v)document.getElementById('sVenue').value=decodeURIComponent(v);
+  if(a&&b){
+    var sel=document.getElementById('sTossWinner');
+    sel.innerHTML='<option value="">Select team</option><option value="'+a+'">'+a+'</option><option value="'+b+'">'+b+'</option>';
+  }
+})();
+</script>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <!-- SCORING SCREEN — main scoring interface               -->
