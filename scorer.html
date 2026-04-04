@@ -221,12 +221,54 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
     window.tossDecision='bat';
     batBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #f59e0b;background:rgba(245,158,11,0.1);color:#f59e0b;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
     bowlBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #3d5068;background:#27364b;color:#94a3b8;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+    if(window._loadedPlayersByTeam){var tw=document.getElementById('sTossWinner').value;var tA=document.getElementById('sTeamA').value;var tB=document.getElementById('sTeamB').value;var bt=tw||tA;var bw=bt===tA?tB:tA;document.getElementById('battingTeamPlayers').innerHTML=(window._loadedPlayersByTeam[bt]||[]).map(function(n){return '<option value="'+n+'">';}).join('');document.getElementById('bowlingTeamPlayers').innerHTML=(window._loadedPlayersByTeam[bw]||[]).map(function(n){return '<option value="'+n+'">';}).join('');}
   });
   if(bowlBtn)bowlBtn.addEventListener('click',function(){
     window.tossDecision='bowl';
     bowlBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #60a5fa;background:rgba(96,165,250,0.1);color:#60a5fa;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
     batBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #3d5068;background:#27364b;color:#94a3b8;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+    if(window._loadedPlayersByTeam){var tw=document.getElementById('sTossWinner').value;var tA=document.getElementById('sTeamA').value;var tB=document.getElementById('sTeamB').value;var bw=tw||tA;var bt=bw===tA?tB:tA;document.getElementById('battingTeamPlayers').innerHTML=(window._loadedPlayersByTeam[bt]||[]).map(function(n){return '<option value="'+n+'">';}).join('');document.getElementById('bowlingTeamPlayers').innerHTML=(window._loadedPlayersByTeam[bw]||[]).map(function(n){return '<option value="'+n+'">';}).join('');}
   });
+})();
+// INLINE ASYNC: Load tournament players directly via Supabase REST
+(async function(){
+  try{
+    var p=new URLSearchParams(window.location.search);
+    var matchId=p.get('match');
+    if(!matchId)return;
+    var SB='https://ofondrfejzcznxsvpuec.supabase.co/rest/v1';
+    var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mb25kcmZlanpjem54c3ZwdWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk5MzMsImV4cCI6MjA4OTE4NTkzM30.5YfDMi0BM07PPJVcp9pfXSg6L5fDldec3usswJQd6no';
+    var H={'apikey':KEY,'Authorization':'Bearer '+KEY};
+    // Get match → tournament_id
+    var mr=await fetch(SB+'/matches?id=eq.'+matchId+'&select=tournament_id,team_a,team_b',{headers:H});
+    var mj=await mr.json();if(!mj||!mj[0]||!mj[0].tournament_id)return;
+    var tid=mj[0].tournament_id;var tA=mj[0].team_a;var tB=mj[0].team_b;
+    // Get teams
+    var tr=await fetch(SB+'/tournament_teams?tournament_id=eq.'+tid+'&select=id,team_name',{headers:H});
+    var teams=await tr.json();if(!teams||!teams.length)return;
+    // Get players per team
+    var playersByTeam={};
+    for(var t of teams){
+      var pr=await fetch(SB+'/tournament_players?team_id=eq.'+t.id+'&select=player_name',{headers:H});
+      var players=await pr.json();
+      if(players&&players.length){
+        playersByTeam[t.team_name]=players.map(function(x){return x.player_name;});
+      }
+    }
+    // Store globally for main script
+    window._loadedPlayersByTeam=playersByTeam;
+    // Fill datalists
+    var batDL=document.getElementById('battingTeamPlayers');
+    var bowlDL=document.getElementById('bowlingTeamPlayers');
+    var batPlayers=playersByTeam[tA]||[];
+    var bowlPlayers=playersByTeam[tB]||[];
+    if(batDL)batDL.innerHTML=batPlayers.map(function(n){return '<option value="'+n+'">';}).join('');
+    if(bowlDL)bowlDL.innerHTML=bowlPlayers.map(function(n){return '<option value="'+n+'">';}).join('');
+    // Show count
+    var msg=document.getElementById('setupMsg');
+    var total=batPlayers.length+bowlPlayers.length;
+    if(msg&&total>0){msg.style.color='#22c55e';msg.textContent=total+' players loaded!';}
+  }catch(e){console.warn('[CXI] Inline player load:',e);}
 })();
 </script>
 
