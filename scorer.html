@@ -212,8 +212,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--bg);color:var(--text);m
   if(v)document.getElementById('sVenue').value=decodeURIComponent(v);
   if(a&&b){
     var sel=document.getElementById('sTossWinner');
-    sel.innerHTML='<option value="">Select team</option><option value="'+a+'">'+a+'</option><option value="'+b+'">'+b+'</option>';
+    sel.innerHTML='<option value="">Select team</option><option value="'+decodeURIComponent(a)+'">'+decodeURIComponent(a)+'</option><option value="'+decodeURIComponent(b)+'">'+decodeURIComponent(b)+'</option>';
   }
+  // Fix toss buttons — override onclick to work without main script
+  var batBtn=document.getElementById('tossBat');
+  var bowlBtn=document.getElementById('tossBowl');
+  if(batBtn)batBtn.addEventListener('click',function(){
+    window.tossDecision='bat';
+    batBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #f59e0b;background:rgba(245,158,11,0.1);color:#f59e0b;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+    bowlBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #3d5068;background:#27364b;color:#94a3b8;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+  });
+  if(bowlBtn)bowlBtn.addEventListener('click',function(){
+    window.tossDecision='bowl';
+    bowlBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #60a5fa;background:rgba(96,165,250,0.1);color:#60a5fa;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+    batBtn.style.cssText='flex:1;padding:12px;border-radius:8px;border:2px solid #3d5068;background:#27364b;color:#94a3b8;font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
+  });
 })();
 </script>
 
@@ -746,9 +759,9 @@ function populateSelectWithPlayers(selId,players,placeholder){
   players.forEach(p=>{sel.innerHTML+='<option value="'+p+'">'+p+'</option>';});
 }
 
-let tossDecision=null;
+if(!window.tossDecision)window.tossDecision=null;
 function setToss(decision){
-  tossDecision=decision;
+  window.tossDecision=decision;
   document.getElementById('tossBat').style.cssText=decision==='bat'?'flex:1;padding:12px;border-radius:8px;border:2px solid var(--accent);background:rgba(245,158,11,0.1);color:var(--accent);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;':'flex:1;padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
   document.getElementById('tossBowl').style.cssText=decision==='bowl'?'flex:1;padding:12px;border-radius:8px;border:2px solid var(--blue);background:rgba(96,165,250,0.1);color:var(--blue);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;':'flex:1;padding:12px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--muted);font-family:Rajdhani,sans-serif;font-weight:700;font-size:15px;cursor:pointer;';
   // Update datalists based on who bats/bowls first
@@ -789,8 +802,8 @@ async function startMatch(){
 
   // Determine batting order from toss
   let battingFirst=teamA, bowlingFirst=teamB;
-  if(tossWinner&&tossDecision){
-    if(tossDecision==='bat'){battingFirst=tossWinner;bowlingFirst=tossWinner===teamA?teamB:teamA;}
+  if(tossWinner&&window.tossDecision){
+    if(window.tossDecision==='bat'){battingFirst=tossWinner;bowlingFirst=tossWinner===teamA?teamB:teamA;}
     else{bowlingFirst=tossWinner;battingFirst=tossWinner===teamA?teamB:teamA;}
   }
 
@@ -798,7 +811,7 @@ async function startMatch(){
   if(window._existingMatchId){
     const{data:m,error:mErr}=await sb.from('matches').update({
       team_a:teamA,team_b:teamB,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      toss_winner:tossWinner||null,toss_decision:window.tossDecision||null,
       overs_per_side:overs,venue:venue||null,
       status:'live',current_innings:1,
       umpire_1:document.getElementById('sUmpire1')?.value?.trim()||null,
@@ -813,7 +826,7 @@ async function startMatch(){
     // Create match
     const{data:m,error:mErr}=await sb.from('matches').insert({
       auction_id:auctionId||null,team_a:teamA,team_b:teamB,
-      toss_winner:tossWinner||null,toss_decision:tossDecision||null,
+      toss_winner:tossWinner||null,toss_decision:window.tossDecision||null,
       overs_per_side:overs,venue:venue||null,match_date:new Date().toISOString().split('T')[0],
       status:'live',current_innings:1,share_code:shareCode,
       umpire_1:document.getElementById('sUmpire1')?.value?.trim()||null,
