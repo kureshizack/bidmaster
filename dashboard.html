@@ -594,7 +594,7 @@ async function loadDashboard(){
           const _scoreUrl='scorer.html?match='+m.id+'&teamA='+encodeURIComponent(m.team_a)+'&teamB='+encodeURIComponent(m.team_b)+'&overs='+(m.overs_per_side||20)+'&venue='+encodeURIComponent(m.venue||'');
           if(type==='live')btn='<div style="display:flex;gap:4px;flex-shrink:0;"><a href="'+_scoreUrl+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">LIVE</a><button onclick="openManualEntry(\''+m.id+'\')" style="font-size:10px;border:1px solid var(--accent);color:var(--accent);background:none;padding:3px 8px;border-radius:5px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">Manual</button></div>';
           else if(type==='up'&&!isTBD)btn='<div style="display:flex;gap:4px;flex-shrink:0;"><a href="'+_scoreUrl+'" style="font-size:11px;background:var(--green);color:#000;padding:4px 12px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Score</a><button onclick="openManualEntry(\''+m.id+'\')" style="font-size:10px;border:1px solid var(--accent);color:var(--accent);background:none;padding:3px 8px;border-radius:5px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">Manual</button></div>';
-          else if(type==='done')btn='<a href="scorecard.html?code='+m.share_code+'" style="font-size:10px;border:1px solid var(--border);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;flex-shrink:0;">Card</a>';
+          else if(type==='done')btn='<div style="display:flex;gap:4px;flex-shrink:0;"><a href="scorecard.html?code='+m.share_code+'" style="font-size:10px;border:1px solid var(--border);color:var(--accent);padding:3px 10px;border-radius:5px;text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Card</a><button onclick="openEditResult(\''+m.id+'\')" style="font-size:10px;border:1px solid var(--blue);color:var(--blue);background:none;padding:3px 8px;border-radius:5px;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">Edit</button></div>';
           else if(isTBD)btn='<span style="font-size:10px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:5px;">TBD</span>';
           return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:'+bg+';border:'+border+';border-radius:7px;margin-bottom:4px;"><div style="min-width:0;flex:1;"><div style="font-family:Rajdhani,sans-serif;font-size:14px;font-weight:700;color:'+(isTBD?'var(--muted)':'var(--text)')+';">'+m.team_a+' vs '+m.team_b+'</div>'+(dtStr||m.stage?'<div style="font-size:10px;color:var(--muted);">M'+m.match_number+(m.stage?' · '+m.stage:'')+(dtStr?' · '+dtStr:'')+'</div>':'')+(m.result?'<div style="font-size:10px;color:var(--green);">'+m.result+'</div>':'')+'</div>'+btn+'</div>';
         }
@@ -1336,6 +1336,55 @@ async function recalcTournament(tournId){
     cxiAlert('✅ Standings recalculated!');
     setTimeout(()=>loadDashboard(),1000);
   }catch(e){cxiAlert('Error: '+e.message);}
+}
+
+async function openEditResult(matchId){
+  _meMatchId=matchId;
+  const{data:m}=await sb.from('matches').select('*').eq('id',matchId).maybeSingle();
+  if(!m){cxiAlert('Match not found');return;}
+
+  // Load existing innings
+  const{data:innings}=await sb.from('innings').select('*').eq('match_id',matchId).order('innings_number');
+
+  // Fill info
+  document.getElementById('manualMatchInfo').textContent='✏️ Edit: '+m.team_a+' vs '+m.team_b+(m.match_number?' · Match '+m.match_number:'');
+
+  // Batting team dropdown
+  const sel=document.getElementById('me_bat1');
+  sel.innerHTML='<option value="'+m.team_a+'">'+m.team_a+'</option><option value="'+m.team_b+'">'+m.team_b+'</option>';
+  sel.onchange=function(){
+    const bowl=this.value===m.team_a?m.team_b:m.team_a;
+    document.getElementById('me_bat2_label').textContent='Batting: '+bowl;
+  };
+
+  // Pre-fill from existing innings
+  if(innings&&innings.length>=1){
+    const inn1=innings[0];
+    sel.value=inn1.batting_team;
+    sel.onchange();
+    const ov1=Math.floor((inn1.total_balls||0)/6)+'.'+(inn1.total_balls||0)%6;
+    document.getElementById('me_runs1').value=inn1.total_runs||0;
+    document.getElementById('me_wkts1').value=inn1.total_wickets||0;
+    document.getElementById('me_overs1').value=ov1;
+  }
+  if(innings&&innings.length>=2){
+    const inn2=innings[1];
+    const ov2=Math.floor((inn2.total_balls||0)/6)+'.'+(inn2.total_balls||0)%6;
+    document.getElementById('me_runs2').value=inn2.total_runs||0;
+    document.getElementById('me_wkts2').value=inn2.total_wickets||0;
+    document.getElementById('me_overs2').value=ov2;
+  }
+
+  // Pre-fill PoM
+  document.getElementById('me_mom').value=m.mom_name||'';
+
+  // Auto-detect result type
+  if(m.result&&m.result.includes('Tied'))document.getElementById('me_resultType').value='tie';
+  else if(m.result&&m.result.includes('No Result'))document.getElementById('me_resultType').value='noresult';
+  else document.getElementById('me_resultType').value='auto';
+
+  document.getElementById('meError').textContent='';
+  document.getElementById('manualModal').style.display='block';
 }
 </script>
 <script src="/cxi-modern.js"></script>
