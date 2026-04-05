@@ -1603,24 +1603,41 @@ function changeBowler(){
 
 async function selectExistingBowler(id){
   document.getElementById('bowlerModal').classList.remove('open');
-  await sb.from('bowling_card').update({is_current:false}).eq('id',bowler.id);
-  bowler=bowlingCard.find(b=>b.id===id);
-  bowler.is_current=true;
-  await sb.from('bowling_card').update({is_current:true}).eq('id',bowler.id);
-  renderScoreUI();
+  try{
+    await sb.from('bowling_card').update({is_current:false}).eq('id',bowler.id);
+    const found=bowlingCard.find(b=>b.id===id);
+    if(!found){cxiAlert('Bowler not found');return;}
+    found.is_current=true;
+    await sb.from('bowling_card').update({is_current:true}).eq('id',found.id);
+    bowler=found;
+    renderScoreUI();
+  }catch(e){
+    console.error('Bowler select error:',e);
+    cxiAlert('Error selecting bowler: '+e.message);
+  }
 }
 
 async function confirmBowlerChange(){
   const name=document.getElementById('newBowlerName').value.trim();
   if(!name){cxiAlert('Enter bowler name or select from list');return;}
   document.getElementById('bowlerModal').classList.remove('open');
-  await sb.from('bowling_card').update({is_current:false}).eq('id',bowler.id);
-  const{data:newB}=await sb.from('bowling_card').insert({
-    match_id:match.id,innings_id:currentInnings.id,player_name:name,is_current:true
-  }).select().single();
-  bowler=newB;
-  bowlingCard.push(newB);
-  renderScoreUI();
+  try{
+    await sb.from('bowling_card').update({is_current:false}).eq('id',bowler.id);
+    const{data:newB,error:bErr}=await sb.from('bowling_card').insert({
+      match_id:match.id,innings_id:currentInnings.id,player_name:name,is_current:true
+    }).select().single();
+    if(bErr||!newB){
+      cxiAlert('Error adding bowler: '+(bErr?.message||'Unknown error'));
+      await sb.from('bowling_card').update({is_current:true}).eq('id',bowler.id);
+      return;
+    }
+    bowler=newB;
+    bowlingCard.push(newB);
+    renderScoreUI();
+  }catch(e){
+    console.error('Bowler change error:',e);
+    cxiAlert('Error: '+e.message+'. Try refreshing.');
+  }
 }
 
 function closeBowlerModal(){document.getElementById('bowlerModal').classList.remove('open');}
