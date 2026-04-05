@@ -1289,7 +1289,9 @@ async function updateManualTournStats(m){
     const matchIds=allMatches.map(x=>x.id);
     const{data:allInnings}=await sb.from('innings').select('*').in('match_id',matchIds);
 
-    function ballsToOvers(b){return Math.floor(b/6)+(b%6)/10;}
+    // NRR uses actual decimal overs: balls/6 (NOT cricket display like 7.3)
+    // 45 balls = 7.5 overs (45÷6), NOT 7.3
+    function ballsToOvers(b){return b/6;}
 
     // Reset and recalculate each team
     for(const team of allTeams){
@@ -1326,7 +1328,69 @@ async function updateManualTournStats(m){
 
       await sb.from('tournament_teams').update(stats).eq('id',team.id);
     }
+
+    // Auto-fill knockout matches if all group matches are done
+    await autoFillKnockoutsDash(m.tournament_id,allTeams,allMatches);
   }catch(e){console.error('Tournament stats recalc error:',e);}
+}
+
+async function autoFillKnockoutsDash(tournId,allTeams,allMatches){
+  try{
+    if(!allMatches)return;
+    const groupMatches=allMatches.filter(m=>m.stage==='group'||m.stage==='league');
+    const koMatches=(await sb.from('matches').select('*').eq('tournament_id',tournId).order('match_number')).data||[];
+    const koOnly=koMatches.filter(m=>m.stage&&m.stage!=='group'&&m.stage!=='league');
+    if(!koOnly.length)return;
+
+    const allGroupsDone=groupMatches.every(m=>m.status==='completed');
+    if(!allGroupsDone)return;
+
+    // Load fresh standings
+    const{data:standings}=await sb.from('tournament_teams').select('*').eq('tournament_id',tournId).order('points',{ascending:false}).order('nrr',{ascending:false});
+    if(!standings)return;
+
+    // Group by group_name
+    const byGroup={};
+    standings.forEach(t=>{
+      const g=t.group_name||'ALL';
+      if(!byGroup[g])byGroup[g]=[];
+      byGroup[g].push(t);
+    });
+
+    // Fill knockout matches
+    for(const m of koOnly){
+      if(m.status!=='scheduled')continue;
+      let newA=m.team_a;let newB=m.team_b;
+      const groups=Object.keys(byGroup).sort();
+      groups.forEach(g=>{
+        const gt=byGroup[g];
+        if(gt.length>=1){
+          newA=newA.replace('1st '+g,gt[0].team_name).replace('Top '+g,gt[0].team_name);
+          newB=newB.replace('1st '+g,gt[0].team_name).replace('Top '+g,gt[0].team_name);
+        }
+        if(gt.length>=2){
+          newA=newA.replace('2nd '+g,gt[1].team_name);
+          newB=newB.replace('2nd '+g,gt[1].team_name);
+        }
+      });
+      if(standings.length>=2){
+        newA=newA.replace('1st Place',standings[0].team_name);
+        newB=newB.replace('2nd Place',standings[1].team_name);
+      }
+      // Winner references from completed knockouts
+      const completedKO=koMatches.filter(x=>x.status==='completed'&&x.stage!=='group'&&x.stage!=='league');
+      completedKO.forEach(ck=>{
+        newA=newA.replace('Winner M'+ck.match_number,ck.winner||ck.team_a);
+        newB=newB.replace('Winner M'+ck.match_number,ck.winner||ck.team_b);
+        if(ck.stage&&ck.stage.includes('Semi Final 1')){newA=newA.replace('Winner SF1',ck.winner||'TBD');newB=newB.replace('Winner SF1',ck.winner||'TBD');}
+        if(ck.stage&&ck.stage.includes('Semi Final 2')){newA=newA.replace('Winner SF2',ck.winner||'TBD');newB=newB.replace('Winner SF2',ck.winner||'TBD');}
+      });
+
+      if(newA!==m.team_a||newB!==m.team_b){
+        await sb.from('matches').update({team_a:newA,team_b:newB}).eq('id',m.id);
+      }
+    }
+  }catch(e){console.error('Knockout auto-fill error:',e);}
 }
 
 async function recalcTournament(tournId){

@@ -1932,7 +1932,7 @@ async function updateTournamentStats(){
     if(!ttA||!ttB)return;
 
     // Calculate overs faced (convert balls to overs decimal)
-    function ballsToOvers(b){return Math.floor(b/6)+(b%6)/10;}
+    function ballsToOvers(b){return b/6;} // NRR uses actual decimal: 45 balls = 7.5 overs
 
     // Figure out which innings belongs to which team
     const innA=inn1.batting_team===teamA?inn1:inn2;
