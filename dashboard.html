@@ -1290,8 +1290,20 @@ async function updateManualTournStats(m){
     const{data:allInnings}=await sb.from('innings').select('*').in('match_id',matchIds);
 
     // NRR uses actual decimal overs: balls/6 (NOT cricket display like 7.3)
-    // 45 balls = 7.5 overs (45÷6), NOT 7.3
-    function ballsToOvers(b){return b/6;}
+    // ICC RULE: If a team is ALL OUT, their overs = FULL ALLOCATION (max overs)
+    // If they chased target (won), use actual overs
+    const maxBalls=(allMatches[0]?.overs_per_side||8)*6;
+
+    function getOversForNRR(inn,matchObj){
+      const maxOv=maxBalls/6;
+      const actualOv=(inn.total_balls||0)/6;
+      // If team used all allocated overs → actual
+      if((inn.total_balls||0)>=maxBalls)return actualOv;
+      // If 2nd innings and batting team WON → chased target, use actual overs
+      if(inn.innings_number===2&&matchObj.winner===inn.batting_team)return actualOv;
+      // Otherwise team was all out before completing overs → use max overs (ICC rule)
+      return maxOv;
+    }
 
     // Reset and recalculate each team
     for(const team of allTeams){
@@ -1307,11 +1319,11 @@ async function updateManualTournStats(m){
 
         if(myBatInn){
           stats.runs_scored+=myBatInn.total_runs||0;
-          stats.overs_faced+=ballsToOvers(myBatInn.total_balls||0);
+          stats.overs_faced+=getOversForNRR(myBatInn,match);
         }
         if(myBowlInn){
           stats.runs_conceded+=myBowlInn.total_runs||0;
-          stats.overs_bowled+=ballsToOvers(myBowlInn.total_balls||0);
+          stats.overs_bowled+=getOversForNRR(myBowlInn,match);
         }
 
         // Win/loss/tie

@@ -1931,8 +1931,14 @@ async function updateTournamentStats(){
     const{data:ttB}=await sb.from('tournament_teams').select('*').eq('tournament_id',match.tournament_id).eq('team_name',teamB).maybeSingle();
     if(!ttA||!ttB)return;
 
-    // Calculate overs faced (convert balls to overs decimal)
-    function ballsToOvers(b){return b/6;} // NRR uses actual decimal: 45 balls = 7.5 overs
+    // Calculate overs for NRR — ICC rule: all out = full allocation
+    const maxOv=match.overs_per_side||8;
+    function getNRROvers(inn){
+      const actualOv=(inn.total_balls||0)/6;
+      if((inn.total_balls||0)>=maxOv*6)return actualOv; // completed all overs
+      if(inn.innings_number===2&&match.winner===inn.batting_team)return actualOv; // chased target
+      return maxOv; // all out → use full allocation
+    }
 
     // Figure out which innings belongs to which team
     const innA=inn1.batting_team===teamA?inn1:inn2;
@@ -1942,9 +1948,9 @@ async function updateTournamentStats(){
     const updA={
       matches_played:(ttA.matches_played||0)+1,
       runs_scored:(ttA.runs_scored||0)+innA.total_runs,
-      overs_faced:parseFloat(ttA.overs_faced||0)+ballsToOvers(innA.total_balls),
+      overs_faced:parseFloat(ttA.overs_faced||0)+getNRROvers(innA),
       runs_conceded:(ttA.runs_conceded||0)+innB.total_runs,
-      overs_bowled:parseFloat(ttA.overs_bowled||0)+ballsToOvers(innB.total_balls)
+      overs_bowled:parseFloat(ttA.overs_bowled||0)+getNRROvers(innB)
     };
     if(winner===teamA){updA.wins=(ttA.wins||0)+1;updA.points=(ttA.points||0)+2;}
     else if(winner===teamB){updA.losses=(ttA.losses||0)+1;}
@@ -1960,9 +1966,9 @@ async function updateTournamentStats(){
     const updB={
       matches_played:(ttB.matches_played||0)+1,
       runs_scored:(ttB.runs_scored||0)+innB.total_runs,
-      overs_faced:parseFloat(ttB.overs_faced||0)+ballsToOvers(innB.total_balls),
+      overs_faced:parseFloat(ttB.overs_faced||0)+getNRROvers(innB),
       runs_conceded:(ttB.runs_conceded||0)+innA.total_runs,
-      overs_bowled:parseFloat(ttB.overs_bowled||0)+ballsToOvers(innA.total_balls)
+      overs_bowled:parseFloat(ttB.overs_bowled||0)+getNRROvers(innA)
     };
     if(winner===teamB){updB.wins=(ttB.wins||0)+1;updB.points=(ttB.points||0)+2;}
     else if(winner===teamA){updB.losses=(ttB.losses||0)+1;}
