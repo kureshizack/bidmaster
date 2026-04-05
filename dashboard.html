@@ -632,6 +632,7 @@ async function loadDashboard(){
           <span style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid ${sc[t.status]||'var(--border)'};color:${sc[t.status]||'var(--muted)'};font-family:Rajdhani,sans-serif;font-weight:700;">${t.status.toUpperCase()}</span>
           ${t.status==='live'?'<a href="standings.html?t='+t.share_code+'" style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Standings</a>':''}
           <a href="tournament.html?id=${t.id}" style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--border);color:var(--muted);text-decoration:none;font-family:Rajdhani,sans-serif;font-weight:700;">Edit</a>
+          <button onclick="recalcTournament('${t.id}')" style="font-size:10px;padding:3px 8px;border-radius:10px;border:1px solid var(--blue);color:var(--blue);background:none;font-family:Rajdhani,sans-serif;font-weight:700;cursor:pointer;">Recalc</button>
         </div>
       </div>${matchHtml}</div>`;
   }
@@ -1258,9 +1259,9 @@ async function submitManualEntry(){
     const{error:mErr}=await sb.from('matches').update(matchUpdate).eq('id',m.id);
     if(mErr)throw new Error('Match update: '+mErr.message);
 
-    // Update tournament_teams for points table
+    // Update tournament_teams for points table (full recalculation)
     if(m.tournament_id){
-      await updateManualTournStats(m,inn1,inn2,winner,result);
+      await updateManualTournStats(m);
     }
 
     document.getElementById('manualModal').style.display='none';
@@ -1273,53 +1274,68 @@ async function submitManualEntry(){
   }
 }
 
-async function updateManualTournStats(m,inn1,inn2,winner,result){
+async function updateManualTournStats(m){
+  // FULL RECALCULATION — rebuild all team stats from completed matches
+  // This prevents any double-counting from manual re-entries or live+manual overlap
+  if(!m.tournament_id)return;
   try{
-    const teamA=m.team_a;const teamB=m.team_b;
-    const{data:ttA}=await sb.from('tournament_teams').select('*').eq('tournament_id',m.tournament_id).eq('team_name',teamA).maybeSingle();
-    const{data:ttB}=await sb.from('tournament_teams').select('*').eq('tournament_id',m.tournament_id).eq('team_name',teamB).maybeSingle();
-    if(!ttA||!ttB)return;
+    const{data:allTeams}=await sb.from('tournament_teams').select('*').eq('tournament_id',m.tournament_id);
+    if(!allTeams||!allTeams.length)return;
+
+    const{data:allMatches}=await sb.from('matches').select('*').eq('tournament_id',m.tournament_id).eq('status','completed');
+    if(!allMatches)return;
+
+    // Load all innings for completed matches
+    const matchIds=allMatches.map(x=>x.id);
+    const{data:allInnings}=await sb.from('innings').select('*').in('match_id',matchIds);
 
     function ballsToOvers(b){return Math.floor(b/6)+(b%6)/10;}
 
-    // Figure out which innings belongs to which team
-    const innA=inn1.batting_team===teamA?inn1:inn2;
-    const innB=inn1.batting_team===teamB?inn1:inn2;
+    // Reset and recalculate each team
+    for(const team of allTeams){
+      const stats={matches_played:0,wins:0,losses:0,ties:0,no_results:0,points:0,runs_scored:0,overs_faced:0,runs_conceded:0,overs_bowled:0,nrr:0};
 
-    // Update Team A
-    const updA={
-      matches_played:(ttA.matches_played||0)+1,
-      runs_scored:(ttA.runs_scored||0)+innA.total_runs,
-      overs_faced:parseFloat(ttA.overs_faced||0)+ballsToOvers(innA.total_balls),
-      runs_conceded:(ttA.runs_conceded||0)+innB.total_runs,
-      overs_bowled:parseFloat(ttA.overs_bowled||0)+ballsToOvers(innB.total_balls)
-    };
-    if(winner===teamA){updA.wins=(ttA.wins||0)+1;updA.points=(ttA.points||0)+2;}
-    else if(winner===teamB){updA.losses=(ttA.losses||0)+1;}
-    else if(result.includes('Tied')){updA.ties=(ttA.ties||0)+1;updA.points=(ttA.points||0)+1;}
-    else{updA.no_results=(ttA.no_results||0)+1;updA.points=(ttA.points||0)+1;}
-    if(updA.overs_faced>0&&updA.overs_bowled>0){
-      updA.nrr=((updA.runs_scored/updA.overs_faced)-(updA.runs_conceded/updA.overs_bowled)).toFixed(3);
-    }
-    await sb.from('tournament_teams').update(updA).eq('id',ttA.id);
+      for(const match of allMatches){
+        if(match.team_a!==team.team_name&&match.team_b!==team.team_name)continue;
+        stats.matches_played++;
 
-    // Update Team B
-    const updB={
-      matches_played:(ttB.matches_played||0)+1,
-      runs_scored:(ttB.runs_scored||0)+innB.total_runs,
-      overs_faced:parseFloat(ttB.overs_faced||0)+ballsToOvers(innB.total_balls),
-      runs_conceded:(ttB.runs_conceded||0)+innA.total_runs,
-      overs_bowled:parseFloat(ttB.overs_bowled||0)+ballsToOvers(innA.total_balls)
-    };
-    if(winner===teamB){updB.wins=(ttB.wins||0)+1;updB.points=(ttB.points||0)+2;}
-    else if(winner===teamA){updB.losses=(ttB.losses||0)+1;}
-    else if(result.includes('Tied')){updB.ties=(ttB.ties||0)+1;updB.points=(ttB.points||0)+1;}
-    else{updB.no_results=(ttB.no_results||0)+1;updB.points=(ttB.points||0)+1;}
-    if(updB.overs_faced>0&&updB.overs_bowled>0){
-      updB.nrr=((updB.runs_scored/updB.overs_faced)-(updB.runs_conceded/updB.overs_bowled)).toFixed(3);
+        // Find this team's batting and bowling innings
+        const myBatInn=(allInnings||[]).find(i=>i.match_id===match.id&&i.batting_team===team.team_name);
+        const myBowlInn=(allInnings||[]).find(i=>i.match_id===match.id&&i.bowling_team===team.team_name);
+
+        if(myBatInn){
+          stats.runs_scored+=myBatInn.total_runs||0;
+          stats.overs_faced+=ballsToOvers(myBatInn.total_balls||0);
+        }
+        if(myBowlInn){
+          stats.runs_conceded+=myBowlInn.total_runs||0;
+          stats.overs_bowled+=ballsToOvers(myBowlInn.total_balls||0);
+        }
+
+        // Win/loss/tie
+        if(match.winner===team.team_name){stats.wins++;stats.points+=2;}
+        else if(match.winner&&match.winner!==team.team_name){stats.losses++;}
+        else if(match.result&&match.result.includes('Tied')){stats.ties++;stats.points+=1;}
+        else if(match.result&&match.result.includes('No Result')){stats.no_results++;stats.points+=1;}
+      }
+
+      // Calculate NRR
+      if(stats.overs_faced>0&&stats.overs_bowled>0){
+        stats.nrr=((stats.runs_scored/stats.overs_faced)-(stats.runs_conceded/stats.overs_bowled)).toFixed(3);
+      }
+
+      await sb.from('tournament_teams').update(stats).eq('id',team.id);
     }
-    await sb.from('tournament_teams').update(updB).eq('id',ttB.id);
-  }catch(e){console.error('Tournament stats update error:',e);}
+  }catch(e){console.error('Tournament stats recalc error:',e);}
+}
+
+async function recalcTournament(tournId){
+  if(!await cxiConfirm('Recalculate all standings from completed matches?\n\nThis will fix any wrong points, NRR, wins/losses.'))return;
+  try{
+    await updateManualTournStats({tournament_id:tournId});
+    cxiAlert('✅ Standings recalculated!');
+    setTimeout(()=>loadDashboard(),1000);
+  }catch(e){cxiAlert('Error: '+e.message);}
 }
 </script>
 <script src="/cxi-modern.js"></script>
